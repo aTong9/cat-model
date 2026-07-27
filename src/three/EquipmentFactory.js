@@ -61,154 +61,118 @@ function createDecal(tex, width, height, opts = {}) {
 
 // ===== 装备创建函数 =====
 
-// --- 棒球帽 ---
+// --- 棒球帽（像素体素风格，参考 Camera.html 的 Box 堆积建模方式） ---
 function createBaseballCap() {
   const g = new THREE.Group()
-  const t = tex('Baseball Cap')
 
   const domeColor = '#545b6b'
-  const brimColor = '#9c7b5c'
+  const brimColor = '#8c7258'
+  const bandColor = '#6b5542'
   const seamColor = '#3e4452'
   const buttonColor = '#454c5a'
+  const goldColor = '#c9a84c'
 
-  // 帽顶：半球，6 片式棒球帽轮廓
-  const domeGeo = new THREE.SphereGeometry(0.34, 48, 32, 0, Math.PI, 0, Math.PI / 2.05)
-  const dome = new THREE.Mesh(
-    domeGeo,
-    new THREE.MeshStandardMaterial({ color: domeColor, roughness: 0.55, metalness: 0.02 })
-  )
-  dome.scale.set(1.0, 0.72, 0.88)
-  dome.castShadow = true
-  dome.rotation.y = -Math.PI / 2
-  g.add(dome)
+  const inner = new THREE.Group()
 
-  // 6 条 panel seam（从顶纽扣辐射到下缘）
-  const seamMat = new THREE.MeshStandardMaterial({ color: seamColor, roughness: 0.6 })
+  // ===== 帽顶：多层 Box 堆出半球（完全不用 SphereGeometry） =====
+  const domeLayers = [
+    { y: 0.000, w: 0.66, h: 0.04, d: 0.58 },
+    { y: 0.040, w: 0.62, h: 0.04, d: 0.54 },
+    { y: 0.080, w: 0.56, h: 0.04, d: 0.49 },
+    { y: 0.120, w: 0.48, h: 0.04, d: 0.42 },
+    { y: 0.160, w: 0.36, h: 0.04, d: 0.32 },
+    { y: 0.200, w: 0.20, h: 0.04, d: 0.18 },
+  ]
+  const domeMat = new THREE.MeshStandardMaterial({ color: domeColor, roughness: 0.55, metalness: 0.02 })
+  domeLayers.forEach(l => {
+    const block = new THREE.Mesh(new THREE.BoxGeometry(l.w, l.h, l.d), domeMat)
+    block.position.y = l.y
+    block.castShadow = true
+    inner.add(block)
+  })
+
+  // ===== 6 条 panel seam（垂直方柱，从帽顶辐射到下缘） =====
+  const seamMatLocal = new THREE.MeshStandardMaterial({ color: seamColor, roughness: 0.6 })
   for (let i = 0; i < 6; i++) {
     const a = (i / 6) * Math.PI - Math.PI / 2
-    const seam = new THREE.Mesh(new THREE.BoxGeometry(0.012, 0.36, 0.02), seamMat)
-    seam.position.set(Math.sin(a) * 0.30, 0.05, Math.cos(a) * 0.26)
-    seam.rotation.x = -0.08
+    const seam = new THREE.Mesh(new THREE.BoxGeometry(0.012, 0.22, 0.02), seamMatLocal)
+    seam.position.set(Math.sin(a) * 0.28, 0.1, Math.cos(a) * 0.24)
     seam.rotation.y = -a
-    seam.rotation.z = Math.cos(a) * 0.05
-    g.add(seam)
+    inner.add(seam)
   }
 
-  // 帽檐：微微弯曲的椭圆板
+  // ===== 帽檐：扁平方块 =====
   const brim = new THREE.Mesh(
-    new THREE.CylinderGeometry(0.30, 0.30, 0.018, 36),
+    new THREE.BoxGeometry(0.74, 0.02, 0.32),
     new THREE.MeshStandardMaterial({ color: brimColor, roughness: 0.45, metalness: 0.02 })
   )
-  brim.scale.set(1.05, 1, 0.55)
-  brim.position.set(0, -0.07, 0.24)
-  brim.rotation.x = -0.32
+  brim.position.set(0, -0.03, 0.28)
+  brim.rotation.x = -0.05
   brim.castShadow = true
-  g.add(brim)
+  inner.add(brim)
 
-  // 帽檐下侧阴影面
-  const brimUnder = new THREE.Mesh(
-    new THREE.CylinderGeometry(0.29, 0.29, 0.008, 36),
-    new THREE.MeshStandardMaterial({ color: '#7a5f45', roughness: 0.5 })
+  // ===== 帽檐上方深色条带 =====
+  const brimBand = new THREE.Mesh(
+    new THREE.BoxGeometry(0.76, 0.024, 0.06),
+    new THREE.MeshStandardMaterial({ color: bandColor, roughness: 0.45 })
   )
-  brimUnder.scale.set(1.05, 1, 0.55)
-  brimUnder.position.set(0, -0.078, 0.24)
-  brimUnder.rotation.x = -0.32
-  g.add(brimUnder)
+  brimBand.position.set(0, -0.025, 0.14)
+  inner.add(brimBand)
 
-  // 正面 Bitcoin B 标志：程序生成 canvas 纹理
-  function makeBitcoinTexture() {
-    const size = 256
-    const canvas = document.createElement('canvas')
-    canvas.width = size
-    canvas.height = size
-    const ctx = canvas.getContext('2d')
+  // ===== 帽檐下侧阴影 =====
+  const brimUnder = new THREE.Mesh(
+    new THREE.BoxGeometry(0.72, 0.01, 0.30),
+    new THREE.MeshStandardMaterial({ color: '#6e5842', roughness: 0.5 })
+  )
+  brimUnder.position.set(0, -0.04, 0.28)
+  brimUnder.rotation.x = -0.05
+  inner.add(brimUnder)
 
-    // 帽身底色
-    ctx.fillStyle = domeColor
-    ctx.fillRect(0, 0, size, size)
+  // ===== 3D 像素化 Bitcoin B 标志（小方块浮在帽子正面） =====
+  const pixelBGroup = new THREE.Group()
+  const bMat = new THREE.MeshStandardMaterial({ color: goldColor, roughness: 0.3, metalness: 0.3 })
+  const pixelSize = 0.02
+  const bPattern = [
+    ' ███  ',
+    '██ ██ ',
+    '██ ██ ',
+    '████  ',
+    '██ ██ ',
+    '████  ',
+    '██ ██ ',
+    '██ ██ ',
+    ' ███  ',
+  ]
+  const gapScale = 0.02
+  bPattern.forEach((row, y) => {
+    for (let x = 0; x < row.length; x++) {
+      if (row[x] === '█') {
+        const p = new THREE.Mesh(
+          new THREE.BoxGeometry(pixelSize, pixelSize, pixelSize * 0.6),
+          bMat
+        )
+        p.position.set(
+          (x - (row.length - 1) / 2) * (pixelSize + gapScale),
+          (bPattern.length / 2 - y - 0.5) * (pixelSize + gapScale),
+          0
+        )
+        pixelBGroup.add(p)
+      }
+    }
+  })
+  pixelBGroup.position.set(0, 0.08, 0.285)
+  pixelBGroup.rotation.x = -0.10
+  inner.add(pixelBGroup)
 
-    // 标志
-    ctx.fillStyle = '#d4a04a'
-    ctx.strokeStyle = '#d4a04a'
-    ctx.lineWidth = 18
-    ctx.lineCap = 'round'
-
-    const cx = size / 2
-    const cy = size / 2
-    const w = 90
-    const h = 120
-
-    // 外圆角竖条（B 的竖线）
-    ctx.beginPath()
-    ctx.roundRect(cx - w / 2 + 12, cy - h / 2, 22, h, 10)
-    ctx.fill()
-
-    // 上下横线
-    ctx.beginPath()
-    ctx.moveTo(cx - w / 2 + 22, cy - h / 2 + 12)
-    ctx.lineTo(cx + w / 2 - 10, cy - h / 2 + 12)
-    ctx.stroke()
-
-    ctx.beginPath()
-    ctx.moveTo(cx - w / 2 + 22, cy - 4)
-    ctx.lineTo(cx + w / 2 - 10, cy - 4)
-    ctx.stroke()
-
-    ctx.beginPath()
-    ctx.moveTo(cx - w / 2 + 22, cy + 4)
-    ctx.lineTo(cx + w / 2 - 10, cy + 4)
-    ctx.stroke()
-
-    ctx.beginPath()
-    ctx.moveTo(cx - w / 2 + 22, cy + h / 2 - 12)
-    ctx.lineTo(cx + w / 2 - 10, cy + h / 2 - 12)
-    ctx.stroke()
-
-    // 两个半圆构成 B
-    ctx.beginPath()
-    ctx.arc(cx + 8, cy - 26, 28, -Math.PI / 2, Math.PI / 2)
-    ctx.stroke()
-
-    ctx.beginPath()
-    ctx.arc(cx + 8, cy + 26, 36, -Math.PI / 2, Math.PI / 2)
-    ctx.stroke()
-
-    // 竖线出头
-    ctx.beginPath()
-    ctx.moveTo(cx - w / 2 + 22, cy - h / 2 - 8)
-    ctx.lineTo(cx - w / 2 + 32, cy - h / 2 - 8)
-    ctx.stroke()
-
-    ctx.beginPath()
-    ctx.moveTo(cx - w / 2 + 22, cy + h / 2 + 8)
-    ctx.lineTo(cx - w / 2 + 32, cy + h / 2 + 8)
-    ctx.stroke()
-
-    const texture = new THREE.CanvasTexture(canvas)
-    texture.colorSpace = THREE.SRGBColorSpace
-    return texture
-  }
-
-  // 优先使用原 PNG，否则 fallback 到程序生成的 Bitcoin 标志
-  const frontTex = t || makeBitcoinTexture()
-  if (frontTex) {
-    const aspect = frontTex.image ? frontTex.image.width / frontTex.image.height : 1.0
-    const h = 0.18
-    const w = h * aspect
-    const decal = createDecal(frontTex, w, h)
-    decal.position.set(0, 0.06, 0.285)
-    decal.rotation.x = -0.10
-    g.add(decal)
-  }
-
-  // 顶部小纽扣
+  // ===== 顶部小纽扣 =====
   const btn = new THREE.Mesh(
-    new THREE.CylinderGeometry(0.035, 0.035, 0.03, 16),
+    new THREE.CylinderGeometry(0.035, 0.035, 0.03, 12),
     new THREE.MeshStandardMaterial({ color: buttonColor, roughness: 0.4 })
   )
-  btn.position.y = 0.165
-  g.add(btn)
+  btn.position.y = 0.22
+  inner.add(btn)
 
+  g.add(inner)
   g.position.set(0, 2.04, 0.04)
   g.rotation.x = -0.25
   return g
@@ -471,60 +435,97 @@ function createSake() {
   return g
 }
 
-// --- 相机 ---
+// --- 相机（像素复古相机，程序化建模） ---
 function createCamera() {
   const g = new THREE.Group()
-  const t = tex('Camera')
 
-  const body = new THREE.Mesh(
-    new THREE.BoxGeometry(0.18, 0.13, 0.08),
-    new THREE.MeshStandardMaterial({ color: '#2c3e50', roughness: 0.35, metalness: 0.15 })
-  )
-  body.castShadow = true
-  g.add(body)
+  // 材质
+  const bodyMat  = new THREE.MeshStandardMaterial({ color: '#3d3d3d', roughness: 0.45, metalness: 0.05 })
+  const topMat   = new THREE.MeshStandardMaterial({ color: '#b0b0b0', roughness: 0.40, metalness: 0.05 })
+  const darkMat  = new THREE.MeshStandardMaterial({ color: '#222222', roughness: 0.50, metalness: 0.05 })
+  const lensMat  = new THREE.MeshStandardMaterial({ color: '#111111', roughness: 0.10, metalness: 0.55 })
+  const ringMat  = new THREE.MeshStandardMaterial({ color: '#555555', roughness: 0.25, metalness: 0.45 })
+  const strapMat = new THREE.MeshStandardMaterial({ color: '#6b3e26', roughness: 0.50, metalness: 0.05 })
+  const whiteMat = new THREE.MeshBasicMaterial({ color: '#ffffff' })
 
-  if (t) {
-    const aspect = t.image ? t.image.width / t.image.height : 1.38
-    const w = 0.18
-    const h = w / aspect
-    const decal = createDecal(t, w, h)
-    decal.position.set(0, 0.13 / 2 - h / 2, 0.041)
-    g.add(decal)
-  }
+  const inner = new THREE.Group()
 
-  const lensBase = new THREE.Mesh(
-    new THREE.CylinderGeometry(0.04, 0.045, 0.08, 20),
-    new THREE.MeshStandardMaterial({ color: '#1a1a1a', roughness: 0.1, metalness: 0.6 })
-  )
-  lensBase.rotation.x = Math.PI / 2
-  lensBase.position.set(0.04, -0.01, 0.09)
-  lensBase.castShadow = true
-  g.add(lensBase)
+  // 机身主体
+  const body = new THREE.Mesh(new THREE.BoxGeometry(2.0, 0.95, 0.9), bodyMat)
+  body.position.y = 0
+  inner.add(body)
 
-  const lensFront = new THREE.Mesh(
-    new THREE.CircleGeometry(0.033, 16),
-    new THREE.MeshStandardMaterial({ color: '#334466', roughness: 0.05, metalness: 0.3 })
-  )
-  lensFront.position.set(0.04, -0.01, 0.132)
-  g.add(lensFront)
+  // 顶部浅灰区域
+  const top = new THREE.Mesh(new THREE.BoxGeometry(2.0, 0.38, 0.9), topMat)
+  top.position.y = 0.665
+  inner.add(top)
 
-  const strapPts = [
-    new THREE.Vector3(0.08, 0.04, -0.04),
-    new THREE.Vector3(0.12, 0.16, -0.06),
-    new THREE.Vector3(0.04, 0.26, -0.10),
-    new THREE.Vector3(-0.04, 0.26, -0.10),
-    new THREE.Vector3(-0.12, 0.16, -0.06),
-    new THREE.Vector3(-0.08, 0.04, -0.04),
-  ]
-  g.add(
-    new THREE.Mesh(
-      new THREE.TubeGeometry(new THREE.CatmullRomCurve3(strapPts), 20, 0.01, 6, false),
-      new THREE.MeshStandardMaterial({ color: '#e74c3c', roughness: 0.5, metalness: 0.1 })
-    )
-  )
+  // 顶部左侧黑色长条
+  const topSlot = new THREE.Mesh(new THREE.BoxGeometry(0.55, 0.14, 0.08), darkMat)
+  topSlot.position.set(-0.45, 0.70, 0.42)
+  inner.add(topSlot)
 
+  // 顶部最左侧小凸起
+  const topLeft = new THREE.Mesh(new THREE.BoxGeometry(0.28, 0.18, 0.35), darkMat)
+  topLeft.position.set(-0.78, 0.90, 0.1)
+  inner.add(topLeft)
+
+  // 镜头外圈
+  const lensRing = new THREE.Mesh(new THREE.CylinderGeometry(0.48, 0.48, 0.28, 20), ringMat)
+  lensRing.rotation.x = Math.PI / 2
+  lensRing.position.set(0.05, 0.05, 0.58)
+  inner.add(lensRing)
+
+  // 黑色镜片
+  const lens = new THREE.Mesh(new THREE.CylinderGeometry(0.36, 0.36, 0.16, 20), lensMat)
+  lens.rotation.x = Math.PI / 2
+  lens.position.set(0.05, 0.05, 0.70)
+  inner.add(lens)
+
+  // 镜头高光（三层像素化反光）
+  const hl1 = new THREE.Mesh(new THREE.BoxGeometry(0.12, 0.12, 0.02), whiteMat)
+  hl1.position.set(0.18, 0.16, 0.79)
+  inner.add(hl1)
+
+  const hl2 = new THREE.Mesh(new THREE.BoxGeometry(0.08, 0.08, 0.02), whiteMat)
+  hl2.position.set(0.02, -0.02, 0.79)
+  inner.add(hl2)
+
+  const hl3 = new THREE.Mesh(new THREE.BoxGeometry(0.06, 0.06, 0.02), whiteMat)
+  hl3.position.set(-0.12, -0.12, 0.79)
+  inner.add(hl3)
+
+  // 左侧连接扣 + 挂带
+  const buckleL = new THREE.Mesh(new THREE.BoxGeometry(0.18, 0.26, 0.2), strapMat)
+  buckleL.position.set(-1.05, 0.25, 0.1)
+  inner.add(buckleL)
+
+  const strapL = new THREE.Mesh(new THREE.BoxGeometry(0.14, 0.18, 1.4), strapMat)
+  strapL.position.set(-1.2, 0.25, -0.55)
+  strapL.rotation.y = 0.15
+  inner.add(strapL)
+
+  // 右侧连接扣 + 挂带
+  const buckleR = new THREE.Mesh(new THREE.BoxGeometry(0.18, 0.26, 0.2), strapMat)
+  buckleR.position.set(1.05, 0.25, 0.1)
+  inner.add(buckleR)
+
+  const strapR = new THREE.Mesh(new THREE.BoxGeometry(0.14, 0.18, 1.4), strapMat)
+  strapR.position.set(1.2, 0.25, -0.55)
+  strapR.rotation.y = -0.15
+  inner.add(strapR)
+
+  // 内层整体微调（与 Camera.html 一致）
+  inner.position.y = -0.1
+  inner.rotation.y = -0.15
+
+  g.add(inner)
+
+  // 缩放适配猫的比例并定位到胸前
+  g.scale.setScalar(0.1)
   g.position.set(0, 1.18, 0.62)
   g.rotation.x = -0.15
+
   return g
 }
 

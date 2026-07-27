@@ -45,5 +45,27 @@ const ChoiceRow = defineComponent({
 </script>
 
 <style scoped>
-.right-panel { position: fixed; top: 12px; right: 12px; z-index: 90; display: flex; flex-direction: column; align-items: flex-end; gap: 8px; animation: slideLeft .5s ease-out .4s both; }.tool-row { display: flex; gap: 6px; padding: 8px 10px; border-radius: 10px; }.panel-header { padding: 9px 16px; border-radius: 10px; font-size: .8rem; color: var(--text); cursor: pointer; display: flex; align-items: center; gap: 8px; border: 1px solid var(--border); }.arrow { transition: transform .25s; }.arrow.open { transform: rotate(180deg); }.panel-body { padding: 16px; border-radius: 12px; display: flex; flex-direction: column; gap: 13px; width: 330px; max-height: calc(100vh - 160px); overflow-y: auto; }.intro { display: grid; gap: 4px; padding-bottom: 10px; border-bottom: 1px solid var(--border); }.intro span { color: var(--accent); font-size: .6rem; letter-spacing: .18em; }.intro b { font-size: .83rem; }.param-row { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }.param-label { font-size: .7rem; color: var(--text-dim); min-width: 35px; }.color-row { display: flex; align-items: center; gap: 8px; }.hex-text, .val-text { font-family: monospace; font-size: .73rem; color: var(--text-dim); }.preset-row, .btn-row { display: flex; gap: 4px; flex-wrap: wrap; flex: 1; }.preset-dot { width: 18px; height: 18px; border-radius: 50%; border: 2px solid transparent; cursor: pointer; }.preset-dot.active { border-color: #fff; box-shadow: 0 0 7px var(--accent); }.select-input { background: rgba(255,255,255,.06); border: 1px solid var(--border); border-radius: 6px; color: var(--text); padding: 5px 10px; font-size: .76rem; }.select-input option { background: #1a1a2e; }.slider { accent-color: var(--accent); flex: 1; }.expand-enter-active, .expand-leave-active { transition: all .3s ease; overflow: hidden; }.expand-enter-from, .expand-leave-to { opacity: 0; max-height: 0; padding-top: 0; padding-bottom: 0; }.expand-enter-to, .expand-leave-from { opacity: 1; max-height: 800px; }
+.right-panel { position: fixed; top: 14px; right: 14px; bottom: 14px; z-index: 90; display: flex; flex-direction: column; align-items: flex-end; gap: 8px; animation: slideLeft .5s ease-out .4s both; }
+.tool-row { display: flex; gap: 8px; padding: 10px 12px; border-radius: 10px; }
+.panel-header { padding: 10px 18px; border-radius: 10px; font-size: .82rem; color: var(--text); cursor: pointer; display: flex; align-items: center; gap: 8px; border: 1px solid var(--border); }
+.arrow { transition: transform .25s; }.arrow.open { transform: rotate(180deg); }
+.panel-body { padding: 18px 16px; border-radius: 12px; display: flex; flex-direction: column; gap: 18px; width: 370px; max-height: calc(100vh - 92px); overflow-y: auto; flex-shrink: 1; }
+.intro { display: grid; gap: 5px; padding-bottom: 12px; border-bottom: 1px solid var(--border); }
+.intro span { color: var(--accent); font-size: .62rem; letter-spacing: .2em; }
+.intro b { font-size: .88rem; }
+.param-row { display: flex; align-items: center; gap: 12px; flex-wrap: wrap; }
+.param-label { font-size: .73rem; color: var(--text-dim); min-width: 38px; }
+.color-row { display: flex; align-items: center; gap: 10px; }
+.hex-text, .val-text { font-family: monospace; font-size: .76rem; color: var(--text-dim); }
+.preset-row, .btn-row { display: flex; gap: 5px; flex-wrap: wrap; flex: 1; }
+.preset-dot { width: 20px; height: 20px; border-radius: 50%; border: 2px solid transparent; cursor: pointer; }
+.preset-dot.active { border-color: #fff; box-shadow: 0 0 8px var(--accent); }
+.select-input { background: rgba(255,255,255,.06); border: 1px solid var(--border); border-radius: 6px; color: var(--text); padding: 6px 12px; font-size: .78rem; }
+.select-input option { background: #1a1a2e; }
+.slider { accent-color: var(--accent); flex: 1; height: 4px; }
+.btn.small { padding: 5px 10px; font-size: .72rem; }
+.btn.round { width: 38px; height: 38px; font-size: 1.05rem; }
+.expand-enter-active, .expand-leave-active { transition: all .3s ease; overflow: hidden; }
+.expand-enter-from, .expand-leave-to { opacity: 0; max-height: 0; padding-top: 0; padding-bottom: 0; }
+.expand-enter-to, .expand-leave-from { opacity: 1; max-height: 1200px; }
 </style>

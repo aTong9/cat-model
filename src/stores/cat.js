@@ -41,7 +41,7 @@ export const PRESET_CATS = [
 export const useCatStore = defineStore('cat', () => {
   const furColor = ref('#f4c430'), eyeStyle = ref('VR'), gearType = ref(null), faceExpression = ref('Excited'), background = ref('Blue Gradient'), special = ref(null), tokenId = ref(1), seed = ref(Date.now()), activePreset = ref(null)
   const weather = ref('sunny'), lightIntensity = ref(1), rainAmount = ref(.5), cloudAmount = ref(.5), fishAmount = ref(0), musicOn = ref(false), language = ref('zh')
-  const loading = ref(true), loadingProgress = ref(0), panelExpanded = ref(false), showHints = ref(true)
+  const loading = ref(true), loadingProgress = ref(0), panelExpanded = ref(true), showHints = ref(true)
   const isSpecialFullScene = computed(() => SPECIALS.find(item => item.id === special.value)?.fullScene ?? false)
   function randomize() {
     const pick = list => list[Math.floor(Math.random() * list.length)]

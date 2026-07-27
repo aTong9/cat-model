@@ -1,0 +1,230 @@
+<!DOCTYPE html>
+<html lang="zh">
+<head>
+  <meta charset="UTF-8">
+  <title>像素相机</title>
+  <style>
+    * { margin: 0; padding: 0; }
+    body {
+      background: #e8f5e9;
+      overflow: hidden;
+    }
+    #info {
+      position: absolute;
+      top: 16px; left: 16px;
+      background: rgba(0,0,0,0.7);
+      color: white;
+      padding: 8px 14px;
+      border-radius: 6px;
+      font-size: 13px;
+      pointer-events: none;
+    }
+  </style>
+</head>
+<body>
+  <div id="info">拖拽旋转 · 滚轮缩放</div>
+
+  <script type="importmap">
+  {
+    "imports": {
+      "three": "https://unpkg.com/three@0.160.0/build/three.module.js",
+      "three/addons/": "https://unpkg.com/three@0.160.0/examples/jsm/"
+    }
+  }
+  </script>
+
+  <script type="module">
+    import * as THREE from 'three';
+    import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
+    import { EffectComposer } from 'three/addons/postprocessing/EffectComposer.js';
+    import { RenderPass } from 'three/addons/postprocessing/RenderPass.js';
+    import { ShaderPass } from 'three/addons/postprocessing/ShaderPass.js';
+
+    const scene = new THREE.Scene();
+    scene.background = new THREE.Color(0xe8f5e9);
+
+    const camera = new THREE.PerspectiveCamera(40, innerWidth / innerHeight, 0.1, 100);
+    camera.position.set(2.8, 1.2, 4.2);
+
+    const renderer = new THREE.WebGLRenderer({ antialias: false });
+    renderer.setSize(innerWidth, innerHeight);
+    renderer.setPixelRatio(1);
+    document.body.appendChild(renderer.domElement);
+
+    const controls = new OrbitControls(camera, renderer.domElement);
+    controls.enableDamping = true;
+    controls.dampingFactor = 0.08;
+    controls.minDistance = 2;
+    controls.maxDistance = 10;
+
+    // 灯光
+    scene.add(new THREE.AmbientLight(0xffffff, 0.85));
+    const dir = new THREE.DirectionalLight(0xffffff, 0.45);
+    dir.position.set(4, 5, 3);
+    scene.add(dir);
+
+    // ========== 材质 ==========
+    const bodyMat  = new THREE.MeshLambertMaterial({ color: 0x3d3d3d });
+    const topMat   = new THREE.MeshLambertMaterial({ color: 0xb0b0b0 });
+    const darkMat  = new THREE.MeshLambertMaterial({ color: 0x222222 });
+    const lensMat  = new THREE.MeshLambertMaterial({ color: 0x111111 });
+    const ringMat  = new THREE.MeshLambertMaterial({ color: 0x555555 });
+    const strapMat = new THREE.MeshLambertMaterial({ color: 0x6b3e26 });
+    const whiteMat = new THREE.MeshBasicMaterial({ color: 0xffffff });
+
+    const group = new THREE.Group();
+    scene.add(group);
+
+    // ===== 机身主体 =====
+    const body = new THREE.Mesh(
+      new THREE.BoxGeometry(2.0, 0.95, 0.9),
+      bodyMat
+    );
+    body.position.y = 0;
+    group.add(body);
+
+    // ===== 顶部浅灰区域 =====
+    const top = new THREE.Mesh(
+      new THREE.BoxGeometry(2.0, 0.38, 0.9),
+      topMat
+    );
+    top.position.y = 0.665;
+    group.add(top);
+
+    // ===== 顶部左侧黑色长条 =====
+    const topSlot = new THREE.Mesh(
+      new THREE.BoxGeometry(0.55, 0.14, 0.08),
+      darkMat
+    );
+    topSlot.position.set(-0.45, 0.70, 0.42);
+    group.add(topSlot);
+
+    // ===== 顶部最左侧小凸起 =====
+    const topLeft = new THREE.Mesh(
+      new THREE.BoxGeometry(0.28, 0.18, 0.35),
+      darkMat
+    );
+    topLeft.position.set(-0.78, 0.90, 0.1);
+    group.add(topLeft);
+
+    // ===== 镜头外圈 =====
+    const lensRing = new THREE.Mesh(
+      new THREE.CylinderGeometry(0.48, 0.48, 0.28, 20),
+      ringMat
+    );
+    lensRing.rotation.x = Math.PI / 2;
+    lensRing.position.set(0.05, 0.05, 0.58);
+    group.add(lensRing);
+
+    // ===== 黑色镜片 =====
+    const lens = new THREE.Mesh(
+      new THREE.CylinderGeometry(0.36, 0.36, 0.16, 20),
+      lensMat
+    );
+    lens.rotation.x = Math.PI / 2;
+    lens.position.set(0.05, 0.05, 0.70);
+    group.add(lens);
+
+    // ===== 镜头高光 =====
+    const hl1 = new THREE.Mesh(new THREE.BoxGeometry(0.12, 0.12, 0.02), whiteMat);
+    hl1.position.set(0.18, 0.16, 0.79);
+    group.add(hl1);
+
+    const hl2 = new THREE.Mesh(new THREE.BoxGeometry(0.08, 0.08, 0.02), whiteMat);
+    hl2.position.set(0.02, -0.02, 0.79);
+    group.add(hl2);
+
+    const hl3 = new THREE.Mesh(new THREE.BoxGeometry(0.06, 0.06, 0.02), whiteMat);
+    hl3.position.set(-0.12, -0.12, 0.79);
+    group.add(hl3);
+
+    // ========== 往后环绕的相机带（像图中那样） ==========
+
+    // 左侧连接扣
+    const buckleL = new THREE.Mesh(
+      new THREE.BoxGeometry(0.18, 0.26, 0.2),
+      strapMat
+    );
+    buckleL.position.set(-1.05, 0.25, 0.1);
+    group.add(buckleL);
+
+    // 左侧带子（向后延伸）
+    const strapL = new THREE.Mesh(
+      new THREE.BoxGeometry(0.14, 0.18, 1.4),
+      strapMat
+    );
+    strapL.position.set(-1.2, 0.25, -0.55);  // 向后
+    strapL.rotation.y = 0.15;
+    group.add(strapL);
+
+    // 右侧连接扣
+    const buckleR = new THREE.Mesh(
+      new THREE.BoxGeometry(0.18, 0.26, 0.2),
+      strapMat
+    );
+    buckleR.position.set(1.05, 0.25, 0.1);
+    group.add(buckleR);
+
+    // 右侧带子（向后延伸）
+    const strapR = new THREE.Mesh(
+      new THREE.BoxGeometry(0.14, 0.18, 1.4),
+      strapMat
+    );
+    strapR.position.set(1.2, 0.25, -0.55);   // 向后
+    strapR.rotation.y = -0.15;
+    group.add(strapR);
+
+    // 整体微调
+    group.position.y = -0.1;
+    group.rotation.y = -0.15;
+
+    // ========== 像素化后期 ==========
+    const composer = new EffectComposer(renderer);
+    composer.addPass(new RenderPass(scene, camera));
+
+    const PixelShader = {
+      uniforms: {
+        tDiffuse: { value: null },
+        resolution: { value: new THREE.Vector2(innerWidth, innerHeight) },
+        pixelSize: { value: 3.5 }
+      },
+      vertexShader: `
+        varying vec2 vUv;
+        void main() {
+          vUv = uv;
+          gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.0);
+        }
+      `,
+      fragmentShader: `
+        uniform sampler2D tDiffuse;
+        uniform vec2 resolution;
+        uniform float pixelSize;
+        varying vec2 vUv;
+        void main() {
+          vec2 d = pixelSize / resolution;
+          vec2 uv = d * floor(vUv / d);
+          gl_FragColor = texture2D(tDiffuse, uv);
+        }
+      `
+    };
+
+    const pixelPass = new ShaderPass(PixelShader);
+    composer.addPass(pixelPass);
+
+    window.addEventListener('resize', () => {
+      camera.aspect = innerWidth / innerHeight;
+      camera.updateProjectionMatrix();
+      renderer.setSize(innerWidth, innerHeight);
+      composer.setSize(innerWidth, innerHeight);
+      pixelPass.uniforms.resolution.value.set(innerWidth, innerHeight);
+    });
+
+    function animate() {
+      requestAnimationFrame(animate);
+      controls.update();
+      composer.render();
+    }
+    animate();
+  </script>
+</body>
+</html>

@@ -1,13 +1,13 @@
 <template>
-  <canvas ref="canvasRef" class="cat-canvas"></canvas>
+  <canvas ref="canvasRef" class="cat-canvas" @click="onClick" @touchend.prevent="onTouch"></canvas>
 </template>
 
 <script setup>
 import { ref, onMounted, onUnmounted, watch } from 'vue'
-import { useCatStore } from '../stores/cat.js'
+import { useCatStore, GEAR_LIST } from '../stores/cat.js'
 import { createScene } from '../three/SceneSetup.js'
 import { CatModel } from '../three/CatModel.js'
-import { preloadGearTextures } from '../three/EquipmentFactory.js'
+import { createGear, preloadGearTextures } from '../three/EquipmentFactory.js'
 import * as THREE from 'three'
 
 const store = useCatStore()
@@ -18,6 +18,29 @@ let catModel
 let clock
 let animId
 let specialGroup
+
+// ===== 装备物理系统 =====
+const gearEntries = []       // { group, id, restPos, velocity, angularVel }
+let raycaster, mouse
+
+function initRaycaster() {
+  raycaster = new THREE.Raycaster()
+  raycaster.far = 15
+  mouse = new THREE.Vector2()
+}
+
+function getAllGearMeshes() {
+  const meshes = []
+  gearEntries.forEach((entry, gi) => {
+    entry.group.traverse((child) => {
+      if (child.isMesh) {
+        child.userData.__gearIndex = gi
+        meshes.push(child)
+      }
+    })
+  })
+  return meshes
+}
 
 onMounted(async () => {
   // 预加载装备贴图
@@ -44,6 +67,12 @@ onMounted(async () => {
   applyBackground(store.background)
   buildSpecialScene(store.special)
 
+  // 初始化 raycaster
+  initRaycaster()
+
+  // 创建全部装备并散落在猫周围
+  createAllGearItems()
+
   clock = new THREE.Clock()
   animate()
 
@@ -57,12 +86,182 @@ onUnmounted(() => {
   catModel?.dispose()
   renderer?.dispose()
   controls?.dispose()
+  // 清理装备
+  gearEntries.forEach(e => {
+    e.group.traverse(c => { if (c.geometry) c.geometry.dispose(); if (c.material) c.material.dispose() })
+    scene?.remove(e.group)
+  })
+  gearEntries.length = 0
 })
+
+// ===== 散落装备 =====
+const GROUND_Y = -0.52
+const SCATTER_RADIUS_MIN = 1.0
+const SCATTER_RADIUS_MAX = 2.0
+
+function createAllGearItems() {
+  gearEntries.forEach(e => scene.remove(e.group))
+  gearEntries.length = 0
+
+  GEAR_LIST.forEach((gear, i) => {
+    const gearGroup = createGear(gear.id)
+    if (!gearGroup) return
+
+    // 散落位置：围绕展台环形分布
+    const angle = (i / GEAR_LIST.length) * Math.PI * 2 + (Math.random() - 0.5) * 0.4
+    const radius = SCATTER_RADIUS_MIN + Math.random() * (SCATTER_RADIUS_MAX - SCATTER_RADIUS_MIN)
+    const x = Math.cos(angle) * radius
+    const z = Math.sin(angle) * radius
+    const y = GROUND_Y
+
+    gearGroup.position.set(x, y, z)
+    gearGroup.rotation.set(
+      Math.random() * 0.2 - 0.1,
+      Math.random() * Math.PI * 2,
+      Math.random() * 0.1 - 0.05
+    )
+    // 缩放适配
+    const s = 0.7 + Math.random() * 0.25
+    gearGroup.scale.setScalar(s)
+
+    gearGroup.userData._scatterAngle = angle
+    gearGroup.userData._scatterRadius = radius
+    gearGroup.userData._gearId = gear.id
+
+    gearGroup.traverse(c => { if (c.isMesh) { c.castShadow = true; c.receiveShadow = true } })
+
+    scene.add(gearGroup)
+
+    gearEntries.push({
+      group: gearGroup,
+      id: gear.id,
+      restPos: new THREE.Vector3(x, y, z),
+      velocity: new THREE.Vector3(0, 0, 0),
+      angularVel: new THREE.Vector3(0, 0, 0),
+    })
+  })
+}
+
+// ===== 鼠标点击 → Raycaster =====
+let lastClickTime = 0
+
+function onClick(e) {
+  lastClickTime = performance.now()
+  castRay(e.clientX, e.clientY)
+}
+
+function onTouch(e) {
+  lastClickTime = performance.now()
+  const touch = e.changedTouches[0]
+  if (touch) castRay(touch.clientX, touch.clientY)
+}
+
+function castRay(clientX, clientY) {
+  const rect = canvasRef.value?.getBoundingClientRect()
+  if (!rect) return
+  mouse.x = ((clientX - rect.left) / rect.width) * 2 - 1
+  mouse.y = -((clientY - rect.top) / rect.height) * 2 + 1
+
+  raycaster.setFromCamera(mouse, camera)
+  const meshes = getAllGearMeshes()
+  const hits = raycaster.intersectObjects(meshes, false)
+  if (hits.length === 0) return
+
+  const gi = hits[0].object.userData.__gearIndex
+  if (gi === undefined || gi >= gearEntries.length) return
+
+  const entry = gearEntries[gi]
+  applyImpulse(entry)
+}
+
+function applyImpulse(entry) {
+  // 随机向上 + 水平弹射
+  const up = 2.5 + Math.random() * 3.0
+  const out = 0.8 + Math.random() * 1.6
+  const angle = Math.random() * Math.PI * 2
+  entry.velocity.set(
+    Math.cos(angle) * out,
+    up,
+    Math.sin(angle) * out
+  )
+  entry.angularVel.set(
+    (Math.random() - 0.5) * 8,
+    (Math.random() - 0.5) * 8,
+    (Math.random() - 0.5) * 6
+  )
+}
+
+// ===== 物理更新 =====
+const GRAVITY = -9.8
+const DAMPING = 0.92
+const ANGULAR_DAMPING = 0.88
+const BOUNCE = 0.35
+const RESTORE_RATE = 0.6  // 静止后缓慢回到原位
+const RESTORE_THRESHOLD = 0.15
+
+function updateGearPhysics(dt) {
+  const cappedDt = Math.min(dt, 0.1) // 防止大帧间隔
+  const now = performance.now()
+
+  gearEntries.forEach(entry => {
+    const speed = entry.velocity.length()
+    const restarting = speed < RESTORE_THRESHOLD && entry.group.position.y <= GROUND_Y + 0.05
+
+    // 如果速度很小且在地面，缓慢回到原位
+    if (restarting && (now - lastClickTime) > 800 && speed < 0.3) {
+      entry.velocity.set(0, 0, 0)
+      entry.angularVel.set(0, 0, 0)
+      entry.group.position.lerp(entry.restPos, RESTORE_RATE * cappedDt * 2)
+      entry.group.rotation.set(0, entry.group.rotation.y * 0.95, 0)
+      if (entry.group.position.distanceTo(entry.restPos) < 0.02) {
+        entry.group.position.copy(entry.restPos)
+      }
+      return
+    }
+
+    // 重力
+    entry.velocity.y += GRAVITY * cappedDt
+
+    // 更新位置
+    entry.group.position.x += entry.velocity.x * cappedDt
+    entry.group.position.y += entry.velocity.y * cappedDt
+    entry.group.position.z += entry.velocity.z * cappedDt
+
+    // 地面碰撞
+    if (entry.group.position.y <= GROUND_Y) {
+      entry.group.position.y = GROUND_Y
+      if (entry.velocity.y < 0) {
+        entry.velocity.y = Math.abs(entry.velocity.y) * BOUNCE
+      }
+      // 地面摩擦
+      entry.velocity.x *= 0.85
+      entry.velocity.z *= 0.85
+      if (Math.abs(entry.velocity.y) < 0.1) entry.velocity.y = 0
+    }
+
+    // 阻尼
+    entry.velocity.multiplyScalar(Math.pow(DAMPING, cappedDt * 10))
+
+    // 旋转
+    entry.group.rotation.x += entry.angularVel.x * cappedDt
+    entry.group.rotation.y += entry.angularVel.y * cappedDt
+    entry.group.rotation.z += entry.angularVel.z * cappedDt
+    entry.angularVel.multiplyScalar(Math.pow(ANGULAR_DAMPING, cappedDt * 10))
+  })
+}
 
 // === 监听 Store 变化 → 更新 3D 模型 ===
 watch(() => store.furColor, (v) => catModel?.setFurColor(v))
 watch(() => store.eyeStyle, (v) => catModel?.setEyeStyle(v))
-watch(() => store.gearType, (v) => catModel?.setGear(v))
+watch(() => store.gearType, (v) => {
+  if (!v) return
+  // 点击面板选择装备 → 对应散落装备弹起
+  const entry = gearEntries.find(e => e.id === v)
+  if (entry) {
+    entry.velocity.set(0, 3.5 + Math.random() * 1.5, 0)
+    entry.angularVel.set((Math.random() - 0.5) * 6, (Math.random() - 0.5) * 6, 0)
+  }
+})
 watch(() => store.faceExpression, (v) => catModel?.setFaceExpression(v))
 watch(() => store.background, applyBackground)
 watch(() => store.special, buildSpecialScene)
@@ -161,11 +360,15 @@ function createClouds() {
 
 function animate() {
   animId = requestAnimationFrame(animate)
+  const dt = Math.min(clock.getDelta(), 0.05)
   const t = clock.getElapsedTime()
 
   catModel?.update(t)
   controls.update()
   updateSize()
+
+  // 装备物理
+  updateGearPhysics(dt)
 
   // 雨滴动画
   if (rainParticles) {
