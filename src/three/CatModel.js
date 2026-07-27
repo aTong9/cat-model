@@ -41,10 +41,6 @@ function tongueMat() {
 function metal(hex) {
   return new THREE.MeshStandardMaterial({ color: new THREE.Color(hex), roughness: 0.22, metalness: 0.88 })
 }
-function accent(hex) {
-  return new THREE.MeshStandardMaterial({ color: new THREE.Color(hex), roughness: 0.38, metalness: 0.05 })
-}
-
 // ===== 心形掌垫几何体 =====
 function createHeartPadGeometry(scale = 1) {
   const s = new THREE.Shape()
@@ -581,128 +577,10 @@ export class CatModel {
     while (this._gearRoot.children.length) this._gearRoot.remove(this._gearRoot.children[0])
     if (!this._gearType) return
 
-    const add = (g) => this._gearRoot.add(g)
-
-    // 贴图类装备：委托给 EquipmentFactory
+    // 全部装备委托给 EquipmentFactory（程序化 + 贴图混合）
     if (TEXTURE_GEAR_TYPES.has(this._gearType)) {
       const gear = createGear(this._gearType)
-      if (gear) add(gear)
-      return
-    }
-
-    switch (this._gearType) {
-      case 'Baseball Cap': {
-        const cg = new THREE.Group()
-        cg.position.set(0, 2.04, 0.04); cg.rotation.x = -0.25
-        const dome = new THREE.Mesh(
-          new THREE.SphereGeometry(0.34, 28, 18, 0, Math.PI * 2, 0, Math.PI / 2.1),
-          accent('#e74c3c'))
-        dome.scale.set(1, 0.7, 0.85); dome.castShadow = true; cg.add(dome)
-        const brim = new THREE.Mesh(new THREE.BoxGeometry(0.58, 0.04, 0.28), accent('#c0392b'))
-        brim.position.set(0, -0.05, 0.18); brim.rotation.x = -0.3; brim.castShadow = true; cg.add(brim)
-        const btn = new THREE.Mesh(new THREE.SphereGeometry(0.04, 8, 6), accent('#c0392b'))
-        btn.position.y = 0.16; cg.add(btn)
-        add(cg)
-        break
-      }
-      case 'Gold Round Glasses': {
-        const gg = new THREE.Group()
-        gg.position.set(0, 1.78, 0.54)
-        for (const x of [-0.13, 0.13]) {
-          gg.add(new THREE.Mesh(new THREE.TorusGeometry(0.09, 0.02, 8, 24), metal('#ffd700'))).position.x = x
-          gg.add(new THREE.Mesh(new THREE.CircleGeometry(0.07, 20),
-            new THREE.MeshPhysicalMaterial({ color: '#ddeeff', roughness: 0.05, transparent: true, opacity: 0.3 }))).position.x = x
-        }
-        const bridge = new THREE.Mesh(new THREE.CylinderGeometry(0.012, 0.012, 0.12, 8), metal('#ffd700'))
-        bridge.rotation.z = Math.PI / 2; gg.add(bridge)
-        add(gg)
-        break
-      }
-      case 'Hiking Backpack': {
-        const pack = new THREE.Group()
-        pack.position.set(0, 1.03, -0.48)
-        const bag = new THREE.Mesh(new THREE.CapsuleGeometry(.20, .34, 6, 12), accent('#3d6f62'))
-        bag.rotation.x = Math.PI / 2; bag.scale.set(1, 1, .55); bag.castShadow = true; pack.add(bag)
-        const flap = new THREE.Mesh(new THREE.BoxGeometry(.26, .11, .035), accent('#527f70'))
-        flap.position.set(0, .07, .13); pack.add(flap)
-        for (const side of [-1, 1]) {
-          const pocket = new THREE.Mesh(new THREE.SphereGeometry(.06, 12, 8), accent('#d88a3c'))
-          pocket.scale.set(.75, 1, .45); pocket.position.set(side * .20, -.06, 0); pack.add(pocket)
-          const strap = new THREE.Mesh(new THREE.TorusGeometry(.25, .013, 6, 18, Math.PI), accent('#2b473f'))
-          strap.rotation.set(Math.PI / 2, 0, side * .20); strap.position.set(side * .13, .02, .17); pack.add(strap)
-        }
-        add(pack)
-        break
-      }
-      case 'Investment Book': {
-        const bg = new THREE.Group()
-        bg.position.set(0.40, 0.38, 0.52); bg.rotation.set(0.2, -0.5, 0.1)
-        bg.add(new THREE.Mesh(new THREE.BoxGeometry(0.22, 0.04, 0.28), accent('#c0392b')))
-        bg.add(new THREE.Mesh(new THREE.BoxGeometry(0.20, 0.025, 0.26), accent('#f5f0e0'))).position.y = 0.03
-        const ribbon = new THREE.Mesh(new THREE.BoxGeometry(0.015, 0.02, 0.10), accent('#ffd700'))
-        ribbon.position.set(0, 0.02, 0.16); bg.add(ribbon)
-        add(bg)
-        break
-      }
-      case 'Hot Coffee': {
-        const cg = new THREE.Group()
-        cg.position.set(0.42, 0.24, 0.56)
-        cg.add(new THREE.Mesh(new THREE.CylinderGeometry(0.08, 0.07, 0.16, 20), accent('#f5f5f0')))
-        const h = new THREE.Mesh(new THREE.TorusGeometry(0.05, 0.015, 8, 12, Math.PI), accent('#f5f5f0'))
-        h.position.set(0.09, 0.02, 0); h.rotation.set(Math.PI / 2, Math.PI / 2, 0); cg.add(h)
-        cg.add(new THREE.Mesh(new THREE.CylinderGeometry(0.07, 0.07, 0.005, 20), accent('#4a2c0a'))).position.y = 0.08
-        for (let i = 0; i < 3; i++) {
-          cg.add(new THREE.Mesh(new THREE.SphereGeometry(0.015, 6, 4),
-            new THREE.MeshBasicMaterial({ color: '#fff', transparent: true, opacity: 0.3 }))).position.set((i - 1) * 0.03, 0.13 + i * 0.04, 0)
-        }
-        add(cg)
-        break
-      }
-      case 'Sake': {
-        const sg = new THREE.Group()
-        sg.position.set(-0.40, 0.30, 0.54)
-        sg.add(new THREE.Mesh(new THREE.CylinderGeometry(0.06, 0.07, 0.20, 16), accent('#e8e8e0')))
-        sg.add(new THREE.Mesh(new THREE.CylinderGeometry(0.03, 0.04, 0.07, 12), accent('#e8e8e0'))).position.y = 0.13
-        sg.add(new THREE.Mesh(new THREE.CylinderGeometry(0.032, 0.032, 0.02, 12), accent('#2c3e50'))).position.y = 0.17
-        sg.add(new THREE.Mesh(new THREE.CylinderGeometry(0.035, 0.03, 0.05, 12), accent('#f0f0e8'))).position.set(0.08, -0.04, 0.02)
-        add(sg)
-        break
-      }
-      case 'Kettlebell': {
-        const kg = new THREE.Group()
-        kg.position.set(-0.40, 0.14, 0.46)
-        kg.add(new THREE.Mesh(new THREE.SphereGeometry(0.10, 20, 16), metal('#444455')))
-        const hPts = [new THREE.Vector3(-0.045, 0.10, 0), new THREE.Vector3(0, 0.16, 0), new THREE.Vector3(0.045, 0.10, 0)]
-        kg.add(new THREE.Mesh(new THREE.TubeGeometry(new THREE.CatmullRomCurve3(hPts), 10, 0.018, 8, false), metal('#555566')))
-        add(kg)
-        break
-      }
-      case 'Astronaut Helmet': {
-        const hg = new THREE.Group()
-        hg.position.set(0, 1.78, 0.08)
-        const shell = new THREE.Mesh(new THREE.SphereGeometry(0.46, 32, 28),
-          new THREE.MeshPhysicalMaterial({ color: '#ddeeff', roughness: 0.1, metalness: 0.05, transparent: true, opacity: 0.35 }))
-        shell.scale.set(1, 0.92, 0.88); hg.add(shell)
-        const collar = new THREE.Mesh(new THREE.TorusGeometry(0.30, 0.04, 10, 28), metal('#ccccdd'))
-        collar.rotation.x = Math.PI / 2; collar.position.y = -0.32; hg.add(collar)
-        add(hg)
-        break
-      }
-      case 'Crown': {
-        const cg = new THREE.Group()
-        cg.position.set(0, 2.04, 0.10)
-        const base = new THREE.Mesh(new THREE.TorusGeometry(0.15, 0.03, 8, 24), metal('#ffd700'))
-        base.rotation.x = Math.PI / 2; cg.add(base)
-        for (let i = 0; i < 5; i++) {
-          const a = (i / 5) * Math.PI * 2
-          const x = Math.cos(a) * 0.14; const z = Math.sin(a) * 0.14
-          cg.add(new THREE.Mesh(new THREE.ConeGeometry(0.025, 0.12, 6, 4), metal('#ffd700'))).position.set(x, 0.05, z)
-          cg.add(new THREE.Mesh(new THREE.SphereGeometry(0.018, 6, 4),
-            new THREE.MeshStandardMaterial({ color: '#e74c3c', roughness: 0.1, metalness: 0.3, emissive: '#400000', emissiveIntensity: 0.5 }))).position.set(x, 0.14, z)
-        }
-        add(cg)
-        break
-      }
+      if (gear) this._gearRoot.add(gear)
     }
   }
 }
