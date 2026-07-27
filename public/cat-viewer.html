@@ -1,0 +1,1373 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Pixel Cat 3D · 参数化猫查看器</title>
+<style>
+  :root {
+    --bg: #1a1a2e;
+    --panel-bg: #16213e;
+    --text: #e0e0e0;
+    --accent: #f4a460;
+    --border: #2a3a5e;
+    --button: #0f3460;
+    --button-hover: #1a508b;
+    --danger: #e74c3c;
+    --success: #27ae60;
+  }
+  * { margin:0; padding:0; box-sizing:border-box; }
+  body {
+    background: var(--bg);
+    font-family: 'Segoe UI', system-ui, -apple-system, sans-serif;
+    overflow: hidden;
+    height: 100vh;
+    display: flex;
+  }
+  #canvas-container {
+    flex: 1;
+    position: relative;
+  }
+  canvas { display:block; }
+
+  /* 右侧面板 */
+  #panel {
+    width: 320px;
+    background: var(--panel-bg);
+    border-left: 1px solid var(--border);
+    display: flex;
+    flex-direction: column;
+    overflow-y: auto;
+    padding: 20px;
+    gap: 18px;
+    z-index: 10;
+  }
+  #panel h2 {
+    color: var(--accent);
+    font-size: 1.2rem;
+    text-align: center;
+    letter-spacing: 0.05em;
+  }
+  #panel h2 .cat-emoji { font-size:1.5rem; }
+  .section {
+    background: rgba(255,255,255,0.03);
+    border-radius: 10px;
+    padding: 14px;
+    border: 1px solid var(--border);
+  }
+  .section h3 {
+    font-size: 0.8rem;
+    text-transform: uppercase;
+    letter-spacing: 0.1em;
+    color: #8899bb;
+    margin-bottom: 10px;
+  }
+  /* 颜色选择器 */
+  #fur-picker-wrap {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+  }
+  #fur-picker {
+    -webkit-appearance: none;
+    width: 44px; height: 44px;
+    border: 2px solid var(--border);
+    border-radius: 8px;
+    cursor: pointer;
+    background: none;
+    padding: 2px;
+  }
+  #fur-picker::-webkit-color-swatch-wrapper { padding:0; }
+  #fur-picker::-webkit-color-swatch { border-radius:4px; border:none; }
+  #fur-hex {
+    color: var(--text);
+    font-family: monospace;
+    font-size: 0.95rem;
+    background: rgba(0,0,0,0.3);
+    padding: 6px 10px;
+    border-radius: 6px;
+    border: 1px solid var(--border);
+  }
+  .preset-colors {
+    display: flex;
+    gap: 6px;
+    margin-top: 8px;
+    flex-wrap: wrap;
+  }
+  .preset-dot {
+    width: 24px; height: 24px;
+    border-radius: 50%;
+    cursor: pointer;
+    border: 2px solid transparent;
+    transition: border-color 0.2s, transform 0.15s;
+  }
+  .preset-dot:hover { transform:scale(1.15); border-color:#fff; }
+  .preset-dot.active { border-color:#fff; transform:scale(1.15); box-shadow:0 0 8px rgba(255,255,255,0.4); }
+
+  /* 按钮组 */
+  .btn-group {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 6px;
+  }
+  .btn {
+    padding: 7px 12px;
+    border-radius: 6px;
+    border: 1px solid var(--border);
+    background: var(--button);
+    color: var(--text);
+    cursor: pointer;
+    font-size: 0.78rem;
+    transition: all 0.18s;
+    white-space: nowrap;
+  }
+  .btn:hover { background: var(--button-hover); border-color:#5588cc; }
+  .btn.active { background: var(--accent); color:#000; border-color:var(--accent); font-weight:600; }
+  .btn.none-btn { opacity:0.6; }
+  .btn.none-btn.active { opacity:1; background:#555; border-color:#888; color:#fff; }
+
+  /* Token ID & 导出 */
+  .token-row {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+  #token-id {
+    font-family: monospace;
+    font-size: 1rem;
+    color: var(--accent);
+    font-weight: bold;
+    background: rgba(0,0,0,0.3);
+    padding: 4px 10px;
+    border-radius: 6px;
+  }
+  #export-btn {
+    width: 100%;
+    padding: 10px;
+    background: var(--success);
+    color: #fff;
+    border: none;
+    border-radius: 8px;
+    font-size: 0.9rem;
+    cursor: pointer;
+    font-weight: 600;
+    letter-spacing: 0.03em;
+    transition: opacity 0.2s;
+  }
+  #export-btn:hover { opacity:0.85; }
+  .hint {
+    font-size: 0.7rem;
+    color: #667;
+    text-align: center;
+    margin-top: -6px;
+  }
+  .hint code {
+    background: rgba(255,255,255,0.06);
+    padding: 2px 5px;
+    border-radius: 3px;
+    font-size: 0.68rem;
+  }
+
+  /* 响应式: 小屏幕面板移到底部 */
+  @media (max-width: 768px) {
+    body { flex-direction: column; }
+    #canvas-container { height: 55vh; flex:none; }
+    #panel { width:100%; height:45vh; flex-direction:row; flex-wrap:wrap; gap:8px; padding:10px; overflow-y:auto; }
+    #panel h2 { width:100%; font-size:1rem; }
+    .section { flex:1; min-width:140px; padding:8px; }
+    .btn { padding:5px 8px; font-size:0.7rem; }
+  }
+</style>
+</head>
+<body>
+
+<div id="canvas-container"></div>
+
+<div id="panel">
+  <h2><span class="cat-emoji">🐱</span> Pixel Cat 3D</h2>
+
+  <!-- 毛色 -->
+  <div class="section">
+    <h3>🎨 Fur Color</h3>
+    <div id="fur-picker-wrap">
+      <input type="color" id="fur-picker" value="#f4a460">
+      <span id="fur-hex">#f4a460</span>
+    </div>
+    <div class="preset-colors" id="preset-colors"></div>
+  </div>
+
+  <!-- 眼睛 -->
+  <div class="section">
+    <h3>👁️ Eyes</h3>
+    <div class="btn-group" id="eye-btns"></div>
+  </div>
+
+  <!-- 装备 -->
+  <div class="section">
+    <h3>🎒 Gear</h3>
+    <div class="btn-group" id="gear-btns">
+      <button class="btn none-btn active" data-gear="">None</button>
+    </div>
+  </div>
+
+  <!-- Token -->
+  <div class="section">
+    <h3>🔢 Token</h3>
+    <div class="token-row">
+      <span>Token #</span>
+      <span id="token-id">1</span>
+    </div>
+  </div>
+
+  <button id="export-btn">📸 Export PNG</button>
+  <p class="hint">拖拽旋转 · 滚轮缩放 · 右键平移<br>URL: <code>?fur=#f4a460&eyes=Alert&gear=Coffee&tokenId=42</code></p>
+</div>
+
+<script type="importmap">
+{
+  "imports": {
+    "three": "https://unpkg.com/three@0.160.0/build/three.module.js",
+    "three/addons/": "https://unpkg.com/three@0.160.0/examples/jsm/"
+  }
+}
+</script>
+
+<script type="module">
+import * as THREE from 'three';
+import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
+
+// ============================================================
+// 全局状态
+// ============================================================
+const state = {
+  furColor: '#f4a460',
+  eyeStyle: 'Original',
+  gearType: null,       // null = 无装备
+  tokenId: 1,
+};
+
+// 引用需要动态更新的 3D 对象
+const refs = {
+  furMeshes: [],        // 所有使用毛色的 mesh
+  eyeGroupL: null,
+  eyeGroupR: null,
+  gearGroup: null,
+  eyelidL: null,        // Relaxed 眼睑 (需随毛色变化)
+  eyelidR: null,
+  bodyGroup: null,      // 用于呼吸动画
+};
+
+// ============================================================
+// 预设毛色
+// ============================================================
+const FUR_PRESETS = [
+  { label:'Orange',  color:'#f4a460' },
+  { label:'Black',   color:'#2d2d2d' },
+  { label:'Gray',    color:'#808080' },
+  { label:'Golden',  color:'#daa520' },
+  { label:'White',   color:'#f5f5f5' },
+  { label:'Calico',  color:'#f0e0d0' },
+  { label:'BlueTab', color:'#5b7cb5' },
+  { label:'Tuxedo',  color:'#1a1a1a' },
+];
+
+const EYE_STYLES = ['Original', 'Relaxed', 'Alert', 'Blue Ring', 'Sunglasses', 'VR', 'Big Black'];
+
+/* legacy list retained for reference only
+/*
+// 保持属性表与角色装备渲染一一对应。
+GEAR_LIST.length = 0;
+GEAR_LIST.push(
+  { id: 'Baseball Cap', label: '棒球帽' },
+  { id: 'Camera', label: '相机' },
+  { id: 'Gold Round Glasses', label: '金框眼镜' },
+  { id: 'Good Luck Gold Bar', label: '大吉金条' },
+  { id: 'Hiking Backpack', label: '登山背包' },
+  { id: 'Hot Coffee', label: '热咖啡' },
+  { id: 'Investment Book', label: '投资书' },
+  { id: 'Ramen', label: '拉面' },
+  { id: 'Sake', label: '清酒' },
+  { id: 'Wealth Gold Bar', label: '招财金条' },
+);
+
+const LEGACY_GEAR_LIST = [
+  { id:'Baseball Cap',       label:'🧢 棒球帽' },
+  { id:'Camera',             label:'📷 相机' },
+  { id:'Gold Round Glasses', label:'👓 金框眼镜' },
+  { id:'Wealth Gold Bar',    label:'🥇 金币条' },
+  { id:'Investment Book',    label:'📕 投资书' },
+  { id:'Hot Coffee',         label:'☕ 咖啡' },
+  { id:'Sake',               label:'🍶 清酒' },
+  { id:'Ramen',              label:'🍜 拉面' },
+  { id:'Kettlebell',         label:'🏋️ 壶铃' },
+  { id:'Astronaut Helmet',   label:'👨‍🚀 宇航头盔' },
+  { id:'Crown',              label:'👑 皇冠' },
+];
+
+// ============================================================
+// Three.js 初始化
+// ============================================================
+// 最终用于界面与随机逻辑的装备集合（顺序与属性定义保持一致）。
+const GEAR_LIST = [
+  { id: 'Baseball Cap', label: '棒球帽' },
+  { id: 'Camera', label: '相机' },
+  { id: 'Gold Round Glasses', label: '金框眼镜' },
+  { id: 'Good Luck Gold Bar', label: '大吉金条' },
+  { id: 'Hiking Backpack', label: '登山背包' },
+  { id: 'Hot Coffee', label: '热咖啡' },
+  { id: 'Investment Book', label: '投资书' },
+  { id: 'Ramen', label: '拉面' },
+  { id: 'Sake', label: '清酒' },
+  { id: 'Wealth Gold Bar', label: '招财金条' },
+];
+
+*/
+const GEAR_LIST = [
+  { id: 'Baseball Cap', label: '棒球帽' },
+  { id: 'Camera', label: '相机' },
+  { id: 'Gold Round Glasses', label: '金框眼镜' },
+  { id: 'Good Luck Gold Bar', label: '大吉金条' },
+  { id: 'Hiking Backpack', label: '登山背包' },
+  { id: 'Hot Coffee', label: '热咖啡' },
+  { id: 'Investment Book', label: '投资书' },
+  { id: 'Ramen', label: '拉面' },
+  { id: 'Sake', label: '清酒' },
+  { id: 'Wealth Gold Bar', label: '招财金条' },
+];
+
+const container = document.getElementById('canvas-container');
+
+const renderer = new THREE.WebGLRenderer({ antialias: true, alpha: false });
+renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+renderer.setSize(container.clientWidth, container.clientHeight);
+renderer.shadowMap.enabled = true;
+renderer.shadowMap.type = THREE.PCFSoftShadowMap;
+renderer.toneMapping = THREE.ACESFilmicToneMapping;
+renderer.toneMappingExposure = 1.1;
+container.appendChild(renderer.domElement);
+
+const scene = new THREE.Scene();
+
+// 背景渐变
+const bgColor = new THREE.Color('#1a1a2e');
+scene.background = bgColor;
+scene.fog = new THREE.Fog('#1a1a2e', 6, 18);
+
+const camera = new THREE.PerspectiveCamera(38, container.clientWidth / container.clientHeight, 0.5, 30);
+camera.position.set(3.2, 2.0, 4.8);
+camera.lookAt(0, 1.1, 0);
+
+// OrbitControls
+const controls = new OrbitControls(camera, renderer.domElement);
+controls.target.set(0, 1.1, 0);
+controls.enableDamping = true;
+controls.dampingFactor = 0.08;
+controls.minDistance = 2.5;
+controls.maxDistance = 10;
+controls.maxPolarAngle = Math.PI * 0.75;
+controls.update();
+
+// 灯光
+const ambient = new THREE.AmbientLight('#8899cc', 0.8);
+scene.add(ambient);
+
+const sun = new THREE.DirectionalLight('#fff8e7', 4.5);
+sun.position.set(5, 8, 3);
+sun.castShadow = true;
+sun.shadow.mapSize.set(1024, 1024);
+sun.shadow.camera.near = 0.5;
+sun.shadow.camera.far = 30;
+sun.shadow.camera.left = -5; sun.shadow.camera.right = 5;
+sun.shadow.camera.top = 5; sun.shadow.camera.bottom = -2;
+sun.shadow.bias = -0.0003;
+sun.shadow.normalBias = 0.02;
+scene.add(sun);
+
+const fill = new THREE.DirectionalLight('#8899ff', 2.2);
+fill.position.set(-2, 1, -1);
+scene.add(fill);
+
+const rim = new THREE.DirectionalLight('#ffffff', 1.5);
+rim.position.set(0, 0.5, -3);
+scene.add(rim);
+
+// 地面
+const groundGeo = new THREE.PlaneGeometry(12, 12);
+const groundMat = new THREE.MeshStandardMaterial({ color: '#1a1a30', roughness: 0.9 });
+const ground = new THREE.Mesh(groundGeo, groundMat);
+ground.rotation.x = -Math.PI / 2;
+ground.position.y = -1.0;
+ground.receiveShadow = true;
+scene.add(ground);
+
+// 圆形投影底座
+const podiumGeo = new THREE.CylinderGeometry(0.65, 0.7, 0.08, 48);
+const podiumMat = new THREE.MeshStandardMaterial({ color: '#2a2a40', roughness: 0.6, metalness: 0.2 });
+const podium = new THREE.Mesh(podiumGeo, podiumMat);
+podium.position.y = -0.55;
+podium.receiveShadow = true;
+podium.castShadow = true;
+scene.add(podium);
+
+// ============================================================
+// 材质工厂
+// ============================================================
+function furMaterial(hex) {
+  return new THREE.MeshStandardMaterial({
+    color: new THREE.Color(hex),
+    roughness: 0.72,
+    metalness: 0.02,
+  });
+}
+function eyeWhiteMat() {
+  return new THREE.MeshStandardMaterial({ color: '#ffffff', roughness: 0.25, metalness: 0.0 });
+}
+function pupilMat() {
+  return new THREE.MeshStandardMaterial({ color: '#111111', roughness: 0.1, metalness: 0.0 });
+}
+function noseMat() {
+  return new THREE.MeshStandardMaterial({ color: '#e8917a', roughness: 0.4 });
+}
+function metalMat(hex) {
+  return new THREE.MeshStandardMaterial({ color: new THREE.Color(hex), roughness: 0.25, metalness: 0.85 });
+}
+function accentMat(hex) {
+  return new THREE.MeshStandardMaterial({ color: new THREE.Color(hex), roughness: 0.35, metalness: 0.05 });
+}
+
+// ============================================================
+// 构建猫模型
+// ============================================================
+const catRoot = new THREE.Group();
+scene.add(catRoot);
+refs.bodyGroup = catRoot;
+
+function buildCat(colorHex) {
+  // 清空
+  while (catRoot.children.length > 0) catRoot.remove(catRoot.children[0]);
+  refs.furMeshes = [];
+
+  const fur = () => {
+    const m = furMaterial(colorHex);
+    refs.furMeshes.push(m);
+    return m;
+  };
+  const furDark = () => {
+    const c = new THREE.Color(colorHex).multiplyScalar(0.75);
+    const m = furMaterial('#' + c.getHexString());
+    refs.furMeshes.push(m);
+    return m;
+  };
+
+  // ---- 身体 (椭球) ----
+  const bodyGeo = new THREE.SphereGeometry(0.55, 36, 28);
+  const body = new THREE.Mesh(bodyGeo, fur());
+  body.scale.set(1.0, 0.78, 0.82);
+  body.position.set(0, 0.85, 0);
+  body.castShadow = true;
+  body.receiveShadow = true;
+  catRoot.add(body);
+
+  // ---- 头部 ----
+  const headGroup = new THREE.Group();
+  headGroup.position.set(0, 1.42, 0.12);
+  catRoot.add(headGroup);
+
+  const headGeo = new THREE.SphereGeometry(0.40, 36, 28);
+  const head = new THREE.Mesh(headGeo, fur());
+  head.scale.set(1, 0.92, 0.85);
+  head.castShadow = true;
+  head.receiveShadow = true;
+  headGroup.add(head);
+
+  // ---- 耳朵 ----
+  function addEar(x, rotZ) {
+    const earGroup = new THREE.Group();
+    earGroup.position.set(x, 0.28, -0.08);
+    earGroup.rotation.z = rotZ;
+    earGroup.rotation.x = -0.15;
+
+    const outerGeo = new THREE.ConeGeometry(0.13, 0.36, 12, 4);
+    const outer = new THREE.Mesh(outerGeo, fur());
+    outer.position.y = 0.06;
+    outer.castShadow = true;
+    earGroup.add(outer);
+
+    const innerGeo = new THREE.ConeGeometry(0.08, 0.24, 12, 4);
+    const innerColor = new THREE.Color(colorHex).multiplyScalar(1.35);
+    const inner = new THREE.Mesh(innerGeo, accentMat('#' + innerColor.getHexString()));
+    inner.position.y = 0.02;
+    earGroup.add(inner);
+
+    headGroup.add(earGroup);
+    return earGroup;
+  }
+  addEar(-0.18, 0.25);
+  addEar(0.18, -0.25);
+
+  // ---- 鼻子 ----
+  const noseGeo = new THREE.SphereGeometry(0.055, 16, 12);
+  const nose = new THREE.Mesh(noseGeo, noseMat());
+  nose.position.set(0, -0.06, 0.36);
+  headGroup.add(nose);
+
+  // ---- 口/吻部凸起 ----
+  const muzzleGeo = new THREE.SphereGeometry(0.12, 20, 14);
+  const muzzle = new THREE.Mesh(muzzleGeo, fur());
+  muzzle.scale.set(1.2, 0.7, 0.6);
+  muzzle.position.set(0, -0.14, 0.32);
+  headGroup.add(muzzle);
+
+  // ---- 胡须 ----
+  function addWhisker(x, y, z, rotY, rotZ) {
+    const geo = new THREE.CylinderGeometry(0.008, 0.012, 0.30, 6);
+    const mat = new THREE.MeshStandardMaterial({ color: '#e8e8e8', roughness: 0.4 });
+    const w = new THREE.Mesh(geo, mat);
+    w.position.set(x, y, z);
+    w.rotation.z = rotZ;
+    w.rotation.y = rotY;
+    headGroup.add(w);
+  }
+  for (let s = -1; s <= 1; s += 2) {
+    addWhisker(s * 0.08, -0.08, 0.30, s * 0.5, s * 0.15);
+    addWhisker(s * 0.10, -0.13, 0.29, s * 0.6, s * 0.22);
+  }
+
+  // ---- 前腿 ----
+  function addFrontLeg(x) {
+    const legGroup = new THREE.Group();
+    legGroup.position.set(x, 0.75, 0.18);
+    const upperGeo = new THREE.CapsuleGeometry(0.10, 0.35, 8, 12);
+    const upper = new THREE.Mesh(upperGeo, fur());
+    upper.position.y = -0.05;
+    upper.castShadow = true;
+    upper.receiveShadow = true;
+    legGroup.add(upper);
+
+    const pawGeo = new THREE.SphereGeometry(0.11, 16, 10);
+    const paw = new THREE.Mesh(pawGeo, fur());
+    paw.scale.set(1, 0.55, 1.1);
+    paw.position.y = -0.35;
+    paw.castShadow = true;
+    legGroup.add(paw);
+
+    catRoot.add(legGroup);
+    return legGroup;
+  }
+  addFrontLeg(-0.22);
+  addFrontLeg(0.22);
+
+  // ---- 后腿 (蹲坐) ----
+  function addBackLeg(x) {
+    const legGroup = new THREE.Group();
+    legGroup.position.set(x, 0.70, -0.32);
+
+    const thighGeo = new THREE.SphereGeometry(0.16, 16, 12);
+    const thigh = new THREE.Mesh(thighGeo, furDark());
+    thigh.scale.set(0.7, 1, 0.7);
+    thigh.position.y = 0.04;
+    thigh.castShadow = true;
+    legGroup.add(thigh);
+
+    const pawGeo = new THREE.SphereGeometry(0.10, 12, 8);
+    const paw = new THREE.Mesh(pawGeo, fur());
+    paw.scale.set(1, 0.5, 1.3);
+    paw.position.set(0, -0.28, 0.08);
+    paw.castShadow = true;
+    legGroup.add(paw);
+
+    catRoot.add(legGroup);
+  }
+  addBackLeg(-0.24);
+  addBackLeg(0.24);
+
+  // ---- 尾巴 ----
+  const tailPoints = [
+    new THREE.Vector3(0, 0.60, -0.62),
+    new THREE.Vector3(0.05, 0.30, -0.78),
+    new THREE.Vector3(0.12, 0.05, -0.72),
+    new THREE.Vector3(0.18, -0.10, -0.55),
+    new THREE.Vector3(0.22, -0.15, -0.35),
+    new THREE.Vector3(0.18, -0.05, -0.18),
+  ];
+  const tailCurve = new THREE.CatmullRomCurve3(tailPoints);
+  const tailGeo = new THREE.TubeGeometry(tailCurve, 28, 0.065, 10, false);
+  const tail = new THREE.Mesh(tailGeo, fur());
+  tail.castShadow = true;
+  tail.receiveShadow = true;
+  catRoot.add(tail);
+
+  // ---- 眼睛 (稍后由 setEyes 填充) ----
+  // 占位 group
+  const eyeGroupL = new THREE.Group();
+  eyeGroupL.position.set(-0.135, 0.04, 0.32);
+  headGroup.add(eyeGroupL);
+  refs.eyeGroupL = eyeGroupL;
+
+  const eyeGroupR = new THREE.Group();
+  eyeGroupR.position.set(0.135, 0.04, 0.32);
+  headGroup.add(eyeGroupR);
+  refs.eyeGroupR = eyeGroupR;
+
+  refs.eyelidL = null;
+  refs.eyelidR = null;
+
+  // 重新挂载装备根节点 (buildCat 清空 catRoot 时会被移除)
+  catRoot.add(gearRoot);
+}
+
+// ============================================================
+// 眼睛系统
+// ============================================================
+function setEyes(style) {
+  const build = (group) => {
+    while (group.children.length > 0) group.remove(group.children[0]);
+  };
+  build(refs.eyeGroupL);
+  build(refs.eyeGroupR);
+  refs.eyelidL = null;
+  refs.eyelidR = null;
+
+  const furHex = state.furColor;
+
+  function makeEye(group, style) {
+    switch (style) {
+      // ======== Original ========
+      case 'Original': {
+        const white = new THREE.Mesh(new THREE.SphereGeometry(0.095, 20, 16), eyeWhiteMat());
+        group.add(white);
+        const pupil = new THREE.Mesh(new THREE.SphereGeometry(0.042, 14, 10), pupilMat());
+        pupil.position.z = 0.06;
+        group.add(pupil);
+        const highlight = new THREE.Mesh(
+          new THREE.SphereGeometry(0.016, 8, 6),
+          new THREE.MeshBasicMaterial({ color: '#ffffff' })
+        );
+        highlight.position.set(0.018, 0.025, 0.078);
+        group.add(highlight);
+        break;
+      }
+
+      // ======== Relaxed (闭眼 / 半闭) ========
+      case 'Relaxed': {
+        const white = new THREE.Mesh(new THREE.SphereGeometry(0.09, 20, 14), eyeWhiteMat());
+        white.scale.y = 0.55;
+        group.add(white);
+        // 眼睑 — 半圆柱遮住上半
+        const lidGeo = new THREE.CylinderGeometry(0.092, 0.092, 0.12, 20, 1, false, 0, Math.PI);
+        const lid = new THREE.Mesh(lidGeo, furMaterial(furHex));
+        lid.rotation.x = 0;
+        lid.rotation.z = Math.PI / 2;
+        lid.position.set(0, 0.028, 0.0);
+        group.add(lid);
+        // 存引用以便毛色变化时更新
+        if (!refs.eyelidL) refs.eyelidL = [];
+        refs.eyelidL.push(lid);
+        break;
+      }
+
+      // ======== Alert (瞪大) ========
+      case 'Alert': {
+        const white = new THREE.Mesh(new THREE.SphereGeometry(0.11, 20, 16), eyeWhiteMat());
+        group.add(white);
+        const pupil = new THREE.Mesh(new THREE.SphereGeometry(0.025, 12, 8), pupilMat());
+        pupil.position.z = 0.07;
+        group.add(pupil);
+        const highlight = new THREE.Mesh(
+          new THREE.SphereGeometry(0.014, 8, 6),
+          new THREE.MeshBasicMaterial({ color: '#ffffff' })
+        );
+        highlight.position.set(0.012, 0.020, 0.088);
+        group.add(highlight);
+        break;
+      }
+
+      // ======== Blue Ring ========
+      case 'Blue Ring': {
+        const white = new THREE.Mesh(new THREE.SphereGeometry(0.09, 20, 16), eyeWhiteMat());
+        group.add(white);
+        const ringGeo = new THREE.TorusGeometry(0.042, 0.018, 10, 22);
+        const ring = new THREE.Mesh(ringGeo, new THREE.MeshStandardMaterial({
+          color: '#4488ff', roughness: 0.2, metalness: 0.3, emissive: '#112244', emissiveIntensity: 0.4
+        }));
+        ring.position.z = 0.05;
+        group.add(ring);
+        const pupil = new THREE.Mesh(new THREE.SphereGeometry(0.028, 12, 8), pupilMat());
+        pupil.position.z = 0.058;
+        group.add(pupil);
+        break;
+      }
+
+      // ======== Sunglasses ========
+      case 'Sunglasses': {
+        // 深色镜片
+        const lensGeo = new THREE.CylinderGeometry(0.10, 0.10, 0.04, 24);
+        const lensMat = new THREE.MeshStandardMaterial({
+          color: '#1a1a2e', roughness: 0.15, metalness: 0.5,
+        });
+        const lens = new THREE.Mesh(lensGeo, lensMat);
+        lens.rotation.x = Math.PI / 2;
+        lens.position.z = 0.025;
+        group.add(lens);
+        // 反光
+        const reflGeo = new THREE.SphereGeometry(0.06, 12, 6);
+        const refl = new THREE.Mesh(reflGeo, new THREE.MeshBasicMaterial({
+          color: '#667799', transparent: true, opacity: 0.25,
+        }));
+        refl.position.set(0.02, 0.03, 0.048);
+        group.add(refl);
+        break;
+      }
+
+      // ======== VR ========
+      case 'VR': {
+        // 单个眼镜的 VR 护目镜造型
+        const goggleGeo = new THREE.BoxGeometry(0.18, 0.13, 0.08);
+        const goggle = new THREE.Mesh(goggleGeo, new THREE.MeshStandardMaterial({
+          color: '#333355', roughness: 0.25, metalness: 0.6,
+        }));
+        goggle.position.z = 0.04;
+        group.add(goggle);
+        // 镜片发光环
+        const lensRing = new THREE.Mesh(
+          new THREE.TorusGeometry(0.05, 0.012, 6, 20),
+          new THREE.MeshBasicMaterial({ color: '#00ff88' })
+        );
+        lensRing.position.z = 0.082;
+        group.add(lensRing);
+        // 镜片中心
+        const lensCenter = new THREE.Mesh(
+          new THREE.CircleGeometry(0.04, 16),
+          new THREE.MeshBasicMaterial({ color: '#003322', side: THREE.DoubleSide })
+        );
+        lensCenter.position.z = 0.081;
+        group.add(lensCenter);
+        break;
+      }
+
+      // ======== Big Black (动漫大眼) ========
+      case 'Big Black': {
+        const bigEye = new THREE.Mesh(
+          new THREE.SphereGeometry(0.11, 22, 18),
+          new THREE.MeshStandardMaterial({ color: '#0a0a0a', roughness: 0.12, metalness: 0.05 })
+        );
+        bigEye.scale.set(1, 1.15, 0.7);
+        group.add(bigEye);
+        // 两个高光
+        const h1 = new THREE.Mesh(
+          new THREE.SphereGeometry(0.025, 8, 6),
+          new THREE.MeshBasicMaterial({ color: '#ffffff' })
+        );
+        h1.position.set(0.025, 0.040, 0.065);
+        group.add(h1);
+        const h2 = new THREE.Mesh(
+          new THREE.SphereGeometry(0.012, 6, 4),
+          new THREE.MeshBasicMaterial({ color: '#ffffff' })
+        );
+        h2.position.set(-0.020, 0.055, 0.058);
+        group.add(h2);
+        break;
+      }
+    }
+  }
+
+  makeEye(refs.eyeGroupL, style);
+  makeEye(refs.eyeGroupR, style);
+}
+
+// ============================================================
+// 装备系统
+// ============================================================
+const gearRoot = new THREE.Group();
+catRoot.add(gearRoot);
+refs.gearGroup = gearRoot;
+
+function setGear(type) {
+  while (gearRoot.children.length > 0) gearRoot.remove(gearRoot.children[0]);
+
+  if (!type) return;
+
+  switch (type) {
+    // ---- 棒球帽 ----
+    case 'Baseball Cap': {
+      const capGroup = new THREE.Group();
+      capGroup.position.set(0, 1.82, 0.14);
+      capGroup.rotation.x = -0.25;
+
+      const domeGeo = new THREE.SphereGeometry(0.32, 28, 18, 0, Math.PI * 2, 0, Math.PI / 2.1);
+      const dome = new THREE.Mesh(domeGeo, accentMat('#e74c3c'));
+      dome.scale.set(1, 0.7, 0.85);
+      dome.castShadow = true;
+      capGroup.add(dome);
+
+      const brimGeo = new THREE.BoxGeometry(0.55, 0.04, 0.26);
+      const brim = new THREE.Mesh(brimGeo, accentMat('#c0392b'));
+      brim.position.set(0, -0.05, 0.17);
+      brim.rotation.x = -0.3;
+      brim.castShadow = true;
+      capGroup.add(brim);
+
+      const buttonGeo = new THREE.SphereGeometry(0.04, 8, 6);
+      const button = new THREE.Mesh(buttonGeo, accentMat('#c0392b'));
+      button.position.y = 0.16;
+      capGroup.add(button);
+
+      gearRoot.add(capGroup);
+      break;
+    }
+
+    // ---- 相机 ----
+    case 'Camera': {
+      const camGroup = new THREE.Group();
+      camGroup.position.set(0, 1.08, 0.60);
+      camGroup.rotation.x = -0.15;
+
+      const bodyGeo = new THREE.BoxGeometry(0.20, 0.12, 0.14);
+      const body = new THREE.Mesh(bodyGeo, accentMat('#2c3e50'));
+      body.castShadow = true;
+      camGroup.add(body);
+
+      const lensGeo = new THREE.CylinderGeometry(0.06, 0.07, 0.10, 20);
+      const lens = new THREE.Mesh(lensGeo, accentMat('#34495e'));
+      lens.rotation.x = Math.PI / 2;
+      lens.position.set(0, 0.01, 0.12);
+      lens.castShadow = true;
+      camGroup.add(lens);
+
+      const lensFront = new THREE.Mesh(
+        new THREE.CylinderGeometry(0.045, 0.045, 0.02, 20),
+        new THREE.MeshStandardMaterial({ color: '#111', roughness: 0.1, metalness: 0.6 })
+      );
+      lensFront.rotation.x = Math.PI / 2;
+      lensFront.position.set(0, 0.01, 0.18);
+      camGroup.add(lensFront);
+
+      // 挂绳
+      const strapPoints = [
+        new THREE.Vector3(0.09, 0.03, -0.06),
+        new THREE.Vector3(0.14, 0.2, -0.08),
+        new THREE.Vector3(0.05, 0.35, -0.12),
+        new THREE.Vector3(-0.05, 0.35, -0.12),
+        new THREE.Vector3(-0.14, 0.2, -0.08),
+        new THREE.Vector3(-0.09, 0.03, -0.06),
+      ];
+      const strapCurve = new THREE.CatmullRomCurve3(strapPoints);
+      const strapGeo = new THREE.TubeGeometry(strapCurve, 20, 0.012, 6, false);
+      const strap = new THREE.Mesh(strapGeo, accentMat('#e74c3c'));
+      camGroup.add(strap);
+
+      gearRoot.add(camGroup);
+      break;
+    }
+
+    // ---- 金框眼镜 ----
+    case 'Gold Round Glasses': {
+      const glassGroup = new THREE.Group();
+      glassGroup.position.set(0, 1.48, 0.52);
+
+      function addLens(x) {
+        const ringGeo = new THREE.TorusGeometry(0.09, 0.02, 8, 24);
+        const ring = new THREE.Mesh(ringGeo, metalMat('#ffd700'));
+        ring.position.x = x;
+        glassGroup.add(ring);
+
+        const lensGeo = new THREE.CircleGeometry(0.07, 20);
+        const lensMat = new THREE.MeshPhysicalMaterial({
+          color: '#ddeeff', roughness: 0.05, metalness: 0.0,
+          transparent: true, opacity: 0.3,
+        });
+        const lens = new THREE.Mesh(lensGeo, lensMat);
+        lens.position.x = x;
+        glassGroup.add(lens);
+      }
+      addLens(-0.13);
+      addLens(0.13);
+
+      // 鼻梁
+      const bridgeGeo = new THREE.CylinderGeometry(0.012, 0.012, 0.12, 8);
+      const bridge = new THREE.Mesh(bridgeGeo, metalMat('#ffd700'));
+      bridge.rotation.z = Math.PI / 2;
+      bridge.position.set(0, 0, 0);
+      glassGroup.add(bridge);
+
+      gearRoot.add(glassGroup);
+      break;
+    }
+
+    // ---- 金币条 ----
+    case 'Good Luck Gold Bar': {
+      // 对应参考图中的“大吉”竖款金条：厚实圆角外框与内嵌金面。
+      const goodLuckGroup = new THREE.Group();
+      goodLuckGroup.position.set(-0.40, 0.42, 0.52);
+      goodLuckGroup.rotation.set(0.15, -0.42, 0.08);
+      const outer = new THREE.Mesh(new THREE.CapsuleGeometry(0.105, 0.26, 8, 18), metalMat('#ffdb3e'));
+      outer.rotation.z = Math.PI / 2;
+      outer.scale.set(.74, 1, .38);
+      outer.castShadow = true;
+      goodLuckGroup.add(outer);
+      const inset = new THREE.Mesh(new THREE.CapsuleGeometry(0.076, 0.20, 8, 18), metalMat('#e8ae15'));
+      inset.rotation.z = Math.PI / 2;
+      inset.scale.set(.74, 1, .43);
+      inset.position.z = .038;
+      goodLuckGroup.add(inset);
+      // 金面上的两枚立体印记，形成参考图的竖排铭文感。
+      [-.065, .065].forEach(y => {
+        const seal = new THREE.Mesh(new THREE.TorusGeometry(.027, .009, 6, 16), metalMat('#ffe77a'));
+        seal.position.set(0, y, .075);
+        goodLuckGroup.add(seal);
+      });
+      gearRoot.add(goodLuckGroup);
+      break;
+    }
+
+    case 'Hiking Backpack': {
+      const pack = new THREE.Group();
+      pack.position.set(0, 1.03, -0.48);
+      const bag = new THREE.Mesh(new THREE.CapsuleGeometry(.20, .34, 6, 12), accentMat('#3d6f62'));
+      bag.rotation.x = Math.PI / 2;
+      bag.scale.set(1, 1, .55);
+      bag.castShadow = true;
+      pack.add(bag);
+      const flap = new THREE.Mesh(new THREE.BoxGeometry(.26, .11, .035), accentMat('#527f70'));
+      flap.position.set(0, .07, .13);
+      pack.add(flap);
+      [-1, 1].forEach(side => {
+        const pocket = new THREE.Mesh(new THREE.SphereGeometry(.06, 12, 8), accentMat('#d88a3c'));
+        pocket.scale.set(.75, 1, .45);
+        pocket.position.set(side * .20, -.06, 0);
+        pack.add(pocket);
+        const strap = new THREE.Mesh(new THREE.TorusGeometry(.25, .013, 6, 18, Math.PI), accentMat('#2b473f'));
+        strap.rotation.set(Math.PI / 2, 0, side * .20);
+        strap.position.set(side * .13, .02, .17);
+        pack.add(strap);
+      });
+      gearRoot.add(pack);
+      break;
+    }
+
+    case 'Wealth Gold Bar': {
+      const barGroup = new THREE.Group();
+      barGroup.position.set(-0.40, 0.35, 0.45);
+      barGroup.rotation.set(0.3, -0.4, 0.2);
+
+      const barGeo = new THREE.BoxGeometry(0.15, 0.08, 0.28, 2, 2, 2);
+      // 稍微倒角效果用 beveled box
+      const bar = new THREE.Mesh(barGeo, metalMat('#ffd700'));
+      bar.castShadow = true;
+      barGroup.add(bar);
+
+      // 光泽条纹
+      const stripeGeo = new THREE.BoxGeometry(0.10, 0.02, 0.25);
+      const stripe = new THREE.Mesh(stripeGeo, metalMat('#ffe566'));
+      stripe.position.y = 0.045;
+      barGroup.add(stripe);
+
+      gearRoot.add(barGroup);
+      break;
+    }
+
+    // ---- 投资书 ----
+    case 'Investment Book': {
+      const bookGroup = new THREE.Group();
+      bookGroup.position.set(0.38, 0.35, 0.48);
+      bookGroup.rotation.set(0.2, -0.5, 0.1);
+
+      const coverGeo = new THREE.BoxGeometry(0.22, 0.04, 0.28);
+      const cover = new THREE.Mesh(coverGeo, accentMat('#c0392b'));
+      cover.castShadow = true;
+      bookGroup.add(cover);
+
+      const pageGeo = new THREE.BoxGeometry(0.20, 0.025, 0.26);
+      const page = new THREE.Mesh(pageGeo, accentMat('#f5f0e0'));
+      page.position.y = 0.03;
+      bookGroup.add(page);
+
+      // 书签
+      const ribbonGeo = new THREE.BoxGeometry(0.015, 0.02, 0.10);
+      const ribbon = new THREE.Mesh(ribbonGeo, accentMat('#ffd700'));
+      ribbon.position.set(0, 0.02, 0.16);
+      bookGroup.add(ribbon);
+
+      gearRoot.add(bookGroup);
+      break;
+    }
+
+    // ---- 咖啡 ----
+    case 'Hot Coffee': {
+      const cupGroup = new THREE.Group();
+      cupGroup.position.set(0.40, 0.22, 0.52);
+
+      const cupGeo = new THREE.CylinderGeometry(0.08, 0.07, 0.16, 20);
+      const cup = new THREE.Mesh(cupGeo, accentMat('#f5f5f0'));
+      cup.castShadow = true;
+      cupGroup.add(cup);
+
+      const handleGeo = new THREE.TorusGeometry(0.05, 0.015, 8, 12, Math.PI);
+      const handle = new THREE.Mesh(handleGeo, accentMat('#f5f5f0'));
+      handle.position.set(0.09, 0.02, 0);
+      handle.rotation.y = Math.PI / 2;
+      handle.rotation.x = Math.PI / 2;
+      cupGroup.add(handle);
+
+      const coffeeGeo = new THREE.CylinderGeometry(0.07, 0.07, 0.005, 20);
+      const coffee = new THREE.Mesh(coffeeGeo, accentMat('#4a2c0a'));
+      coffee.position.y = 0.08;
+      cupGroup.add(coffee);
+
+      // 蒸汽
+      for (let i = 0; i < 3; i++) {
+        const steamGeo = new THREE.SphereGeometry(0.015, 6, 4);
+        const steam = new THREE.Mesh(steamGeo, new THREE.MeshBasicMaterial({
+          color: '#ffffff', transparent: true, opacity: 0.3,
+        }));
+        steam.position.set((i - 1) * 0.03, 0.13 + i * 0.04, 0);
+        cupGroup.add(steam);
+      }
+
+      gearRoot.add(cupGroup);
+      break;
+    }
+
+    // ---- 清酒 ----
+    case 'Sake': {
+      const sakeGroup = new THREE.Group();
+      sakeGroup.position.set(-0.38, 0.28, 0.50);
+
+      const bottleGeo = new THREE.CylinderGeometry(0.06, 0.07, 0.20, 16);
+      const bottle = new THREE.Mesh(bottleGeo, accentMat('#e8e8e0'));
+      bottle.castShadow = true;
+      sakeGroup.add(bottle);
+
+      const neckGeo = new THREE.CylinderGeometry(0.03, 0.04, 0.07, 12);
+      const neck = new THREE.Mesh(neckGeo, accentMat('#e8e8e0'));
+      neck.position.y = 0.13;
+      sakeGroup.add(neck);
+
+      const capGeo = new THREE.CylinderGeometry(0.032, 0.032, 0.02, 12);
+      const cap = new THREE.Mesh(capGeo, accentMat('#2c3e50'));
+      cap.position.y = 0.17;
+      sakeGroup.add(cap);
+
+      // 小杯
+      const tinyCupGeo = new THREE.CylinderGeometry(0.035, 0.03, 0.05, 12);
+      const tinyCup = new THREE.Mesh(tinyCupGeo, accentMat('#f0f0e8'));
+      tinyCup.position.set(0.08, -0.04, 0.02);
+      sakeGroup.add(tinyCup);
+
+      gearRoot.add(sakeGroup);
+      break;
+    }
+
+    // ---- 拉面 ----
+    case 'Ramen': {
+      const ramenGroup = new THREE.Group();
+      ramenGroup.position.set(0, 0.15, 0.58);
+
+      const bowlGeo = new THREE.SphereGeometry(0.13, 20, 12);
+      const bowl = new THREE.Mesh(bowlGeo, accentMat('#e67e22'));
+      bowl.scale.set(1, 0.55, 1);
+      bowl.position.y = -0.02;
+      bowl.castShadow = true;
+      ramenGroup.add(bowl);
+
+      const rimGeo = new THREE.TorusGeometry(0.12, 0.015, 6, 24);
+      const rim = new THREE.Mesh(rimGeo, accentMat('#d35400'));
+      rim.rotation.x = Math.PI / 2;
+      rim.position.y = 0.05;
+      ramenGroup.add(rim);
+
+      // 面条 (波浪线)
+      for (let i = 0; i < 5; i++) {
+        const noodlePts = [
+          new THREE.Vector3((i - 2) * 0.04, 0.06, -0.02),
+          new THREE.Vector3((i - 2) * 0.05, 0.10, 0.0),
+          new THREE.Vector3((i - 2) * 0.03, 0.08, 0.03),
+        ];
+        const noodleCurve = new THREE.CatmullRomCurve3(noodlePts);
+        const noodleGeo = new THREE.TubeGeometry(noodleCurve, 8, 0.01, 6, false);
+        const noodle = new THREE.Mesh(noodleGeo, accentMat('#f5deb3'));
+        ramenGroup.add(noodle);
+      }
+
+      gearRoot.add(ramenGroup);
+      break;
+    }
+
+    // ---- 壶铃 ----
+    case 'Kettlebell': {
+      const kbGroup = new THREE.Group();
+      kbGroup.position.set(-0.38, 0.12, 0.42);
+
+      const ballGeo = new THREE.SphereGeometry(0.10, 20, 16);
+      const ball = new THREE.Mesh(ballGeo, metalMat('#444455'));
+      ball.castShadow = true;
+      kbGroup.add(ball);
+
+      const handlePts = [
+        new THREE.Vector3(-0.045, 0.10, 0),
+        new THREE.Vector3(0, 0.16, 0),
+        new THREE.Vector3(0.045, 0.10, 0),
+      ];
+      const handleCurve = new THREE.CatmullRomCurve3(handlePts);
+      const handleGeo = new THREE.TubeGeometry(handleCurve, 10, 0.018, 8, false);
+      const handle = new THREE.Mesh(handleGeo, metalMat('#555566'));
+      kbGroup.add(handle);
+
+      gearRoot.add(kbGroup);
+      break;
+    }
+
+    // ---- 宇航员头盔 ----
+    case 'Astronaut Helmet': {
+      const helmetGroup = new THREE.Group();
+      helmetGroup.position.set(0, 1.50, 0.12);
+
+      const shellGeo = new THREE.SphereGeometry(0.44, 32, 28);
+      const shellMat = new THREE.MeshPhysicalMaterial({
+        color: '#ddeeff', roughness: 0.1, metalness: 0.05,
+        transparent: true, opacity: 0.35,
+        envMapIntensity: 0.5,
+      });
+      const shell = new THREE.Mesh(shellGeo, shellMat);
+      shell.scale.set(1, 0.9, 0.85);
+      helmetGroup.add(shell);
+
+      // 颈环
+      const collarGeo = new THREE.TorusGeometry(0.28, 0.04, 10, 28);
+      const collar = new THREE.Mesh(collarGeo, metalMat('#ccccdd'));
+      collar.rotation.x = Math.PI / 2;
+      collar.position.y = -0.30;
+      helmetGroup.add(collar);
+
+      gearRoot.add(helmetGroup);
+      break;
+    }
+
+    // ---- 皇冠 ----
+    case 'Crown': {
+      const crownGroup = new THREE.Group();
+      crownGroup.position.set(0, 1.82, 0.10);
+
+      const baseGeo = new THREE.TorusGeometry(0.14, 0.03, 8, 24);
+      const base = new THREE.Mesh(baseGeo, metalMat('#ffd700'));
+      base.rotation.x = Math.PI / 2;
+      crownGroup.add(base);
+
+      for (let i = 0; i < 5; i++) {
+        const angle = (i / 5) * Math.PI * 2;
+        const x = Math.cos(angle) * 0.13;
+        const z = Math.sin(angle) * 0.13;
+        const spikeGeo = new THREE.ConeGeometry(0.025, 0.12, 6, 4);
+        const spike = new THREE.Mesh(spikeGeo, metalMat('#ffd700'));
+        spike.position.set(x, 0.05, z);
+        crownGroup.add(spike);
+
+        const jewelGeo = new THREE.SphereGeometry(0.018, 6, 4);
+        const jewel = new THREE.Mesh(jewelGeo, new THREE.MeshStandardMaterial({
+          color: '#e74c3c', roughness: 0.1, metalness: 0.3, emissive: '#400000', emissiveIntensity: 0.5,
+        }));
+        jewel.position.set(x, 0.14, z);
+        crownGroup.add(jewel);
+      }
+
+      gearRoot.add(crownGroup);
+      break;
+    }
+  }
+}
+
+// ============================================================
+// 更新毛色 (全局)
+// ============================================================
+function updateFurColor(hex) {
+  state.furColor = hex;
+  // 更新所有 fur mesh
+  const color = new THREE.Color(hex);
+  refs.furMeshes.forEach((mat, i) => {
+    if (i < refs.furMeshes.length - 2) {
+      // first ones are base fur, last ones are darker
+      mat.color.set(color);
+    } else {
+      mat.color.set(color.clone().multiplyScalar(0.75));
+    }
+  });
+  // 更新眼睑 (Relaxed)
+  [refs.eyelidL, refs.eyelidR].forEach(lidArr => {
+    if (lidArr && Array.isArray(lidArr)) {
+      lidArr.forEach(lid => { lid.material.color.set(color); });
+    }
+  });
+}
+
+// ============================================================
+// 页面初始化
+// ============================================================
+function initUI() {
+  // 预设颜色圆点
+  const presetContainer = document.getElementById('preset-colors');
+  FUR_PRESETS.forEach(p => {
+    const dot = document.createElement('div');
+    dot.className = 'preset-dot';
+    dot.style.background = p.color;
+    dot.title = p.label;
+    dot.addEventListener('click', () => {
+      document.getElementById('fur-picker').value = p.color;
+      document.getElementById('fur-hex').textContent = p.color;
+      updateFurColor(p.color);
+      updatePresetActive(p.color);
+    });
+    presetContainer.appendChild(dot);
+  });
+
+  // 颜色选择器
+  const furPicker = document.getElementById('fur-picker');
+  furPicker.addEventListener('input', () => {
+    const hex = furPicker.value;
+    document.getElementById('fur-hex').textContent = hex;
+    updateFurColor(hex);
+    updatePresetActive(hex);
+  });
+
+  // 眼睛按钮
+  const eyeBtns = document.getElementById('eye-btns');
+  EYE_STYLES.forEach(style => {
+    const btn = document.createElement('button');
+    btn.className = 'btn' + (style === state.eyeStyle ? ' active' : '');
+    btn.textContent = style;
+    btn.addEventListener('click', () => {
+      state.eyeStyle = style;
+      setEyes(style);
+      eyeBtns.querySelectorAll('.btn').forEach(b => b.classList.remove('active'));
+      btn.classList.add('active');
+    });
+    eyeBtns.appendChild(btn);
+  });
+
+  // 装备按钮
+  const gearBtns = document.getElementById('gear-btns');
+  GEAR_LIST.forEach(g => {
+    const btn = document.createElement('button');
+    btn.className = 'btn';
+    btn.textContent = g.label;
+    btn.dataset.gear = g.id;
+    btn.addEventListener('click', () => {
+      state.gearType = g.id;
+      setGear(g.id);
+      gearBtns.querySelectorAll('.btn').forEach(b => b.classList.remove('active'));
+      btn.classList.add('active');
+    });
+    gearBtns.appendChild(btn);
+  });
+  // None 按钮
+  gearBtns.querySelector('.none-btn').addEventListener('click', function() {
+    state.gearType = null;
+    setGear(null);
+    gearBtns.querySelectorAll('.btn').forEach(b => b.classList.remove('active'));
+    this.classList.add('active');
+  });
+
+  // 导出按钮
+  document.getElementById('export-btn').addEventListener('click', () => {
+    renderer.render(scene, camera);
+    const link = document.createElement('a');
+    link.download = `pixel-cat-${state.tokenId}.png`;
+    link.href = renderer.domElement.toDataURL('image/png');
+    link.click();
+  });
+}
+
+function updatePresetActive(hex) {
+  document.querySelectorAll('.preset-dot').forEach(d => {
+    d.classList.toggle('active', d.style.background.toLowerCase() === hex.toLowerCase());
+  });
+}
+
+// ============================================================
+// URL 参数解析
+// ============================================================
+function parseURLParams() {
+  const params = new URLSearchParams(window.location.search);
+  if (params.has('fur')) {
+    const hex = params.get('fur');
+    state.furColor = hex;
+    document.getElementById('fur-picker').value = hex;
+    document.getElementById('fur-hex').textContent = hex;
+    updatePresetActive(hex);
+  }
+  if (params.has('eyes')) {
+    const eye = params.get('eyes');
+    if (EYE_STYLES.includes(eye)) state.eyeStyle = eye;
+  }
+  if (params.has('gear')) {
+    const gear = params.get('gear');
+    const found = GEAR_LIST.find(g => g.id === gear);
+    state.gearType = found ? gear : null;
+  }
+  if (params.has('tokenId') || params.has('tokenid')) {
+    state.tokenId = parseInt(params.get('tokenId') || params.get('tokenid')) || 1;
+    document.getElementById('token-id').textContent = state.tokenId;
+  }
+}
+
+// ============================================================
+// 动画循环
+// ============================================================
+const clock = new THREE.Clock();
+
+function animate() {
+  requestAnimationFrame(animate);
+
+  const t = clock.getElapsedTime();
+
+  // 呼吸动画
+  if (refs.bodyGroup) {
+    const breathe = 1 + Math.sin(t * 1.8) * 0.012;
+    refs.bodyGroup.scale.setScalar(breathe);
+    // 头部也微小跟随
+    // (catRoot 已经包含 head，一起缩放即可)
+  }
+
+  controls.update();
+  renderer.render(scene, camera);
+}
+
+// ============================================================
+// 响应式处理
+// ============================================================
+function onResize() {
+  camera.aspect = container.clientWidth / container.clientHeight;
+  camera.updateProjectionMatrix();
+  renderer.setSize(container.clientWidth, container.clientHeight);
+}
+window.addEventListener('resize', onResize);
+
+// ============================================================
+// 启动
+// ============================================================
+parseURLParams();
+buildCat(state.furColor);
+setEyes(state.eyeStyle);
+setGear(state.gearType);
+initUI();
+
+// 应用 URL 参数的 UI 状态
+document.querySelectorAll('#eye-btns .btn').forEach(b => {
+  b.classList.toggle('active', b.textContent === state.eyeStyle);
+});
+if (state.gearType) {
+  document.querySelectorAll('#gear-btns .btn').forEach(b => {
+    b.classList.toggle('active', b.dataset.gear === state.gearType);
+  });
+  document.querySelector('#gear-btns .none-btn').classList.remove('active');
+}
+document.getElementById('token-id').textContent = state.tokenId;
+
+animate();
+
+console.log('🐱 Pixel Cat 3D Viewer ready!');
+console.log('   Eyes:', EYE_STYLES.join(', '));
+console.log('   Gear:', GEAR_LIST.map(g => g.id).join(', '));
+console.log('   URL params: ?fur=#f4a460&eyes=Alert&gear=Coffee&tokenId=42');
+</script>
+</body>
+</html>
