@@ -7,6 +7,7 @@ import { ref, onMounted, onUnmounted, watch } from 'vue'
 import { useCatStore } from '../stores/cat.js'
 import { createScene } from '../three/SceneSetup.js'
 import { CatModel } from '../three/CatModel.js'
+import { preloadGearTextures } from '../three/EquipmentFactory.js'
 import * as THREE from 'three'
 
 const store = useCatStore()
@@ -18,7 +19,10 @@ let clock
 let animId
 let specialGroup
 
-onMounted(() => {
+onMounted(async () => {
+  // 预加载装备贴图
+  await preloadGearTextures()
+
   const canvas = canvasRef.value
   const setup = createScene(canvas)
   renderer = setup.renderer

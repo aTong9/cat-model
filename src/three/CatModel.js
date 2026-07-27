@@ -1,4 +1,5 @@
 import * as THREE from 'three'
+import { createGear, TEXTURE_GEAR_TYPES } from './EquipmentFactory.js'
 
 // ===== 材质工厂 =====
 function furMat(hex) {
@@ -582,6 +583,13 @@ export class CatModel {
 
     const add = (g) => this._gearRoot.add(g)
 
+    // 贴图类装备：委托给 EquipmentFactory
+    if (TEXTURE_GEAR_TYPES.has(this._gearType)) {
+      const gear = createGear(this._gearType)
+      if (gear) add(gear)
+      return
+    }
+
     switch (this._gearType) {
       case 'Baseball Cap': {
         const cg = new THREE.Group()
@@ -597,26 +605,6 @@ export class CatModel {
         add(cg)
         break
       }
-      case 'Camera': {
-        const cg = new THREE.Group()
-        cg.position.set(0, 1.18, 0.62); cg.rotation.x = -0.15
-        cg.add(new THREE.Mesh(new THREE.BoxGeometry(0.20, 0.12, 0.14), accent('#2c3e50')))
-        const lens = new THREE.Mesh(new THREE.CylinderGeometry(0.06, 0.07, 0.10, 20), accent('#34495e'))
-        lens.rotation.x = Math.PI / 2; lens.position.set(0, 0.01, 0.12); lens.castShadow = true; cg.add(lens)
-        const lf = new THREE.Mesh(new THREE.CylinderGeometry(0.045, 0.045, 0.02, 20),
-          new THREE.MeshStandardMaterial({ color: '#111', roughness: 0.1, metalness: 0.6 }))
-        lf.rotation.x = Math.PI / 2; lf.position.set(0, 0.01, 0.18); cg.add(lf)
-        const strapPts = [
-          new THREE.Vector3(0.09, 0.03, -0.06), new THREE.Vector3(0.14, 0.2, -0.08),
-          new THREE.Vector3(0.05, 0.35, -0.12), new THREE.Vector3(-0.05, 0.35, -0.12),
-          new THREE.Vector3(-0.14, 0.2, -0.08), new THREE.Vector3(-0.09, 0.03, -0.06),
-        ]
-        cg.add(new THREE.Mesh(
-          new THREE.TubeGeometry(new THREE.CatmullRomCurve3(strapPts), 20, 0.012, 6, false),
-          accent('#e74c3c')))
-        add(cg)
-        break
-      }
       case 'Gold Round Glasses': {
         const gg = new THREE.Group()
         gg.position.set(0, 1.78, 0.54)
@@ -627,30 +615,6 @@ export class CatModel {
         }
         const bridge = new THREE.Mesh(new THREE.CylinderGeometry(0.012, 0.012, 0.12, 8), metal('#ffd700'))
         bridge.rotation.z = Math.PI / 2; gg.add(bridge)
-        add(gg)
-        break
-      }
-      case 'Wealth Gold Bar': {
-        const bg = new THREE.Group()
-        bg.position.set(-0.42, 0.38, 0.48); bg.rotation.set(0.3, -0.4, 0.2)
-        const bar = new THREE.Mesh(new THREE.BoxGeometry(0.15, 0.08, 0.28), metal('#ffd700'))
-        bar.castShadow = true; bg.add(bar)
-        const stripe = new THREE.Mesh(new THREE.BoxGeometry(0.10, 0.02, 0.25), metal('#ffe566'))
-        stripe.position.y = 0.045; bg.add(stripe)
-        add(bg)
-        break
-      }
-      case 'Good Luck Gold Bar': {
-        const gg = new THREE.Group()
-        gg.position.set(-0.40, 0.42, 0.52); gg.rotation.set(0.15, -0.42, 0.08)
-        const outer = new THREE.Mesh(new THREE.CapsuleGeometry(0.105, 0.26, 8, 18), metal('#ffdb3e'))
-        outer.rotation.z = Math.PI / 2; outer.scale.set(.74, 1, .38); outer.castShadow = true; gg.add(outer)
-        const inset = new THREE.Mesh(new THREE.CapsuleGeometry(0.076, 0.20, 8, 18), metal('#e8ae15'))
-        inset.rotation.z = Math.PI / 2; inset.scale.set(.74, 1, .43); inset.position.z = .038; gg.add(inset)
-        for (const y of [-.065, .065]) {
-          const seal = new THREE.Mesh(new THREE.TorusGeometry(.027, .009, 6, 16), metal('#ffe77a'))
-          seal.position.set(0, y, .075); gg.add(seal)
-        }
         add(gg)
         break
       }
@@ -702,21 +666,6 @@ export class CatModel {
         sg.add(new THREE.Mesh(new THREE.CylinderGeometry(0.032, 0.032, 0.02, 12), accent('#2c3e50'))).position.y = 0.17
         sg.add(new THREE.Mesh(new THREE.CylinderGeometry(0.035, 0.03, 0.05, 12), accent('#f0f0e8'))).position.set(0.08, -0.04, 0.02)
         add(sg)
-        break
-      }
-      case 'Ramen': {
-        const rg = new THREE.Group()
-        rg.position.set(0, 0.16, 0.62)
-        const bowl = new THREE.Mesh(new THREE.SphereGeometry(0.13, 20, 12), accent('#e67e22'))
-        bowl.scale.set(1, 0.55, 1); bowl.position.y = -0.02; bowl.castShadow = true; rg.add(bowl)
-        const rim = new THREE.Mesh(new THREE.TorusGeometry(0.12, 0.015, 6, 24), accent('#d35400'))
-        rim.rotation.x = Math.PI / 2; rim.position.y = 0.05; rg.add(rim)
-        for (let i = 0; i < 5; i++) {
-          const pts = [new THREE.Vector3((i - 2) * 0.04, 0.06, -0.02),
-            new THREE.Vector3((i - 2) * 0.05, 0.10, 0.0), new THREE.Vector3((i - 2) * 0.03, 0.08, 0.03)]
-          rg.add(new THREE.Mesh(new THREE.TubeGeometry(new THREE.CatmullRomCurve3(pts), 8, 0.01, 6, false), accent('#f5deb3')))
-        }
-        add(rg)
         break
       }
       case 'Kettlebell': {
