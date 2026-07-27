@@ -178,50 +178,75 @@ function createBaseballCap() {
   return g
 }
 
-// --- 金框眼镜 ---
+// --- 金框眼镜（像素方块圆环 + 粗黑边框，参考 GoldRoundGlasses.html） ---
 function createGoldRoundGlasses() {
   const g = new THREE.Group()
-  const t = tex('Gold Round Glasses')
 
-  // 两片金丝镜框
-  for (const x of [-0.13, 0.13]) {
-    const frame = new THREE.Mesh(
-      new THREE.TorusGeometry(0.09, 0.02, 8, 24),
-      new THREE.MeshStandardMaterial({ color: '#ffd700', roughness: 0.22, metalness: 0.88 })
-    )
-    frame.position.x = x
-    g.add(frame)
+  const goldMat  = new THREE.MeshStandardMaterial({ color: '#ffd700', roughness: 0.22, metalness: 0.88 })
+  const blackMat = new THREE.MeshBasicMaterial({ color: 0x000000 })
 
-    // 镜片
-    const lens = new THREE.Mesh(
-      new THREE.CircleGeometry(0.07, 24),
-      new THREE.MeshPhysicalMaterial({
-        color: '#ddeeff',
-        roughness: 0.05,
-        transparent: true,
-        opacity: 0.3,
-      })
-    )
-    lens.position.x = x
-    g.add(lens)
+  const RADIUS = 0.09
+  const PIXEL_SIZE = 0.014
+  const SPACING = 0.115 // 镜框到中心距离
+
+  // 创建一个像素圆环（粗黑边框 + 金色主体）
+  function createPixelRing() {
+    const ring = new THREE.Group()
+    const circumference = 2 * Math.PI * RADIUS
+    const count = Math.floor(circumference / PIXEL_SIZE)
+    const geo = new THREE.BoxGeometry(PIXEL_SIZE, PIXEL_SIZE, PIXEL_SIZE * 0.6)
+
+    for (let i = 0; i < count; i++) {
+      const angle = (i / count) * Math.PI * 2
+      const x = Math.cos(angle) * RADIUS
+      const y = Math.sin(angle) * RADIUS
+
+      // 黑色边框层（放后面，尺寸放大）
+      const border = new THREE.Mesh(geo, blackMat)
+      border.position.set(x, y, -0.008)
+      border.scale.set(1.4, 1.4, 1.2)
+      ring.add(border)
+
+      // 金色主体层（放前面，原尺寸）
+      const main = new THREE.Mesh(geo, goldMat)
+      main.position.set(x, y, 0)
+      ring.add(main)
+    }
+    return ring
   }
 
-  // 正面 PNG 贴图：覆盖两片镜片区域，展示眼镜细节
-  if (t) {
-    const aspect = t.image ? t.image.width / t.image.height : 2.8
-    const w = 0.42
-    const h = w / aspect
-    const decal = createDecal(t, w, h)
-    decal.position.z = 0.002
-    g.add(decal)
+  // 鼻桥（像素方块 + 黑色边框）
+  function createBridge() {
+    const bridge = new THREE.Group()
+    const bw = 4 * PIXEL_SIZE * 1.4 // 4 格宽
+    const bh = 2 * PIXEL_SIZE * 1.4 // 2 格高
+
+    // 黑色背景
+    const borderGeo = new THREE.BoxGeometry(bw, bh, PIXEL_SIZE * 0.6)
+    const border = new THREE.Mesh(borderGeo, blackMat)
+    border.position.z = -0.008
+    bridge.add(border)
+
+    // 金色主体
+    const mainGeo = new THREE.BoxGeometry(4 * PIXEL_SIZE, 2 * PIXEL_SIZE, PIXEL_SIZE * 0.5)
+    const main = new THREE.Mesh(mainGeo, goldMat)
+    bridge.add(main)
+
+    return bridge
   }
+
+  // 左镜框
+  const leftRing = createPixelRing()
+  leftRing.position.x = -SPACING
+  g.add(leftRing)
+
+  // 右镜框
+  const rightRing = createPixelRing()
+  rightRing.position.x = SPACING
+  g.add(rightRing)
 
   // 鼻桥
-  const bridge = new THREE.Mesh(
-    new THREE.CylinderGeometry(0.012, 0.012, 0.12, 8),
-    new THREE.MeshStandardMaterial({ color: '#ffd700', roughness: 0.22, metalness: 0.88 })
-  )
-  bridge.rotation.z = Math.PI / 2
+  const bridge = createBridge()
   g.add(bridge)
 
   g.position.set(0, 1.78, 0.54)
@@ -529,80 +554,193 @@ function createCamera() {
   return g
 }
 
-// --- 大吉金条 ---
+// ===== 金条纹理生成（CSS 风格金色渐变 + 浮雕文字 + 金属条纹） =====
+function makeGoldBarTexture(textLines) {
+  const w = 512, h = 256
+  const canvas = document.createElement('canvas')
+  canvas.width = w
+  canvas.height = h
+  const ctx = canvas.getContext('2d')
+
+  // CSS 风格金色线性渐变背景
+  const grad = ctx.createLinearGradient(0, 0, 0, h)
+  grad.addColorStop(0, '#f4d03f')
+  grad.addColorStop(0.25, '#ffd700')
+  grad.addColorStop(0.5, '#ffec8b')
+  grad.addColorStop(0.75, '#daa520')
+  grad.addColorStop(1, '#b8860b')
+  ctx.fillStyle = grad
+  ctx.fillRect(0, 0, w, h)
+
+  // CSS rgba 半透明水平金属条纹
+  ctx.strokeStyle = 'rgba(184, 134, 11, 0.22)'
+  ctx.lineWidth = 2
+  for (let y = 0; y < h; y += 10) {
+    ctx.beginPath()
+    ctx.moveTo(0, y)
+    ctx.lineTo(w, y)
+    ctx.stroke()
+  }
+
+  // CSS text-shadow 模拟浮雕深度
+  ctx.shadowColor = 'rgba(101, 67, 33, 0.55)'
+  ctx.shadowBlur = 6
+  ctx.shadowOffsetX = 3
+  ctx.shadowOffsetY = 3
+
+  // 文字
+  ctx.fillStyle = '#8b6914'
+  ctx.font = 'bold 80px "Microsoft YaHei", "SimHei", serif'
+  ctx.textAlign = 'center'
+  ctx.textBaseline = 'middle'
+  textLines.forEach((line, i) => {
+    const y = h / 2 + (i - (textLines.length - 1) / 2) * 86
+    ctx.fillText(line, w / 2, y)
+  })
+
+  ctx.shadowColor = 'transparent'
+
+  const tex = new THREE.CanvasTexture(canvas)
+  tex.colorSpace = THREE.SRGBColorSpace
+  return tex
+}
+
+// 辅助：生成 bump map（文字凸起浮雕）
+function makeGoldBarBumpMap(textLines) {
+  const w = 512, h = 256
+  const canvas = document.createElement('canvas')
+  canvas.width = w
+  canvas.height = h
+  const ctx = canvas.getContext('2d')
+
+  // 中性灰背景
+  ctx.fillStyle = '#808080'
+  ctx.fillRect(0, 0, w, h)
+
+  // 文字白色（凸起）
+  ctx.fillStyle = '#e0e0e0'
+  ctx.font = 'bold 80px "Microsoft YaHei", "SimHei", serif'
+  ctx.textAlign = 'center'
+  ctx.textBaseline = 'middle'
+  textLines.forEach((line, i) => {
+    const y = h / 2 + (i - (textLines.length - 1) / 2) * 86
+    ctx.fillText(line, w / 2, y)
+  })
+
+  const tex = new THREE.CanvasTexture(canvas)
+  return tex
+}
+
+// --- 大吉金条（Box 堆积建模 + 正面平面文字 decal，参考 Camera.html 风格） ---
 function createGoodLuckGoldBar() {
   const g = new THREE.Group()
-  const t = tex('Good Luck Gold Bar')
+  const inner = new THREE.Group()
 
-  const body = new THREE.Mesh(
-    new THREE.CapsuleGeometry(0.105, 0.26, 8, 18),
-    new THREE.MeshStandardMaterial({ color: '#e8ae15', roughness: 0.2, metalness: 0.9 })
-  )
-  body.rotation.z = Math.PI / 2
-  body.scale.set(0.74, 1, 0.38)
-  body.castShadow = true
-  g.add(body)
+  const goldMat  = new THREE.MeshStandardMaterial({ color: '#daa520', roughness: 0.18, metalness: 0.90 })
+  const rimMat   = new THREE.MeshStandardMaterial({ color: '#ffd700', roughness: 0.10, metalness: 0.96 })
+  const edgeMat  = new THREE.MeshStandardMaterial({ color: '#cd9b1d', roughness: 0.14, metalness: 0.88 })
 
-  const outer = new THREE.Mesh(
-    new THREE.CapsuleGeometry(0.11, 0.28, 8, 18),
-    new THREE.MeshStandardMaterial({ color: '#ffdb3e', roughness: 0.15, metalness: 0.9 })
-  )
-  outer.rotation.z = Math.PI / 2
-  outer.scale.set(0.74, 1, 0.34)
-  outer.position.z = -0.006
-  g.add(outer)
-
-  if (t) {
-    const aspect = t.image ? t.image.width / t.image.height : 2.5
-    const h = 0.07
-    const w = h * aspect
-    const decal = createDecal(t, w, h)
-    decal.position.set(0, 0, 0.042)
-    g.add(decal)
-  }
-
-  for (const z of [-0.069, 0.069]) {
-    const seal = new THREE.Mesh(
-      new THREE.TorusGeometry(0.027, 0.009, 6, 16),
-      new THREE.MeshStandardMaterial({ color: '#ffe77a', roughness: 0.1, metalness: 0.95 })
+  // 主体：多层 Box 堆出圆角金条
+  const bodyLayers = [
+    { x: 0.00, y: 0.00, w: 0.22, h: 0.10, d: 0.28 },
+    { x: 0.00, y: 0.06, w: 0.20, h: 0.03, d: 0.27 },
+    { x: 0.00, y: -0.06, w: 0.20, h: 0.03, d: 0.27 },
+    { x: 0.11, y: 0.00, w: 0.03, h: 0.08, d: 0.27 },
+    { x: -0.11, y: 0.00, w: 0.03, h: 0.08, d: 0.27 },
+  ]
+  bodyLayers.forEach(l => {
+    const block = new THREE.Mesh(
+      new THREE.BoxGeometry(l.w, l.h, l.d),
+      l.y === 0 && l.x === 0 ? goldMat : edgeMat
     )
-    seal.position.set(0, 0, z)
-    g.add(seal)
-  }
+    block.position.set(l.x, l.y, 0)
+    block.castShadow = true
+    inner.add(block)
+  })
 
+  // 金边外框（上下左右四条细条）
+  const rimData = [
+    { x: 0, y: 0.04, w: 0.21, h: 0.010, d: 0.28 },
+    { x: 0, y: -0.04, w: 0.21, h: 0.010, d: 0.28 },
+    { x: 0.10, y: 0, w: 0.010, h: 0.09, d: 0.28 },
+    { x: -0.10, y: 0, w: 0.010, h: 0.09, d: 0.28 },
+  ]
+  rimData.forEach(r => {
+    const rim = new THREE.Mesh(new THREE.BoxGeometry(r.w, r.h, r.d), rimMat)
+    rim.position.set(r.x, r.y, 0.002)
+    inner.add(rim)
+  })
+
+  // 正面文字 decal（flat PlaneGeometry，清晰显示）
+  const colorMap = makeGoldBarTexture(['大', '吉'])
+  const decal = new THREE.Mesh(
+    new THREE.PlaneGeometry(0.16, 0.11),
+    new THREE.MeshBasicMaterial({ map: colorMap, transparent: true, depthTest: true, depthWrite: false })
+  )
+  decal.position.z = 0.143
+  inner.add(decal)
+
+  g.add(inner)
   g.position.set(-0.40, 0.42, 0.52)
   g.rotation.set(0.15, -0.42, 0.08)
   return g
 }
 
-// --- 招财金条 ---
+// --- 招财金条（Box 堆积建模 + 正面平面文字 decal，参考 Camera.html 风格） ---
 function createWealthGoldBar() {
   const g = new THREE.Group()
-  const t = tex('Wealth Gold Bar')
+  const inner = new THREE.Group()
 
+  const goldMat = new THREE.MeshStandardMaterial({ color: '#daa520', roughness: 0.18, metalness: 0.90 })
+  const rimMat  = new THREE.MeshStandardMaterial({ color: '#ffd700', roughness: 0.10, metalness: 0.96 })
+  const edgeMat = new THREE.MeshStandardMaterial({ color: '#cd9b1d', roughness: 0.14, metalness: 0.88 })
+
+  // 主体：长方体
   const body = new THREE.Mesh(
-    new THREE.BoxGeometry(0.15, 0.08, 0.28),
-    new THREE.MeshStandardMaterial({ color: '#ffd700', roughness: 0.18, metalness: 0.92 })
+    new THREE.BoxGeometry(0.18, 0.12, 0.24),
+    goldMat
   )
   body.castShadow = true
-  g.add(body)
+  inner.add(body)
 
-  const bevel = new THREE.Mesh(
-    new THREE.BoxGeometry(0.14, 0.015, 0.26),
-    new THREE.MeshStandardMaterial({ color: '#ffe566', roughness: 0.12, metalness: 0.95 })
+  // 边缘 bevel（上下前后左右，共 8 条）
+  const bevels = [
+    { x: 0,     y: 0.07,  z: 0,     w: 0.175, h: 0.013, d: 0.235 },
+    { x: 0,     y: -0.07, z: 0,     w: 0.175, h: 0.013, d: 0.235 },
+    { x: 0.085, y: 0,     z: 0,     w: 0.013, h: 0.115, d: 0.235 },
+    { x: -0.085, y: 0,    z: 0,     w: 0.013, h: 0.115, d: 0.235 },
+    { x: 0,     y: 0,     z: 0.115, w: 0.175, h: 0.115, d: 0.013 },
+    { x: 0,     y: 0,     z: -0.115,w: 0.175, h: 0.115, d: 0.013 },
+  ]
+  bevels.forEach(b => {
+    const bevel = new THREE.Mesh(new THREE.BoxGeometry(b.w, b.h, b.d), edgeMat)
+    bevel.position.set(b.x, b.y, b.z)
+    inner.add(bevel)
+  })
+
+  // 金边
+  const rimData = [
+    { x: 0,     y: 0.055, z: 0.123, w: 0.17, h: 0.008, d: 0.004 },
+    { x: 0,     y: -0.055,z: 0.123, w: 0.17, h: 0.008, d: 0.004 },
+    { x: 0.08,  y: 0,     z: 0.123, w: 0.008, h: 0.11, d: 0.004 },
+    { x: -0.08, y: 0,     z: 0.123, w: 0.008, h: 0.11, d: 0.004 },
+  ]
+  rimData.forEach(r => {
+    const rim = new THREE.Mesh(new THREE.BoxGeometry(r.w, r.h, r.d), rimMat)
+    rim.position.set(r.x, r.y, r.z)
+    inner.add(rim)
+  })
+
+  // 正面文字 decal（flat PlaneGeometry，清晰显示）
+  const colorMap = makeGoldBarTexture(['亿', '万', '两'])
+  const decal = new THREE.Mesh(
+    new THREE.PlaneGeometry(0.13, 0.15),
+    new THREE.MeshBasicMaterial({ map: colorMap, transparent: true, depthTest: true, depthWrite: false })
   )
-  bevel.position.y = 0.045
-  g.add(bevel)
+  decal.position.z = 0.125
+  inner.add(decal)
 
-  if (t) {
-    const aspect = t.image ? t.image.width / t.image.height : 2.5
-    const h = 0.055
-    const w = h * aspect
-    const decal = createDecal(t, w, h)
-    decal.position.set(0, 0, 0.141)
-    g.add(decal)
-  }
-
+  g.add(inner)
   g.position.set(-0.42, 0.38, 0.48)
   g.rotation.set(0.3, -0.4, 0.2)
   return g
