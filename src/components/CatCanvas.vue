@@ -14,12 +14,14 @@ import { createReferenceSpecialScene } from '../three/scenes/ReferenceSpecialSce
 import { createWeatherController } from '../three/WeatherController.js'
 import { createCharacterInputController } from '../three/CharacterInputController.js'
 import { createPreviewEnvironmentController } from '../three/PreviewEnvironmentController.js'
+import { createRenderLifecycleController } from '../three/RenderLifecycleController.js'
 import * as THREE from 'three'
 
 const store = useCatStore()
 const canvasRef = ref(null)
 
 let renderer, scene, camera, controls, envGroup, updateSize, weatherController, inputController, environmentController
+let lifecycleController
 let catAssembly
 let catModel
 let clock
@@ -123,15 +125,21 @@ onMounted(async () => {
 
   clock = new THREE.Clock()
   window.addEventListener('cat:set-camera-view', onCameraView)
-  animate()
-
-  // resize observer
-  const ro = new ResizeObserver(() => updateSize())
-  ro.observe(canvas)
+  lifecycleController = createRenderLifecycleController({
+    canvas,
+    documentTarget: document,
+    ResizeObserverClass: ResizeObserver,
+    onResize: () => updateSize(),
+    onPause: stopAnimation,
+    onResume: startAnimation,
+    onContextRestored: () => { renderer.resetState?.(); clock.getDelta() },
+  })
+  lifecycleController.attach()
 })
 
 onUnmounted(() => {
-  if (animId) cancelAnimationFrame(animId)
+  lifecycleController?.dispose()
+  stopAnimation()
   window.removeEventListener('cat:set-camera-view', onCameraView)
   inputController?.dispose()
   catAssembly?.dispose()
@@ -496,6 +504,17 @@ function animate() {
   // 雷电闪烁
 
   renderer.render(scene, camera)
+}
+
+function startAnimation() {
+  if (animId != null || !clock) return
+  clock.getDelta()
+  animate()
+}
+
+function stopAnimation() {
+  if (animId != null) cancelAnimationFrame(animId)
+  animId = null
 }
 </script>
 
