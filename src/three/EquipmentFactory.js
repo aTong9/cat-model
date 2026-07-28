@@ -1,4 +1,5 @@
 import * as THREE from 'three'
+import { RoundedBoxGeometry } from 'three/addons/geometries/RoundedBoxGeometry.js'
 
 const loader = new THREE.TextureLoader()
 const cache = {}
@@ -9,6 +10,7 @@ const TEXTURE_MAP = {
   'Camera': '/equipment/Camera.png',
   'Gold Round Glasses': '/equipment/GoldRoundGlasses.png',
   'Good Luck Gold Bar': '/equipment/GoodLuckGoldBar.png',
+  'Hiking Backpack': '/equipment/HikingBackpack.png',
   'Hot Coffee': '/equipment/HotCoffee.png',
   'Investment Book': '/equipment/InvestmentBook.png',
   'Ramen': '/equipment/Ramen.png',
@@ -43,6 +45,48 @@ export async function preloadGearTextures() {
 
 function tex(key) {
   return cache[key] || null
+}
+
+export const GEAR_MODEL_SPECS = {
+  'Baseball Cap': { reference: '/equipment/BaseballCap.png', socket: 'head-top', collider: { type: 'box', size: [0.78, 0.28, 0.62] } },
+  'Camera': { reference: '/equipment/Camera.png', socket: 'chest-front', collider: { type: 'box', size: [0.32, 0.20, 0.16] } },
+  'Gold Round Glasses': { reference: '/equipment/GoldRoundGlasses.png', socket: 'face-eyes', collider: { type: 'box', size: [0.48, 0.22, 0.06] } },
+  'Good Luck Gold Bar': { reference: '/equipment/GoodLuckGoldBar.png', socket: 'paw-left', collider: { type: 'box', size: [0.18, 0.32, 0.06] } },
+  'Hiking Backpack': { reference: '/equipment/HikingBackpack.png', socket: 'back', collider: { type: 'box', size: [0.30, 0.42, 0.16] } },
+  'Hot Coffee': { reference: '/equipment/HotCoffee.png', socket: 'head-top', collider: { type: 'cylinder', radius: 0.08, height: 0.25 } },
+  'Investment Book': { reference: '/equipment/InvestmentBook.png', socket: 'head-top', collider: { type: 'box', size: [0.30, 0.06, 0.24] } },
+  'Ramen': { reference: '/equipment/Ramen.png', socket: 'head-top', collider: { type: 'cylinder', radius: 0.16, height: 0.22 } },
+  'Sake': { reference: '/equipment/Sake.png', socket: 'paw-left', collider: { type: 'compound', parts: ['bottle', 'cup'] } },
+  'Wealth Gold Bar': { reference: '/equipment/WealthGoldBar.png', socket: 'paw-left', collider: { type: 'box', size: [0.20, 0.34, 0.08] } },
+}
+
+function decorateGearModel(type, root) {
+  const spec = GEAR_MODEL_SPECS[type]
+  root.name = `Gear:${type}`
+  root.userData.gearType = type
+  root.userData.referenceImage = spec.reference
+  root.userData.attachment = { socket: spec.socket, contactType: 'socket', gapTolerance: 0.02 }
+  root.userData.collider = structuredClone(spec.collider)
+  root.userData.exportable = true
+
+  const parts = {}
+  let partIndex = 0
+  root.traverse(child => {
+    if (!child.isMesh) return
+    if (!child.name) child.name = `${type.replaceAll(' ', '')}:part-${partIndex}`
+    child.castShadow = true
+    child.receiveShadow = true
+    child.userData.partId = child.name
+    child.userData.explodeWithParent = true
+    parts[child.name] = child
+    partIndex++
+  })
+  // Mesh references must stay outside userData: GLTFExporter serializes userData as JSON.
+  Object.defineProperty(root, 'sculptRuntime', {
+    value: { parts, sockets: { attachment: spec.socket }, colliders: [root.userData.collider] },
+    configurable: true,
+  })
+  return root
 }
 
 // ===== 辅助：创建带贴图的平面 decal（始终正对相机的最佳实践）=====
@@ -454,90 +498,132 @@ function createHikingBackpack() {
 // --- 热咖啡 ---
 function createHotCoffee() {
   const g = new THREE.Group()
-  const t = tex('Hot Coffee')
+  const white = new THREE.MeshStandardMaterial({ color: '#f6f3eb', roughness: 0.42 })
+  const sleeveMat = new THREE.MeshStandardMaterial({ color: '#7a6b5d', roughness: 0.82 })
+  const sleeveDark = new THREE.MeshStandardMaterial({ color: '#3c332d', roughness: 0.78 })
 
-  // 杯身
-  const cupGeo = new THREE.CylinderGeometry(0.08, 0.07, 0.16, 24)
-  const cup = new THREE.Mesh(
-    cupGeo,
-    new THREE.MeshStandardMaterial({ color: '#f5f5f0', roughness: 0.35, metalness: 0.05 })
-  )
+  // 参考图是外带纸杯：上宽下窄，无把手。
+  const cup = new THREE.Mesh(new THREE.CylinderGeometry(0.064, 0.052, 0.18, 24), white)
   cup.castShadow = true
   g.add(cup)
 
-  // 侧面贴图
-  if (t) {
-    const aspect = t.image ? t.image.width / t.image.height : 1.0
-    const h = 0.12
-    const w = h * aspect
-    const decal = createDecal(t, w, h)
-    decal.position.z = 0.075
-    g.add(decal)
+  const sleeve = new THREE.Mesh(new THREE.CylinderGeometry(0.067, 0.059, 0.085, 24), sleeveMat)
+  sleeve.position.y = -0.005
+  g.add(sleeve)
+  for (let i = 0; i < 12; i++) {
+    const angle = (i / 12) * Math.PI * 2
+    const rib = new THREE.Mesh(new THREE.BoxGeometry(0.008, 0.078, 0.009), sleeveDark)
+    rib.position.set(Math.sin(angle) * 0.064, -0.005, Math.cos(angle) * 0.064)
+    rib.rotation.y = angle
+    g.add(rib)
   }
 
-  // 把手
-  const handle = new THREE.Mesh(
-    new THREE.TorusGeometry(0.05, 0.015, 8, 12, Math.PI),
-    new THREE.MeshStandardMaterial({ color: '#f5f5f0', roughness: 0.35 })
-  )
-  handle.position.set(0.09, 0.02, 0)
-  handle.rotation.set(Math.PI / 2, Math.PI / 2, 0)
-  g.add(handle)
+  const lid = new THREE.Mesh(new THREE.CylinderGeometry(0.073, 0.068, 0.025, 24), white)
+  lid.position.y = 0.102
+  g.add(lid)
+  const lidTop = new THREE.Mesh(new THREE.CylinderGeometry(0.058, 0.064, 0.018, 24), white)
+  lidTop.position.y = 0.122
+  g.add(lidTop)
 
-  // 杯口（咖啡液面）
-  const top = new THREE.Mesh(
-    new THREE.CylinderGeometry(0.07, 0.07, 0.005, 24),
-    new THREE.MeshStandardMaterial({ color: '#4a2c0a', roughness: 0.3 })
+  const steamCurve = new THREE.CatmullRomCurve3([
+    new THREE.Vector3(0, 0.132, 0),
+    new THREE.Vector3(0.020, 0.165, 0),
+    new THREE.Vector3(-0.012, 0.195, 0),
+    new THREE.Vector3(0.014, 0.225, 0),
+  ])
+  const steam = new THREE.Mesh(
+    new THREE.TubeGeometry(steamCurve, 18, 0.006, 6, false),
+    new THREE.MeshBasicMaterial({ color: '#fff7f0', transparent: true, opacity: 0.72 })
   )
-  top.position.y = 0.08
-  g.add(top)
-
-  // 热气粒子
+  g.add(steam)
   for (let i = 0; i < 3; i++) {
-    const steam = new THREE.Mesh(
-      new THREE.SphereGeometry(0.015, 6, 4),
-      new THREE.MeshBasicMaterial({ color: '#fff', transparent: true, opacity: 0.3 })
-    )
-    steam.position.set((i - 1) * 0.03, 0.13 + i * 0.04, 0)
-    g.add(steam)
+    const accent = new THREE.Mesh(new THREE.TorusGeometry(0.010, 0.0035, 5, 12), new THREE.MeshBasicMaterial({ color: '#d9958b' }))
+    accent.position.set(i % 2 ? -0.008 : 0.008, 0.165 + i * 0.025, 0.003)
+    accent.rotation.x = Math.PI / 2
+    g.add(accent)
   }
 
-  g.position.set(0.42, 0.22, 0.25)
+  g.position.set(0, 1.50, 0.02)
   return g
 }
 
 // --- 投资书 ---
 function createInvestmentBook() {
   const g = new THREE.Group()
-  const t = tex('Investment Book')
+  const red = '#c93c36'
+  const paper = '#f6f3e8'
+  const ink = '#191919'
 
-  // 书本主体
+  // 厚封面、书页和封底都是独立实体，侧视时仍能读出书本层次。
   const bookBody = new THREE.Mesh(
     new THREE.BoxGeometry(0.22, 0.04, 0.28),
-    new THREE.MeshStandardMaterial({ color: '#c0392b', roughness: 0.35, metalness: 0.05 })
+    new THREE.MeshStandardMaterial({ color: red, roughness: 0.42 })
   )
   g.add(bookBody)
 
-  // 书页侧面
   const pages = new THREE.Mesh(
-    new THREE.BoxGeometry(0.20, 0.025, 0.26),
-    new THREE.MeshStandardMaterial({ color: '#f5f0e0', roughness: 0.5 })
+    new THREE.BoxGeometry(0.205, 0.032, 0.262),
+    new THREE.MeshStandardMaterial({ color: paper, roughness: 0.62 })
   )
-  pages.position.y = 0.03
+  pages.position.y = 0.012
   g.add(pages)
-
-  // 顶部封面贴图
-  if (t) {
-    const aspect = t.image ? t.image.width / t.image.height : 0.8
-    const w = 0.18
-    const h = w / aspect
-    const decal = createDecal(t, w, h)
-    decal.position.set(0, 0.036, 0)
-    decal.rotation.x = -Math.PI / 2
-    g.add(decal)
+  for (const y of [0.001, 0.010, 0.019]) {
+    const pageLine = new THREE.Mesh(
+      new THREE.BoxGeometry(0.208, 0.003, 0.266),
+      new THREE.MeshStandardMaterial({ color: ink, roughness: 0.72 })
+    )
+    pageLine.position.y = y
+    g.add(pageLine)
   }
 
-  // 金色书签带
+  const coverCanvas = document.createElement('canvas')
+  coverCanvas.width = 512
+  coverCanvas.height = 640
+  const ctx = coverCanvas.getContext('2d')
+  ctx.fillStyle = paper
+  ctx.fillRect(0, 0, 512, 640)
+  ctx.fillStyle = red
+  ctx.beginPath()
+  ctx.moveTo(0, 0)
+  ctx.lineTo(250, 0)
+  ctx.lineTo(128, 640)
+  ctx.lineTo(0, 640)
+  ctx.closePath()
+  ctx.fill()
+  ctx.strokeStyle = red
+  ctx.fillStyle = red
+  ctx.lineWidth = 34
+  ctx.lineCap = 'square'
+  ctx.lineJoin = 'miter'
+  ctx.beginPath()
+  ctx.moveTo(255, 440)
+  ctx.lineTo(330, 370)
+  ctx.lineTo(365, 410)
+  ctx.lineTo(440, 270)
+  ctx.stroke()
+  ctx.beginPath()
+  ctx.moveTo(440, 270)
+  ctx.lineTo(420, 355)
+  ctx.lineTo(485, 315)
+  ctx.closePath()
+  ctx.fill()
+  const coverTexture = new THREE.CanvasTexture(coverCanvas)
+  coverTexture.colorSpace = THREE.SRGBColorSpace
+  const cover = new THREE.Mesh(
+    new THREE.BoxGeometry(0.224, 0.012, 0.284),
+    new THREE.MeshStandardMaterial({ map: coverTexture, roughness: 0.48 })
+  )
+  cover.position.y = 0.045
+  g.add(cover)
+
+  // 书脊和书签提供侧面的识别特征。
+  const spine = new THREE.Mesh(
+    new THREE.BoxGeometry(0.025, 0.058, 0.288),
+    new THREE.MeshStandardMaterial({ color: ink, roughness: 0.66 })
+  )
+  spine.position.set(-0.105, 0.014, 0)
+  g.add(spine)
+
   const ribbon = new THREE.Mesh(
     new THREE.BoxGeometry(0.015, 0.02, 0.10),
     new THREE.MeshStandardMaterial({ color: '#ffd700', roughness: 0.2, metalness: 0.8 })
@@ -545,59 +631,54 @@ function createInvestmentBook() {
   ribbon.position.set(0, 0.02, 0.16)
   g.add(ribbon)
 
-  g.position.set(0.38, 0.25, 0.24)
-  g.rotation.set(0.2, -0.5, 0.1)
+  g.position.set(0, 1.47, 0.02)
+  g.rotation.set(-0.12, -0.18, -0.08)
   return g
 }
 
 // --- 清酒 ---
 function createSake() {
   const g = new THREE.Group()
-  const t = tex('Sake')
+  const ceramic = new THREE.MeshStandardMaterial({ color: '#f8f7ef', roughness: 0.28 })
+  const dark = new THREE.MeshStandardMaterial({ color: '#171717', roughness: 0.55 })
+  const sakeGold = new THREE.MeshStandardMaterial({ color: '#f2bd19', roughness: 0.32, metalness: 0.12 })
 
-  // 瓶身
-  const body = new THREE.Mesh(
-    new THREE.CylinderGeometry(0.06, 0.07, 0.20, 20),
-    new THREE.MeshStandardMaterial({ color: '#e8e8e0', roughness: 0.3, metalness: 0.05 })
-  )
+  // 参考图是方肩白瓷瓶：主体、肩部、颈部均有真实厚度。
+  const body = new THREE.Mesh(new RoundedBoxGeometry(0.13, 0.22, 0.09, 3, 0.015), ceramic)
+  body.position.y = -0.015
   body.castShadow = true
   g.add(body)
 
-  // 瓶身标签贴图
-  if (t) {
-    const aspect = t.image ? t.image.width / t.image.height : 0.6
-    const h = 0.14
-    const w = h * aspect
-    const decal = createDecal(t, w, h)
-    decal.position.z = 0.065
-    g.add(decal)
-  }
-
-  // 瓶颈
-  const neck = new THREE.Mesh(
-    new THREE.CylinderGeometry(0.03, 0.04, 0.07, 14),
-    new THREE.MeshStandardMaterial({ color: '#e8e8e0', roughness: 0.3, metalness: 0.05 })
-  )
-  neck.position.y = 0.13
+  const shoulder = new THREE.Mesh(new THREE.CylinderGeometry(0.040, 0.064, 0.050, 8), ceramic)
+  shoulder.position.y = 0.115
+  g.add(shoulder)
+  const neck = new THREE.Mesh(new THREE.CylinderGeometry(0.035, 0.038, 0.070, 12), ceramic)
+  neck.position.y = 0.168
   g.add(neck)
+  const lip = new THREE.Mesh(new THREE.CylinderGeometry(0.043, 0.043, 0.018, 12), ceramic)
+  lip.position.y = 0.212
+  g.add(lip)
+  const neckBand = new THREE.Mesh(new THREE.BoxGeometry(0.085, 0.018, 0.096), dark)
+  neckBand.position.y = 0.150
+  g.add(neckBand)
 
-  // 瓶盖
-  const cap = new THREE.Mesh(
-    new THREE.CylinderGeometry(0.032, 0.032, 0.02, 14),
-    new THREE.MeshStandardMaterial({ color: '#2c3e50', roughness: 0.25, metalness: 0.4 })
-  )
-  cap.position.y = 0.17
-  g.add(cap)
+  const bottleGoldBand = new THREE.Mesh(new THREE.BoxGeometry(0.134, 0.018, 0.094), sakeGold)
+  bottleGoldBand.position.y = -0.095
+  g.add(bottleGoldBand)
 
-  // 小酒杯
-  const ochoko = new THREE.Mesh(
-    new THREE.CylinderGeometry(0.035, 0.03, 0.05, 14),
-    new THREE.MeshStandardMaterial({ color: '#f0f0e8', roughness: 0.25, metalness: 0.05 })
-  )
-  ochoko.position.set(0.08, -0.04, 0.02)
+  const ochoko = new THREE.Mesh(new THREE.CylinderGeometry(0.052, 0.044, 0.070, 16), ceramic)
+  ochoko.position.set(0.115, -0.080, 0.025)
   g.add(ochoko)
+  const drink = new THREE.Mesh(new THREE.CylinderGeometry(0.045, 0.045, 0.008, 16), sakeGold)
+  drink.position.set(0.115, -0.041, 0.025)
+  g.add(drink)
+  const cupBand = new THREE.Mesh(new THREE.TorusGeometry(0.047, 0.006, 6, 16), sakeGold)
+  cupBand.rotation.x = Math.PI / 2
+  cupBand.position.set(0.115, -0.073, 0.025)
+  g.add(cupBand)
 
   g.position.set(-0.38, 0.24, 0.24)
+  g.rotation.set(0.10, -0.34, 0.05)
   return g
 }
 
@@ -908,144 +989,88 @@ function createGoodLuckGoldBar() {
 // --- 招财金条（Box 堆积建模 + 正面平面文字 decal，参考 Camera.html 风格） ---
 function createWealthGoldBar() {
   const g = new THREE.Group()
-  const inner = new THREE.Group()
+  const shellMat = new THREE.MeshStandardMaterial({ color: '#d6a814', roughness: 0.14, metalness: 0.94 })
+  const faceMat = new THREE.MeshStandardMaterial({ color: '#ffd83d', roughness: 0.11, metalness: 0.97 })
+  const body = new THREE.Mesh(new RoundedBoxGeometry(0.21, 0.36, 0.08, 5, 0.055), shellMat)
+  g.add(body)
+  const face = new THREE.Mesh(new RoundedBoxGeometry(0.178, 0.325, 0.083, 5, 0.043), faceMat)
+  face.position.z = 0.008
+  g.add(face)
 
-  const goldMat = new THREE.MeshStandardMaterial({ color: '#daa520', roughness: 0.18, metalness: 0.90 })
-  const rimMat  = new THREE.MeshStandardMaterial({ color: '#ffd700', roughness: 0.10, metalness: 0.96 })
-  const edgeMat = new THREE.MeshStandardMaterial({ color: '#cd9b1d', roughness: 0.14, metalness: 0.88 })
-
-  // 主体：长方体
-  const body = new THREE.Mesh(
-    new THREE.BoxGeometry(0.18, 0.12, 0.24),
-    goldMat
-  )
-  body.castShadow = true
-  inner.add(body)
-
-  // 边缘 bevel（上下前后左右，共 8 条）
-  const bevels = [
-    { x: 0,     y: 0.07,  z: 0,     w: 0.175, h: 0.013, d: 0.235 },
-    { x: 0,     y: -0.07, z: 0,     w: 0.175, h: 0.013, d: 0.235 },
-    { x: 0.085, y: 0,     z: 0,     w: 0.013, h: 0.115, d: 0.235 },
-    { x: -0.085, y: 0,    z: 0,     w: 0.013, h: 0.115, d: 0.235 },
-    { x: 0,     y: 0,     z: 0.115, w: 0.175, h: 0.115, d: 0.013 },
-    { x: 0,     y: 0,     z: -0.115,w: 0.175, h: 0.115, d: 0.013 },
-  ]
-  bevels.forEach(b => {
-    const bevel = new THREE.Mesh(new THREE.BoxGeometry(b.w, b.h, b.d), edgeMat)
-    bevel.position.set(b.x, b.y, b.z)
-    inner.add(bevel)
-  })
-
-  // 金边
-  const rimData = [
-    { x: 0,     y: 0.055, z: 0.123, w: 0.17, h: 0.008, d: 0.004 },
-    { x: 0,     y: -0.055,z: 0.123, w: 0.17, h: 0.008, d: 0.004 },
-    { x: 0.08,  y: 0,     z: 0.123, w: 0.008, h: 0.11, d: 0.004 },
-    { x: -0.08, y: 0,     z: 0.123, w: 0.008, h: 0.11, d: 0.004 },
-  ]
-  rimData.forEach(r => {
-    const rim = new THREE.Mesh(new THREE.BoxGeometry(r.w, r.h, r.d), rimMat)
-    rim.position.set(r.x, r.y, r.z)
-    inner.add(rim)
-  })
-
-  // 正面文字 decal（flat PlaneGeometry，清晰显示）
-  const colorMap = makeGoldBarTexture(['亿', '万', '两'])
+  // 图片中的“億万両”作为正面浮雕式 decal，侧面仍由真实厚度承担。
+  const colorMap = makeGoldBarTexture(['億', '万', '両'])
   const decal = new THREE.Mesh(
-    new THREE.PlaneGeometry(0.13, 0.15),
+    new THREE.PlaneGeometry(0.135, 0.275),
     new THREE.MeshBasicMaterial({ map: colorMap, transparent: true, depthTest: true, depthWrite: false })
   )
-  decal.position.z = 0.125
-  inner.add(decal)
-
-  g.add(inner)
+  decal.position.z = 0.052
+  g.add(decal)
   g.position.set(-0.40, 0.26, 0.22)
-  g.rotation.set(0.3, -0.4, 0.2)
+  g.rotation.set(0.12, -0.28, 0.08)
   return g
 }
 
 // --- 拉面 ---
 function createRamen() {
   const g = new THREE.Group()
-  const t = tex('Ramen')
+  const ceramic = new THREE.MeshStandardMaterial({ color: '#f7f5ef', roughness: 0.28 })
+  const red = new THREE.MeshStandardMaterial({ color: '#ef4d4d', roughness: 0.38 })
+  const brothMat = new THREE.MeshStandardMaterial({ color: '#8f5426', roughness: 0.35 })
 
-  const bowlGeo = new THREE.SphereGeometry(0.13, 24, 14, 0, Math.PI * 2, 0, Math.PI * 0.55)
-  const bowl = new THREE.Mesh(
-    bowlGeo,
-    new THREE.MeshStandardMaterial({ color: '#e67e22', roughness: 0.35, metalness: 0.05 })
-  )
-  bowl.scale.set(1, 0.55, 0.9)
-  bowl.position.y = -0.03
+  const bowl = new THREE.Mesh(new THREE.CylinderGeometry(0.145, 0.095, 0.14, 32, 1, false), ceramic)
+  bowl.position.y = -0.035
   bowl.castShadow = true
   g.add(bowl)
 
-  const bowlBase = new THREE.Mesh(
-    new THREE.CylinderGeometry(0.055, 0.065, 0.04, 16),
-    new THREE.MeshStandardMaterial({ color: '#c0392b', roughness: 0.3 })
-  )
-  bowlBase.position.y = -0.10
+  const bowlBase = new THREE.Mesh(new THREE.CylinderGeometry(0.070, 0.078, 0.035, 20), ceramic)
+  bowlBase.position.y = -0.122
   g.add(bowlBase)
 
-  const rim = new THREE.Mesh(
-    new THREE.TorusGeometry(0.12, 0.016, 8, 28),
-    new THREE.MeshStandardMaterial({ color: '#d35400', roughness: 0.25, metalness: 0.1 })
-  )
+  const rim = new THREE.Mesh(new THREE.TorusGeometry(0.145, 0.010, 8, 32), red)
   rim.rotation.x = Math.PI / 2
-  rim.position.y = 0.05
+  rim.position.y = 0.037
   g.add(rim)
 
-  if (t) {
-    const topDisc = new THREE.Mesh(
-      new THREE.CircleGeometry(0.105, 32),
-      new THREE.MeshBasicMaterial({
-        map: t,
-        transparent: true,
-        side: THREE.DoubleSide,
-        depthTest: true,
-        depthWrite: true,
-      })
-    )
-    topDisc.rotation.x = -Math.PI / 2
-    topDisc.position.y = 0.065
-    g.add(topDisc)
+  const broth = new THREE.Mesh(new THREE.CylinderGeometry(0.132, 0.132, 0.008, 32), brothMat)
+  broth.position.y = 0.038
+  g.add(broth)
+  const noodleMat = new THREE.MeshStandardMaterial({ color: '#f0b94e', roughness: 0.48 })
+  for (let i = 0; i < 6; i++) {
+    const noodle = new THREE.Mesh(new THREE.TorusGeometry(0.058 + i * 0.007, 0.009, 6, 24, Math.PI * 1.45), noodleMat)
+    noodle.rotation.x = Math.PI / 2
+    noodle.rotation.z = 0.25 + i * 0.42
+    noodle.position.set(-0.025, 0.055 + i * 0.002, 0.005)
+    g.add(noodle)
   }
 
-  const noodlePts1 = [
-    new THREE.Vector3(-0.02, 0.06, 0.04),
-    new THREE.Vector3(-0.01, 0.10, 0.03),
-    new THREE.Vector3(0.01, 0.08, 0.02),
-  ]
-  g.add(
-    new THREE.Mesh(
-      new THREE.TubeGeometry(new THREE.CatmullRomCurve3(noodlePts1), 8, 0.008, 6, false),
-      new THREE.MeshStandardMaterial({ color: '#f5deb3', roughness: 0.5 })
-    )
-  )
+  const eggWhite = new THREE.Mesh(new THREE.SphereGeometry(0.055, 18, 12), ceramic)
+  eggWhite.scale.set(1.15, 0.22, 0.86)
+  eggWhite.position.set(0.055, 0.075, 0.025)
+  g.add(eggWhite)
+  const yolk = new THREE.Mesh(new THREE.SphereGeometry(0.026, 14, 10), new THREE.MeshStandardMaterial({ color: '#f4b93f', roughness: 0.32 }))
+  yolk.scale.y = 0.42
+  yolk.position.set(0.055, 0.086, 0.035)
+  g.add(yolk)
 
-  const noodlePts2 = [
-    new THREE.Vector3(0.03, 0.06, -0.03),
-    new THREE.Vector3(0.04, 0.11, -0.01),
-    new THREE.Vector3(0.02, 0.09, 0.01),
-  ]
-  g.add(
-    new THREE.Mesh(
-      new THREE.TubeGeometry(new THREE.CatmullRomCurve3(noodlePts2), 8, 0.008, 6, false),
-      new THREE.MeshStandardMaterial({ color: '#f5deb3', roughness: 0.5 })
-    )
-  )
-
-  for (const dx of [-0.04, 0.04]) {
-    const cp = new THREE.Mesh(
-      new THREE.CylinderGeometry(0.007, 0.01, 0.18, 8),
-      new THREE.MeshStandardMaterial({ color: '#deb887', roughness: 0.4 })
-    )
-    cp.rotation.set(0, 0.2, 0.25)
-    cp.position.set(dx, 0.08, 0.02)
-    g.add(cp)
+  const noriMat = new THREE.MeshStandardMaterial({ color: '#26342c', roughness: 0.76, side: THREE.DoubleSide })
+  for (const x of [-0.045, 0.02]) {
+    const nori = new THREE.Mesh(new THREE.PlaneGeometry(0.065, 0.12), noriMat)
+    nori.position.set(x, 0.105, -0.055)
+    nori.rotation.x = -0.25
+    nori.rotation.z = x < 0 ? -0.18 : 0.14
+    g.add(nori)
   }
 
-  g.position.set(0, 0.15, 0.30)
+  const chopMat = new THREE.MeshStandardMaterial({ color: '#79513a', roughness: 0.62 })
+  for (const z of [-0.022, 0.022]) {
+    const chopstick = new THREE.Mesh(new THREE.CylinderGeometry(0.006, 0.006, 0.32, 8), chopMat)
+    chopstick.rotation.z = Math.PI / 2
+    chopstick.position.set(0, 0.105, z)
+    g.add(chopstick)
+  }
+
+  g.position.set(0, 1.47, 0.01)
+  g.scale.setScalar(0.92)
   return g
 }
 
@@ -1065,7 +1090,7 @@ const FACTORY_MAP = {
 
 export function createGear(type) {
   const fn = FACTORY_MAP[type]
-  if (fn) return fn()
+  if (fn) return decorateGearModel(type, fn())
   return null
 }
 
