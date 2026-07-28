@@ -18,6 +18,10 @@ export { EYE_STYLES, FACE_EXPRESSIONS, PRESET_CATS }
 export const GEAR_LIST = GEAR_TRAITS
 export const BACKGROUNDS = BACKGROUND_TRAITS
 export const SPECIALS = SPECIAL_TRAITS
+export const ACTIONS = [
+  { id: 'run', label: '跑步' },
+  { id: 'flex', label: '秀肌肉' },
+]
 
 const WEATHERS = ['sunny', 'cloudy', 'thunder', 'rain']
 
@@ -33,6 +37,7 @@ export const useCatStore = defineStore('cat', () => {
   const tokenId = ref(1)
   const seed = ref(Date.now())
   const activePreset = ref(null)
+  const actionMode = ref('run')
 
   const weather = ref('sunny')
   const lightIntensity = ref(1)
@@ -122,7 +127,7 @@ export const useCatStore = defineStore('cat', () => {
   }
 
   return {
-    furStyle, furColor, eyeStyle, gearType, faceExpression, background, special,
+    furStyle, furColor, eyeStyle, gearType, faceExpression, background, special, actionMode,
     tokenId, seed, activePreset, weather, lightIntensity, rainAmount, cloudAmount,
     fishAmount, musicOn, language, loading, loadingProgress, panelExpanded, showHints,
     isSpecialFullScene, randomize, setFromSeed, cycleWeather, togglePanel, setLanguage,

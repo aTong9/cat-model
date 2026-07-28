@@ -485,7 +485,7 @@ export class CatModel {
   }
 
   setAnimation(mode = 'idle') {
-    this._animationMode = mode === 'run' ? 'run' : 'idle'
+    this._animationMode = ['run', 'flex'].includes(mode) ? mode : 'idle'
   }
 
   setRunSpeed(speed = 1) {
@@ -530,9 +530,41 @@ export class CatModel {
     })
   }
 
+  _updateFlex(time) {
+    const pulse = (Math.sin(time * 4.2) + 1) * 0.5
+    this.root.scale.set(1.05 + pulse * 0.018, 1.02 - pulse * 0.008, 1 + pulse * 0.018)
+    if (this._headGroup) this._headGroup.rotation.set(-0.025, 0, Math.sin(time * 1.4) * 0.018)
+    ;[[this._armLGroup, -1], [this._armRGroup, 1]].forEach(([arm, side]) => {
+      if (!arm) return
+      const { elbow, wrist } = arm.userData.joints || {}
+      arm.rotation.set(-0.08, 0, -side * (0.72 + pulse * 0.08))
+      if (elbow) elbow.rotation.set(0.08, 0, side * (1.38 + pulse * 0.12))
+      if (wrist) wrist.rotation.set(-0.18, 0, -side * 0.18)
+    })
+    ;[this._footLGroup, this._footRGroup].forEach((leg) => {
+      if (!leg) return
+      leg.rotation.set(0, 0, 0)
+      const { knee, ankle } = leg.userData.joints || {}
+      if (knee) knee.rotation.set(0.06, 0, 0)
+      if (ankle) ankle.rotation.set(-0.06, 0, 0)
+    })
+    for (const [ear, side] of [[this._earLGroup, -1], [this._earRGroup, 1]]) {
+      if (ear) ear.rotation.set(-0.025, 0, side * 0.035)
+    }
+    const joints = this._tailGroup?.userData.joints || []
+    joints.forEach((joint, index) => {
+      joint.rotation.y = Math.sin(time * 1.7 - index * 0.28) * (0.07 + index * 0.012)
+      joint.rotation.z = Math.cos(time * 1.2 - index * 0.22) * 0.045
+    })
+  }
+
   update(time) {
     if (this._animationMode === 'run') {
       this._updateRun(time)
+      return
+    }
+    if (this._animationMode === 'flex') {
+      this._updateFlex(time)
       return
     }
     // 呼吸动画 + Meow-Generator 风格 idle

@@ -17,6 +17,7 @@
         <div class="param-row"><span class="param-label">装备</span><div class="btn-row"><button class="btn small" :class="{ active: store.gearType === null }" @click="store.gearType = null">无</button><button v-for="gear in GEAR_LIST" :key="gear.id" class="btn small" :class="{ active: store.gearType === gear.id }" @click="store.gearType = gear.id">{{ gear.label }}</button></div></div>
         <div class="param-row"><span class="param-label">背景</span><select class="select-input" :value="store.background || ''" :disabled="Boolean(store.special)" @change="store.setBackground($event.target.value)"><option value="" disabled>{{ store.special ? '场景启用中' : '选择背景' }}</option><option v-for="background in BACKGROUNDS" :key="background">{{ background }}</option></select></div>
         <div class="param-row"><span class="param-label">场景</span><div class="btn-row"><button class="btn small" :class="{ active: store.special === null }" @click="store.setSpecial(null)">默认</button><button v-for="special in SPECIALS" :key="special.id" class="btn small" :class="{ active: store.special === special.id }" @click="store.setSpecial(special.id)">{{ special.label }}</button></div></div>
+        <div class="param-row"><span class="param-label">动作</span><div class="btn-row"><button v-for="action in ACTIONS" :key="action.id" class="btn small" :class="{ active: store.actionMode === action.id }" @click="store.actionMode = action.id">{{ action.label }}</button></div></div>
         <div v-if="store.weather === 'rain' || store.weather === 'thunder'" class="param-row"><span class="param-label">雨量</span><input type="range" min="0" max="2" step=".1" v-model.number="store.rainAmount" class="slider" /><span class="val-text">{{ store.rainAmount.toFixed(1) }}</span></div>
         <div v-if="store.weather !== 'sunny'" class="param-row"><span class="param-label">云量</span><input type="range" min="0" max="2" step=".1" v-model.number="store.cloudAmount" class="slider" /><span class="val-text">{{ store.cloudAmount.toFixed(1) }}</span></div>
       </div>
@@ -26,7 +27,7 @@
 
 <script setup>
 import { defineComponent, h } from 'vue'
-import { useCatStore, FUR_PRESETS, EYE_STYLES, FACE_EXPRESSIONS, GEAR_LIST, BACKGROUNDS, SPECIALS } from '../stores/cat.js'
+import { useCatStore, FUR_PRESETS, EYE_STYLES, FACE_EXPRESSIONS, GEAR_LIST, BACKGROUNDS, SPECIALS, ACTIONS } from '../stores/cat.js'
 const store = useCatStore()
 const weathers = [{ id: 'sunny', icon: '☀', label: '晴天' }, { id: 'cloudy', icon: '☁', label: '多云' }, { id: 'thunder', icon: 'ϟ', label: '雷雨' }, { id: 'rain', icon: '☂', label: '降雨' }]
 const furDotStyle = preset => ({

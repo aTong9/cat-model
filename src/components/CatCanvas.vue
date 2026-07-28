@@ -21,6 +21,26 @@ let catModel
 let clock
 let animId
 let specialGroup
+const movementKeys = new Set()
+const moveDirection = new THREE.Vector3()
+const previousCatPosition = new THREE.Vector3()
+let activePortalId = null
+
+function isTypingTarget(target) {
+  return target instanceof HTMLElement && ['INPUT', 'TEXTAREA', 'SELECT'].includes(target.tagName)
+}
+
+function onKeyDown(event) {
+  if (isTypingTarget(event.target)) return
+  const key = event.key.toLowerCase()
+  if (!['w', 'a', 's', 'd'].includes(key)) return
+  movementKeys.add(key)
+  event.preventDefault()
+}
+
+function onKeyUp(event) {
+  movementKeys.delete(event.key.toLowerCase())
+}
 
 // ===== 装备物理系统 =====
 const gearEntries = []       // { group, id, restPos, velocity, angularVel }
@@ -67,6 +87,8 @@ onMounted(async () => {
   catModel.setEyeStyle(store.eyeStyle)
   catModel.setFaceExpression(store.faceExpression)
   catModel.setGear(store.gearType)
+  catModel.setAnimation(store.actionMode)
+  catModel.group.userData.movement = { controls: 'WASD', enabled: true, speed: 1.35 }
   scene.add(catModel.group)
   specialGroup = new THREE.Group()
   scene.add(specialGroup)
@@ -80,6 +102,8 @@ onMounted(async () => {
   createAllGearItems()
 
   clock = new THREE.Clock()
+  window.addEventListener('keydown', onKeyDown)
+  window.addEventListener('keyup', onKeyUp)
   animate()
 
   // resize observer
@@ -89,6 +113,9 @@ onMounted(async () => {
 
 onUnmounted(() => {
   if (animId) cancelAnimationFrame(animId)
+  window.removeEventListener('keydown', onKeyDown)
+  window.removeEventListener('keyup', onKeyUp)
+  movementKeys.clear()
   catModel?.dispose()
   renderer?.dispose()
   controls?.dispose()
@@ -270,6 +297,9 @@ watch(() => store.gearType, (v) => {
   }
 })
 watch(() => store.faceExpression, (v) => catModel?.setFaceExpression(v))
+watch(() => store.actionMode, (v) => {
+  if (movementKeys.size === 0) catModel?.setAnimation(v)
+})
 watch(() => store.background, applyBackground)
 watch(() => store.special, buildSpecialScene)
 watch(() => store.lightIntensity, (value) => {
@@ -386,11 +416,57 @@ function createClouds() {
   }
 }
 
+function emitPortalEntry(portal) {
+  const detail = { ...portal.userData.portal, character: catModel?.group }
+  canvasRef.value?.dispatchEvent(new CustomEvent('cat-enter-level', { detail }))
+  window.dispatchEvent(new CustomEvent('cat:enter-level', { detail }))
+}
+
+function checkPortalEntry() {
+  let entered = null
+  const catPosition = catModel.group.getWorldPosition(new THREE.Vector3())
+  specialGroup?.traverse((object) => {
+    if (entered || !object.userData.portal?.enabled) return
+    const portalPosition = object.getWorldPosition(new THREE.Vector3())
+    if (Math.hypot(catPosition.x - portalPosition.x, catPosition.z - portalPosition.z) < 0.62) entered = object
+  })
+  const nextId = entered?.userData.portal.levelId || null
+  if (entered && nextId !== activePortalId) emitPortalEntry(entered)
+  activePortalId = nextId
+}
+
+function updateCharacterMovement(dt) {
+  if (!catModel) return
+  moveDirection.set(
+    (movementKeys.has('d') ? 1 : 0) - (movementKeys.has('a') ? 1 : 0),
+    0,
+    (movementKeys.has('s') ? 1 : 0) - (movementKeys.has('w') ? 1 : 0),
+  )
+  const moving = moveDirection.lengthSq() > 0
+  catModel.setAnimation(moving ? 'run' : store.actionMode)
+  if (!moving) return
+
+  moveDirection.normalize()
+  previousCatPosition.copy(catModel.group.position)
+  const speed = catModel.group.userData.movement?.speed || 1.35
+  catModel.group.position.addScaledVector(moveDirection, speed * dt)
+  catModel.group.position.x = THREE.MathUtils.clamp(catModel.group.position.x, -4.6, 4.6)
+  catModel.group.position.z = THREE.MathUtils.clamp(catModel.group.position.z, -4.6, 4.6)
+  const targetYaw = Math.atan2(moveDirection.x, moveDirection.z)
+  catModel.group.rotation.y = THREE.MathUtils.lerp(catModel.group.rotation.y, targetYaw, 1 - Math.exp(-12 * dt))
+
+  const displacement = catModel.group.position.clone().sub(previousCatPosition)
+  camera.position.add(displacement)
+  controls.target.add(displacement)
+  checkPortalEntry()
+}
+
 function animate() {
   animId = requestAnimationFrame(animate)
   const dt = Math.min(clock.getDelta(), 0.05)
   const t = clock.getElapsedTime()
 
+  updateCharacterMovement(dt)
   catModel?.update(t)
   controls.update()
   updateSize()
