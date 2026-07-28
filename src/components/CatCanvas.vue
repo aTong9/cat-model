@@ -29,6 +29,26 @@ let activePortalId = null
 let jumpRequested = false
 let verticalVelocity = 0
 let grounded = true
+let cameraTransition = null
+
+const CAMERA_VIEWS = Object.freeze({
+  front: new THREE.Vector3(0, 0.45, 4.6),
+  'three-quarter': new THREE.Vector3(3.25, 0.7, 3.25),
+  side: new THREE.Vector3(4.6, 0.45, 0),
+  back: new THREE.Vector3(0, 0.45, -4.6),
+})
+
+function onCameraView(event) {
+  if (!camera || !controls || !catModel) return
+  const offset = CAMERA_VIEWS[event.detail?.view]
+  if (!offset) return
+  const characterPosition = catModel.group.getWorldPosition(new THREE.Vector3())
+  const target = characterPosition.clone().add(new THREE.Vector3(0, 0.72, 0))
+  cameraTransition = {
+    position: target.clone().add(offset),
+    target,
+  }
+}
 
 function isTypingTarget(target) {
   return target instanceof HTMLElement && ['INPUT', 'TEXTAREA', 'SELECT'].includes(target.tagName)
@@ -114,6 +134,7 @@ onMounted(async () => {
   clock = new THREE.Clock()
   window.addEventListener('keydown', onKeyDown)
   window.addEventListener('keyup', onKeyUp)
+  window.addEventListener('cat:set-camera-view', onCameraView)
   animate()
 
   // resize observer
@@ -125,6 +146,7 @@ onUnmounted(() => {
   if (animId) cancelAnimationFrame(animId)
   window.removeEventListener('keydown', onKeyDown)
   window.removeEventListener('keyup', onKeyUp)
+  window.removeEventListener('cat:set-camera-view', onCameraView)
   movementKeys.clear()
   catAssembly?.dispose()
   renderer?.dispose()
@@ -510,6 +532,16 @@ function animate() {
 
   updateCharacterMovement(dt)
   catModel?.update(t)
+  if (cameraTransition) {
+    const blend = 1 - Math.exp(-8 * dt)
+    camera.position.lerp(cameraTransition.position, blend)
+    controls.target.lerp(cameraTransition.target, blend)
+    if (camera.position.distanceTo(cameraTransition.position) < 0.012 && controls.target.distanceTo(cameraTransition.target) < 0.012) {
+      camera.position.copy(cameraTransition.position)
+      controls.target.copy(cameraTransition.target)
+      cameraTransition = null
+    }
+  }
   controls.update()
   updateSize()
 
