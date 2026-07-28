@@ -59,6 +59,7 @@
         </section>
 
         <section v-else-if="activeTab === 'scene'" class="settings-section">
+          <SettingBlock title="画质"><select v-model="store.qualityMode"><option v-for="item in QUALITY_MODES" :key="item.id" :value="item.id">{{ item.label }}</option></select></SettingBlock>
           <SettingBlock title="背景"><select :value="store.background || ''" :disabled="Boolean(store.special)" @change="store.setBackground($event.target.value)"><option value="" disabled>{{ store.special ? '特殊场景已启用' : '选择背景' }}</option><option v-for="background in BACKGROUNDS" :key="background">{{ background }}</option></select></SettingBlock>
           <SettingBlock title="特殊场景"><div class="choice-grid two"><button class="choice" :class="{ active: store.special === null }" @click="store.setSpecial(null)">默认场景</button><button v-for="item in SPECIALS" :key="item.id" class="choice" :class="{ active: store.special === item.id }" @click="store.setSpecial(item.id)">{{ item.label }}</button></div></SettingBlock>
         </section>
@@ -77,6 +78,7 @@ import { computed, defineComponent, h, ref } from 'vue'
 import { useCatStore, FUR_PRESETS, EYE_STYLES, FACE_EXPRESSIONS, GEAR_LIST, BACKGROUNDS, SPECIALS, ACTIONS } from '../stores/cat.js'
 import { summarizeTraitStatuses } from '../core/traitStatus.js'
 import TraitMatrix from './TraitMatrix.vue'
+import { QUALITY_MODES } from '../three/RenderQualityController.js'
 const store = useCatStore()
 const tokenQuery = ref(String(store.tokenId))
 const activeTab = ref('look')

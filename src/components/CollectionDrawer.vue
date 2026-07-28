@@ -18,7 +18,7 @@
         <div class="result-line"><span v-if="loading">正在读取目录…</span><span v-else>找到 {{ result.total }} 只<span v-if="result.total > result.tokens.length">，显示前 {{ result.tokens.length }} 只</span></span><button v-if="hasFilters" @click="resetFilters">清除筛选</button></div>
         <div class="cards">
           <button v-for="token in result.tokens" :key="token.tokenId" class="card" :class="{ active: String(store.tokenId) === token.tokenId }" @click="store.loadToken(token.tokenId)">
-            <img :src="token.remoteImage || token.localImage" :alt="`Liberty Cat #${token.tokenId}`" loading="lazy" @error="useFallback($event, token)" />
+            <img :src="token.imageUrl" :alt="`Liberty Cat #${token.tokenId}`" loading="lazy" @error="useFallback($event, token)" />
             <span>#{{ token.tokenId }}</span><i v-if="token.special">★</i>
           </button>
         </div>
@@ -55,8 +55,10 @@ async function toggleDrawer() {
 }
 function resetFilters() { for (const key of Object.keys(filters)) filters[key] = '' }
 function useFallback(event, token) {
-  if (event.currentTarget.src.endsWith(token.localImage)) return
-  event.currentTarget.src = token.localImage
+  if (!token.fallbackImageUrl) return
+  const fallbackUrl = new URL(token.fallbackImageUrl, window.location.href).href
+  if (event.currentTarget.src === fallbackUrl) return
+  event.currentTarget.src = fallbackUrl
 }
 </script>
 

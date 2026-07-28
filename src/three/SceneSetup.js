@@ -79,10 +79,14 @@ export function createScene(canvas) {
   scene.add(envGroup)
 
   // --- Resize ---
+  let lastWidth = 0
+  let lastHeight = 0
   function updateSize() {
     const w = canvas.clientWidth
     const h = canvas.clientHeight
-    if (canvas.width !== w || canvas.height !== h) {
+    if (lastWidth !== w || lastHeight !== h) {
+      lastWidth = w
+      lastHeight = h
       renderer.setSize(w, h, false)
       camera.aspect = w / Math.max(h, 1)
       camera.updateProjectionMatrix()

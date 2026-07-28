@@ -41,6 +41,7 @@ export const useCatStore = defineStore('cat', () => {
   const seed = ref(Date.now())
   const activePreset = ref(null)
   const actionMode = ref('idle')
+  const qualityMode = ref('auto')
 
   const weather = ref('sunny')
   const lightIntensity = ref(1)
@@ -57,6 +58,7 @@ export const useCatStore = defineStore('cat', () => {
   const tokenError = ref('')
   const referenceImage = ref(null)
   const referenceImageFallback = ref(null)
+  const referenceImageSource = ref('unavailable')
   const comparisonOpen = ref(false)
 
   const isSpecialFullScene = computed(() => SPECIALS.find(item => item.id === special.value)?.fullScene ?? false)
@@ -152,8 +154,9 @@ export const useCatStore = defineStore('cat', () => {
       background.value = token.background
       special.value = token.special
       weather.value = token.special === 'Thunderous Might' ? 'thunder' : 'sunny'
-      referenceImage.value = token.remoteImage
-      referenceImageFallback.value = token.localImage
+      referenceImage.value = token.imageUrl
+      referenceImageFallback.value = token.fallbackImageUrl
+      referenceImageSource.value = token.imageSource
       return true
     } catch (error) {
       console.warn(error)
@@ -191,10 +194,10 @@ export const useCatStore = defineStore('cat', () => {
   }
 
   return {
-    furStyle, furColor, eyeStyle, gearType, faceExpression, background, special, actionMode,
+    furStyle, furColor, eyeStyle, gearType, faceExpression, background, special, actionMode, qualityMode,
     tokenId, seed, activePreset, weather, lightIntensity, rainAmount, cloudAmount,
     fishAmount, musicOn, language, loading, loadingProgress, panelExpanded, showHints,
-    tokenLoading, tokenError, referenceImage, referenceImageFallback, comparisonOpen,
+    tokenLoading, tokenError, referenceImage, referenceImageFallback, referenceImageSource, comparisonOpen,
     isSpecialFullScene, currentTraits, randomize, setFromSeed, cycleWeather, togglePanel, setLanguage,
     applyPreset, setFurStyle, setCustomFurColor, setBackground, setSpecial, loadToken, loadAdjacent,
   }

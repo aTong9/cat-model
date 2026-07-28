@@ -21,6 +21,8 @@
 - 八种背景、雾色和灯光明暗已抽离为独立 `PreviewEnvironmentController`；灯光按初始强度绝对缩放，不再依赖 watcher 的累乘恢复。
 - 新增 `RenderLifecycleController`：页面进入后台时暂停渲染，恢复前重置帧间隔；监听 WebGL context lost/restored，并在卸载时断开 `ResizeObserver` 与全部生命周期事件。
 - 手机浏览器/WebView 在配置面板收起后显示方向、跳跃和按住奔跑控件；触控事件通过 `cat:virtual-input` 接入共享的 `CharacterInputController`，未建立第二套移动逻辑。
+- 新增自动/高画质/均衡/省电四档渲染质量，统一控制 DPR、阴影和目标帧率；同时修复高 DPR 设备每帧重复调用 `renderer.setSize()` 的尺寸判断问题。
+- 9,901 张参考图已建立 `remote / hybrid / local` 三种分发策略：公网生产包默认不携带原图，开发环境远程优先并以工作区图片兜底，离线 WebView 由宿主单独提供资源目录。
 - 主界面 GLB 导出已提供角色检查、PBR 转换、编码、回读校验和下载阶段反馈；成功后显示网格、三角面与文件体积，失败不再依赖阻塞式弹窗。
 - 10 种 Gear 已从各工厂内的写死世界坐标迁移到统一挂点配置，覆盖 `head-top`、`face-eyes`、`chest-front`、`back` 和 `paw-left`；在逐件截图验收前状态保持为 partial。
 

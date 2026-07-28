@@ -15,6 +15,7 @@ import { createWeatherController } from '../three/WeatherController.js'
 import { createCharacterInputController } from '../three/CharacterInputController.js'
 import { createPreviewEnvironmentController } from '../three/PreviewEnvironmentController.js'
 import { createRenderLifecycleController } from '../three/RenderLifecycleController.js'
+import { createRenderQualityController } from '../three/RenderQualityController.js'
 import * as THREE from 'three'
 
 const store = useCatStore()
@@ -22,6 +23,7 @@ const canvasRef = ref(null)
 
 let renderer, scene, camera, controls, envGroup, updateSize, weatherController, inputController, environmentController
 let lifecycleController
+let qualityController
 let catAssembly
 let catModel
 let clock
@@ -100,6 +102,12 @@ onMounted(async () => {
   inputController.attach()
   environmentController = createPreviewEnvironmentController(scene)
   environmentController.setLightIntensity(store.lightIntensity)
+  qualityController = createRenderQualityController({ renderer, capabilities: {
+    width: window.innerWidth,
+    deviceMemory: navigator.deviceMemory,
+    devicePixelRatio: window.devicePixelRatio,
+  } })
+  qualityController.setMode(store.qualityMode)
 
   // 暴露 scene 给旧导出入口；角色级导出使用 __character。
   canvas.__scene = scene
@@ -136,7 +144,10 @@ onMounted(async () => {
     canvas,
     documentTarget: document,
     ResizeObserverClass: ResizeObserver,
-    onResize: () => updateSize(),
+    onResize: () => {
+      qualityController?.updateCapabilities({ width: window.innerWidth, devicePixelRatio: window.devicePixelRatio })
+      updateSize()
+    },
     onPause: stopAnimation,
     onResume: startAnimation,
     onContextRestored: () => { renderer.resetState?.(); clock.getDelta() },
@@ -347,6 +358,10 @@ watch(() => store.special, (special) => {
 watch(() => store.lightIntensity, (value) => {
   environmentController?.setLightIntensity(value)
 })
+watch(() => store.qualityMode, (value) => {
+  qualityController?.setMode(value)
+  updateSize?.()
+})
 
 function applyBackground(name) {
   environmentController?.setBackground(name)
@@ -477,6 +492,7 @@ function updateCharacterMovement(dt) {
 
 function animate() {
   animId = requestAnimationFrame(animate)
+  if (qualityController && !qualityController.shouldRender(performance.now())) return
   const dt = Math.min(clock.getDelta(), 0.05)
   const t = clock.getElapsedTime()
 

@@ -10,7 +10,7 @@
           <i :class="imageState">{{ stateLabel }}</i>
         </header>
         <div class="image-stage">
-          <div v-if="imageState === 'loading'" class="image-loading"><span></span><b>正在读取远程原图…</b></div>
+          <div v-if="imageState === 'loading'" class="image-loading"><span></span><b>正在读取 NFT 原图…</b></div>
           <img v-show="imageState === 'ready'" :src="imageSource" :alt="`Liberty Cat #${store.tokenId} 原始 NFT`" @load="onLoad" @error="onError" />
           <div v-if="imageState === 'error'" class="image-error"><b>原图加载失败</b><span>远程地址与本地兜底均不可用</span></div>
         </div>
@@ -30,7 +30,7 @@ const store = useCatStore()
 const imageState = ref('loading')
 const usingFallback = ref(false)
 const imageSource = computed(() => usingFallback.value ? store.referenceImageFallback : store.referenceImage)
-const stateLabel = computed(() => imageState.value === 'ready' ? (usingFallback.value ? '本地兜底' : '远程原图') : imageState.value === 'error' ? '不可用' : '加载中')
+const stateLabel = computed(() => imageState.value === 'ready' ? (usingFallback.value || store.referenceImageSource === 'local' ? '本地资源' : '远程原图') : imageState.value === 'error' ? '不可用' : '加载中')
 watch(() => store.referenceImage, () => { imageState.value = 'loading'; usingFallback.value = false })
 function onLoad() { imageState.value = 'ready' }
 function onError() {
