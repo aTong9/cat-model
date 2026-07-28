@@ -10,9 +10,10 @@
 <script setup>
 import { useCatStore } from '../stores/cat.js'
 const store = useCatStore()
-const langs = [{ code: 'zh', label: '中' }, { code: 'ja', label: '日' }, { code: 'en', label: 'EN' }]
+const langs = [{ code: 'zh', label: '中文' }, { code: 'ja', label: '日本語' }, { code: 'en', label: 'EN' }]
 </script>
 
 <style scoped>
-.top-bar { position: fixed; top: 12px; left: 12px; z-index: 100; display: flex; align-items: center; gap: 6px; padding: 8px 12px; border-radius: 10px; animation: slideUp .5s ease-out .3s both; }
+.top-bar { position: fixed; top: 14px; left: 16px; z-index: 100; display: flex; align-items: center; gap: 4px; padding: 5px; border-radius: 11px; animation: slideUp .5s ease-out .3s both; }
+.top-bar .btn { min-height: 30px; padding-inline: 10px; }
 </style>

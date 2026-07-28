@@ -1,6 +1,7 @@
 import { defineStore } from 'pinia'
 import { computed, ref } from 'vue'
-import { getTokenById } from '../data/tokenCatalog.js'
+import { getAdjacentToken, getTokenById } from '../data/tokenCatalog.js'
+import { createCatTraits } from '../core/catTraits.js'
 import {
   BACKGROUND_TRAITS,
   DEFAULT_TRAITS,
@@ -58,6 +59,11 @@ export const useCatStore = defineStore('cat', () => {
   const referenceImageFallback = ref(null)
 
   const isSpecialFullScene = computed(() => SPECIALS.find(item => item.id === special.value)?.fullScene ?? false)
+  const currentTraits = computed(() => createCatTraits({
+    tokenId: tokenId.value, fur: furStyle.value, furColor: furColor.value,
+    eyes: eyeStyle.value, face: faceExpression.value, gear: gearType.value,
+    background: background.value, special: special.value,
+  }))
 
   function setFurStyle(id) {
     const trait = getFurTrait(id)
@@ -157,6 +163,11 @@ export const useCatStore = defineStore('cat', () => {
     }
   }
 
+  async function loadAdjacent(direction) {
+    const token = await getAdjacentToken(tokenId.value, direction)
+    return loadToken(token.tokenId)
+  }
+
   const cycleWeather = () => { weather.value = WEATHERS[(WEATHERS.indexOf(weather.value) + 1) % WEATHERS.length] }
   const togglePanel = () => { panelExpanded.value = !panelExpanded.value }
   const setLanguage = lang => { language.value = lang }
@@ -183,7 +194,7 @@ export const useCatStore = defineStore('cat', () => {
     tokenId, seed, activePreset, weather, lightIntensity, rainAmount, cloudAmount,
     fishAmount, musicOn, language, loading, loadingProgress, panelExpanded, showHints,
     tokenLoading, tokenError, referenceImage, referenceImageFallback,
-    isSpecialFullScene, randomize, setFromSeed, cycleWeather, togglePanel, setLanguage,
-    applyPreset, setFurStyle, setCustomFurColor, setBackground, setSpecial, loadToken,
+    isSpecialFullScene, currentTraits, randomize, setFromSeed, cycleWeather, togglePanel, setLanguage,
+    applyPreset, setFurStyle, setCustomFurColor, setBackground, setSpecial, loadToken, loadAdjacent,
   }
 })

@@ -8,8 +8,8 @@
       <div><strong>MEOWVERSE</strong><small>VR CAT LAB</small></div>
     </div>
     <div class="mascot-note">
-      <img :src="catImage" alt="黄色 VR 猫角色参考" />
-      <span>黄色 VR 招财猫<br><b>#{{ store.tokenId.toString().padStart(4, '0') }}</b></span>
+      <img :src="catImage" alt="Liberty Cats 像素猫参考" />
+      <span>当前角色<br><b>#{{ store.tokenId.toString().padStart(4, '0') }}</b></span>
     </div>
     <TopBar />
     <ParamPanel />
@@ -26,6 +26,7 @@ import ParamPanel from './components/ParamPanel.vue'
 import BottomBar from './components/BottomBar.vue'
 import LoadingScreen from './components/LoadingScreen.vue'
 import CollectionDrawer from './components/CollectionDrawer.vue'
+import { parseShareQuery } from './core/shareCatConfig.js'
 
 const catImage = new URL('../pixel_cat_3d/cat.png', import.meta.url).href
 
@@ -49,17 +50,18 @@ onMounted(() => {
   if (params.has('seed')) {
     store.setFromSeed(parseInt(params.get('seed')))
   }
-  if (params.has('fur')) {
-    const fur = params.get('fur')
-    if (fur?.startsWith('#')) store.setCustomFurColor(fur)
-    else store.setFurStyle(fur)
-  }
-  if (params.has('eyes')) store.eyeStyle = params.get('eyes')
-  if (params.has('face')) store.faceExpression = params.get('face')
-  if (params.has('gear')) store.gearType = params.get('gear') || null
-  if (params.has('bg')) store.setBackground(params.get('bg'))
-  if (params.has('special')) store.setSpecial(params.get('special') || null)
-  if (params.has('tokenId')) store.loadToken(params.get('tokenId'))
+  const explicitKeys = ['fur', 'color', 'eyes', 'face', 'gear', 'bg', 'special']
+  if (explicitKeys.some(key => params.has(key))) {
+    const traits = parseShareQuery(params)
+    store.tokenId = Number(traits.tokenId || 1)
+    store.setFurStyle(traits.fur)
+    if (params.has('color')) store.setCustomFurColor(traits.furColor)
+    store.eyeStyle = traits.eyes
+    store.faceExpression = traits.face
+    store.gearType = traits.gear
+    store.background = traits.background
+    store.special = traits.special
+  } else if (params.has('tokenId')) store.loadToken(params.get('tokenId'))
 })
 </script>
 

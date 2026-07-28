@@ -68,3 +68,5 @@ tests/               数据规范与角色工厂测试
 参数面板支持输入真实 tokenId，从精简 catalog 加载对应属性并显示 NFT 原图进行 2D/3D 对照。开发环境和生产环境均优先读取 metadata 中的远程原图地址，本地图片只作为失败兜底。
 
 GLB 导出以角色根节点为输入，不包含地面、灯光和背景场景。骨架动画与 Blender 回读仍在后续计划中，详见 [`docs/DEVELOPMENT_ROADMAP.md`](docs/DEVELOPMENT_ROADMAP.md)。
+
+主界面支持上一只/下一只 Token 浏览、复制规范化 CatTraits JSON，以及复制能够恢复当前外观配置的分享链接。分享链接会保存毛色、眼睛、表情、装备、背景和 Special 参数。

@@ -31,3 +31,12 @@ export async function getTokenById(tokenId) {
   const normalized = String(tokenId).replace(/^0+(?=\d)/, '')
   return (await loadTokenCatalog()).byId.get(normalized) ?? null
 }
+
+export async function getAdjacentToken(tokenId, direction = 1) {
+  const catalog = await loadTokenCatalog()
+  const current = String(tokenId).replace(/^0+(?=\d)/, '')
+  const index = catalog.tokens.findIndex(token => token.tokenId === current)
+  if (index < 0) return catalog.tokens[direction < 0 ? catalog.tokens.length - 1 : 0]
+  const nextIndex = (index + (direction < 0 ? -1 : 1) + catalog.tokens.length) % catalog.tokens.length
+  return catalog.tokens[nextIndex]
+}

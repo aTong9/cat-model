@@ -9,20 +9,28 @@ let _sharedToonMap = null
 function getToonGradientMap() {
   if (_sharedToonMap) return _sharedToonMap
   const size = 128
-  const canvas = document.createElement('canvas')
-  canvas.width = size
-  canvas.height = 2
-  const ctx = canvas.getContext('2d')
-  const grad = ctx.createLinearGradient(0, 0, size, 0)
-  // 暗面 → 中间调 → 亮面（模拟 cel-shading 但保留软过渡）
-  grad.addColorStop(0.0, '#261e14')
-  grad.addColorStop(0.28, '#4a3a24')
-  grad.addColorStop(0.50, '#9e7a48')
-  grad.addColorStop(0.72, '#dcc498')
-  grad.addColorStop(1.0, '#fef9f0')
-  ctx.fillStyle = grad
-  ctx.fillRect(0, 0, size, 2)
-  _sharedToonMap = new THREE.CanvasTexture(canvas)
+  const stops = [
+    [0, new THREE.Color('#261e14')],
+    [0.28, new THREE.Color('#4a3a24')],
+    [0.5, new THREE.Color('#9e7a48')],
+    [0.72, new THREE.Color('#dcc498')],
+    [1, new THREE.Color('#fef9f0')],
+  ]
+  const data = new Uint8Array(size * 4)
+  for (let index = 0; index < size; index++) {
+    const position = index / (size - 1)
+    let upper = 1
+    while (upper < stops.length - 1 && position > stops[upper][0]) upper++
+    const [fromPosition, fromColor] = stops[upper - 1]
+    const [toPosition, toColor] = stops[upper]
+    const color = fromColor.clone().lerp(toColor, (position - fromPosition) / (toPosition - fromPosition))
+    data[index * 4] = Math.round(color.r * 255)
+    data[index * 4 + 1] = Math.round(color.g * 255)
+    data[index * 4 + 2] = Math.round(color.b * 255)
+    data[index * 4 + 3] = 255
+  }
+  _sharedToonMap = new THREE.DataTexture(data, size, 1, THREE.RGBAFormat)
+  _sharedToonMap.needsUpdate = true
   _sharedToonMap.minFilter = THREE.LinearFilter
   _sharedToonMap.magFilter = THREE.NearestFilter
   _sharedToonMap.generateMipmaps = false

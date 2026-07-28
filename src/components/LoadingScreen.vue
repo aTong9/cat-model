@@ -2,12 +2,11 @@
   <Transition name="fade">
     <div v-if="store.loading" class="loading-overlay">
       <div class="loading-content">
-        <div class="loading-icon">🐱</div>
-        <p class="loading-text">{{ loadingText }}</p>
-        <div class="progress-bar">
-          <div class="progress-fill" :style="{ width: store.loadingProgress + '%' }"></div>
-        </div>
-        <p class="progress-num">{{ Math.floor(store.loadingProgress) }}%</p>
+        <div class="loading-icon">🐈</div>
+        <strong>LIBERTY CAT STUDIO</strong>
+        <p>{{ loadingText }}</p>
+        <div class="progress-bar"><div class="progress-fill" :style="{ width: `${store.loadingProgress}%` }"></div></div>
+        <small>{{ Math.floor(store.loadingProgress) }}%</small>
       </div>
     </div>
   </Transition>
@@ -16,50 +15,16 @@
 <script setup>
 import { computed } from 'vue'
 import { useCatStore } from '../stores/cat.js'
-
 const store = useCatStore()
-
 const loadingText = computed(() => {
-  const p = store.loadingProgress
-  if (p < 20) return '正在开罐，马上就好…'
-  if (p < 50) return '正在给小猫梳毛…'
-  if (p < 80) return '正在组装小道具…'
-  return '小猫即将登场！🐾'
+  if (store.loadingProgress < 20) return '正在读取角色参数…'
+  if (store.loadingProgress < 50) return '正在生成猫咪主体…'
+  if (store.loadingProgress < 80) return '正在装配外观与装备…'
+  return '角色即将就绪'
 })
 </script>
 
 <style scoped>
-.loading-overlay {
-  position: fixed; inset: 0; z-index: 1000;
-  background: #1a1a2e;
-  display: flex; align-items: center; justify-content: center;
-}
-.loading-content {
-  text-align: center;
-  animation: pulse 1.8s ease-in-out infinite;
-}
-.loading-icon { font-size: 4rem; }
-.loading-text {
-  color: #8899bb; font-size: 1rem;
-  margin: 16px 0 12px;
-}
-.progress-bar {
-  width: 200px; height: 4px;
-  background: rgba(255,255,255,0.1);
-  border-radius: 2px;
-  margin: 0 auto; overflow: hidden;
-}
-.progress-fill {
-  height: 100%;
-  background: linear-gradient(90deg, #f4a460, #ff8c00);
-  border-radius: 2px;
-  transition: width 0.2s ease-out;
-}
-.progress-num {
-  color: #556; font-size: 0.75rem;
-  margin-top: 6px; font-family: monospace;
-}
-
-.fade-leave-active { transition: opacity 0.5s ease-out; }
-.fade-leave-to { opacity: 0; }
+.loading-overlay{position:fixed;inset:0;z-index:1000;display:grid;place-items:center;background:radial-gradient(circle at 50% 42%,#292942 0,#11111c 58%)}
+.loading-content{width:min(280px,72vw);text-align:center}.loading-icon{font-size:3.4rem;filter:drop-shadow(0 10px 22px rgba(0,0,0,.35));animation:float 1.8s ease-in-out infinite}.loading-content strong{display:block;margin-top:12px;color:#f5d33d;font-size:.72rem;letter-spacing:.22em}.loading-content p{margin:14px 0 12px;color:#aeb5cb;font-size:.82rem}.progress-bar{height:4px;overflow:hidden;border-radius:4px;background:rgba(255,255,255,.09)}.progress-fill{height:100%;border-radius:inherit;background:linear-gradient(90deg,#f5d33d,#ff9f43);transition:width .2s}.loading-content small{display:block;margin-top:8px;color:#66708a;font:600 .68rem monospace}@keyframes float{50%{transform:translateY(-7px)}}.fade-leave-active{transition:opacity .45s}.fade-leave-to{opacity:0}
 </style>

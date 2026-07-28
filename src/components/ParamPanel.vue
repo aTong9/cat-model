@@ -1,43 +1,68 @@
 <template>
-  <div class="right-panel" :class="{ expanded: store.panelExpanded }">
-    <div class="tool-row glass">
-      <button class="btn round" :class="{ active: store.musicOn }" @click="store.musicOn = !store.musicOn" :title="store.musicOn ? '关闭氛围音' : '开启氛围音'">{{ store.musicOn ? '♪' : '♫' }}</button>
-      <button class="btn round" title="切换光照" @click="store.lightIntensity = store.lightIntensity === 1 ? .4 : 1">{{ store.lightIntensity === 1 ? '☀' : '◐' }}</button>
-      <button v-for="weather in weathers" :key="weather.id" class="btn round" :class="{ active: store.weather === weather.id }" :title="weather.label" @click="store.weather = weather.id">{{ weather.icon }}</button>
+  <aside class="right-panel" :class="{ expanded: store.panelExpanded }">
+    <div class="quick-tools glass" aria-label="环境快捷设置">
+      <button class="icon-btn" :class="{ active: store.lightIntensity === 1 }" title="切换灯光" @click="store.lightIntensity = store.lightIntensity === 1 ? .4 : 1">☀</button>
+      <button v-for="item in weathers" :key="item.id" class="icon-btn" :class="{ active: store.weather === item.id }" :title="item.label" @click="store.weather = item.id">{{ item.icon }}</button>
     </div>
-    <button class="panel-header glass" @click="store.togglePanel">
-      <span>{{ store.panelExpanded ? '收起控制台' : '定制你的 VR 猫' }}</span><span class="arrow" :class="{ open: store.panelExpanded }">⌄</span>
+
+    <button class="panel-toggle glass" @click="store.togglePanel">
+      <span><small>CHARACTER STUDIO</small><b>{{ store.panelExpanded ? '收起配置' : '打开角色配置' }}</b></span>
+      <i>{{ store.panelExpanded ? '›' : '‹' }}</i>
     </button>
-    <Transition name="expand">
+
+    <Transition name="panel">
       <div v-if="store.panelExpanded" class="panel-body glass">
-        <section class="intro"><span>CHARACTER STUDIO</span><b>打造独一无二的猫咪搭档</b></section>
+        <header class="panel-title">
+          <div><span>LIBERTY CAT GENERATOR</span><h1>角色配置器</h1></div>
+          <b>#{{ String(store.tokenId).padStart(4, '0') }}</b>
+        </header>
+
         <form class="token-search" @submit.prevent="searchToken">
-          <label for="token-id">LIBERTY CAT TOKEN</label>
-          <div><input id="token-id" v-model.trim="tokenQuery" inputmode="numeric" pattern="[0-9]*" placeholder="输入 0–9901" /><button class="btn" type="submit" :disabled="store.tokenLoading">{{ store.tokenLoading ? '加载中' : '载入' }}</button></div>
+          <label for="token-id">按 Token ID 载入原始属性</label>
+          <div><input id="token-id" v-model.trim="tokenQuery" inputmode="numeric" pattern="[0-9]*" placeholder="0–9901" /><button class="btn" type="submit" :disabled="store.tokenLoading">{{ store.tokenLoading ? '载入中…' : '载入' }}</button></div>
           <small v-if="store.tokenError">{{ store.tokenError }}</small>
         </form>
+        <div class="token-nav" aria-label="切换 Token">
+          <button class="btn" :disabled="store.tokenLoading" @click="navigateToken(-1)">← 上一只</button>
+          <button class="btn" :disabled="store.tokenLoading" @click="navigateToken(1)">下一只 →</button>
+        </div>
+
         <figure v-if="store.referenceImage" class="reference-card">
           <img :src="store.referenceImage" :alt="`Liberty Cat #${store.tokenId} 原图`" @error="onReferenceError" />
           <figcaption><span>原始 NFT 对照</span><b>#{{ store.tokenId }}</b></figcaption>
         </figure>
-        <div class="param-row"><span class="param-label">毛色</span><div class="color-row"><input type="color" :value="store.furColor" @input="store.setCustomFurColor($event.target.value)" /><span class="hex-text">{{ store.furStyle === 'Custom' ? store.furColor : store.furStyle }}</span></div><div class="preset-row"><button v-for="preset in FUR_PRESETS" :key="preset.id" class="preset-dot" :style="furDotStyle(preset)" :class="{ active: store.furStyle === preset.id }" :title="preset.label" @click="store.setFurStyle(preset.id)" /></div></div>
-        <ChoiceRow label="视觉" :items="EYE_STYLES" :active="store.eyeStyle" @select="store.eyeStyle = $event" />
-        <ChoiceRow label="表情" :items="FACE_EXPRESSIONS" :active="store.faceExpression" @select="store.faceExpression = $event" />
-        <div class="param-row"><span class="param-label">装备</span><div class="btn-row"><button class="btn small" :class="{ active: store.gearType === null }" @click="store.gearType = null">无</button><button v-for="gear in GEAR_LIST" :key="gear.id" class="btn small" :class="{ active: store.gearType === gear.id }" @click="store.gearType = gear.id">{{ gear.label }}</button></div></div>
-        <div class="param-row"><span class="param-label">背景</span><select class="select-input" :value="store.background || ''" :disabled="Boolean(store.special)" @change="store.setBackground($event.target.value)"><option value="" disabled>{{ store.special ? '场景启用中' : '选择背景' }}</option><option v-for="background in BACKGROUNDS" :key="background">{{ background }}</option></select></div>
-        <div class="param-row"><span class="param-label">场景</span><div class="btn-row"><button class="btn small" :class="{ active: store.special === null }" @click="store.setSpecial(null)">默认</button><button v-for="special in SPECIALS" :key="special.id" class="btn small" :class="{ active: store.special === special.id }" @click="store.setSpecial(special.id)">{{ special.label }}</button></div></div>
-        <div class="param-row"><span class="param-label">动作</span><div class="btn-row"><button v-for="action in ACTIONS" :key="action.id" class="btn small" :class="{ active: store.actionMode === action.id }" @click="store.actionMode = action.id">{{ action.label }}</button></div></div>
-        <div class="control-hints" aria-label="角色操作说明">
-          <span><kbd>WASD</kbd><b>前进 / 后退 / 左右移动</b></span>
-          <span><kbd>Shift</kbd><b>按住奔跑</b></span>
-          <span><kbd>Space</kbd><b>跳跃</b></span>
-          <span><kbd>Ctrl</kbd><b>按住潜行</b></span>
-        </div>
-        <div v-if="store.weather === 'rain' || store.weather === 'thunder'" class="param-row"><span class="param-label">雨量</span><input type="range" min="0" max="2" step=".1" v-model.number="store.rainAmount" class="slider" /><span class="val-text">{{ store.rainAmount.toFixed(1) }}</span></div>
-        <div v-if="store.weather !== 'sunny'" class="param-row"><span class="param-label">云量</span><input type="range" min="0" max="2" step=".1" v-model.number="store.cloudAmount" class="slider" /><span class="val-text">{{ store.cloudAmount.toFixed(1) }}</span></div>
+
+        <nav class="section-tabs" aria-label="配置分类">
+          <button v-for="tab in tabs" :key="tab.id" :class="{ active: activeTab === tab.id }" @click="activeTab = tab.id">{{ tab.label }}</button>
+        </nav>
+
+        <section v-if="activeTab === 'look'" class="settings-section">
+          <SettingBlock title="毛色">
+            <div class="color-control"><input type="color" :value="store.furColor" @input="store.setCustomFurColor($event.target.value)" /><span>{{ store.furStyle === 'Custom' ? store.furColor : store.furStyle }}</span></div>
+            <div class="swatches"><button v-for="preset in FUR_PRESETS" :key="preset.id" class="swatch" :class="{ active: store.furStyle === preset.id }" :style="furDotStyle(preset)" :title="preset.label" @click="store.setFurStyle(preset.id)" /></div>
+          </SettingBlock>
+          <SettingBlock title="眼睛"><div class="choice-grid"><button v-for="item in EYE_STYLES" :key="item" class="choice" :class="{ active: store.eyeStyle === item }" @click="store.eyeStyle = item">{{ item }}</button></div></SettingBlock>
+          <SettingBlock title="表情"><div class="choice-grid"><button v-for="item in FACE_EXPRESSIONS" :key="item" class="choice" :class="{ active: store.faceExpression === item }" @click="store.faceExpression = item">{{ item }}</button></div></SettingBlock>
+        </section>
+
+        <section v-else-if="activeTab === 'gear'" class="settings-section">
+          <SettingBlock title="装备">
+            <div class="choice-grid two"><button class="choice" :class="{ active: store.gearType === null }" @click="store.gearType = null">无装备</button><button v-for="gear in GEAR_LIST" :key="gear.id" class="choice" :class="{ active: store.gearType === gear.id }" @click="store.gearType = gear.id">{{ gear.label }}</button></div>
+          </SettingBlock>
+        </section>
+
+        <section v-else-if="activeTab === 'scene'" class="settings-section">
+          <SettingBlock title="背景"><select :value="store.background || ''" :disabled="Boolean(store.special)" @change="store.setBackground($event.target.value)"><option value="" disabled>{{ store.special ? '特殊场景已启用' : '选择背景' }}</option><option v-for="background in BACKGROUNDS" :key="background">{{ background }}</option></select></SettingBlock>
+          <SettingBlock title="特殊场景"><div class="choice-grid two"><button class="choice" :class="{ active: store.special === null }" @click="store.setSpecial(null)">默认场景</button><button v-for="item in SPECIALS" :key="item.id" class="choice" :class="{ active: store.special === item.id }" @click="store.setSpecial(item.id)">{{ item.label }}</button></div></SettingBlock>
+        </section>
+
+        <section v-else class="settings-section">
+          <SettingBlock title="动作"><div class="choice-grid"><button v-for="item in ACTIONS" :key="item.id" class="choice" :class="{ active: store.actionMode === item.id }" @click="store.actionMode = item.id">{{ item.label }}</button></div></SettingBlock>
+          <div class="keyboard-help"><span><kbd>WASD</kbd>移动</span><span><kbd>Shift</kbd>奔跑</span><span><kbd>Space</kbd>跳跃</span><span><kbd>Ctrl</kbd>潜行</span></div>
+        </section>
       </div>
     </Transition>
-  </div>
+  </aside>
 </template>
 
 <script setup>
@@ -45,198 +70,29 @@ import { defineComponent, h, ref } from 'vue'
 import { useCatStore, FUR_PRESETS, EYE_STYLES, FACE_EXPRESSIONS, GEAR_LIST, BACKGROUNDS, SPECIALS, ACTIONS } from '../stores/cat.js'
 const store = useCatStore()
 const tokenQuery = ref(String(store.tokenId))
-const searchToken = async () => {
-  if (await store.loadToken(tokenQuery.value)) tokenQuery.value = String(store.tokenId)
-}
+const activeTab = ref('look')
+const tabs = [{ id: 'look', label: '外观' }, { id: 'gear', label: '装备' }, { id: 'scene', label: '场景' }, { id: 'motion', label: '动作' }]
+const weathers = [{ id: 'sunny', icon: '☀', label: '晴天' }, { id: 'cloudy', icon: '☁', label: '多云' }, { id: 'rain', icon: '☂', label: '降雨' }, { id: 'thunder', icon: 'ϟ', label: '雷雨' }]
+const searchToken = async () => { if (await store.loadToken(tokenQuery.value)) tokenQuery.value = String(store.tokenId) }
+const navigateToken = async direction => { if (await store.loadAdjacent(direction)) tokenQuery.value = String(store.tokenId) }
 const onReferenceError = event => {
   if (store.referenceImageFallback && event.target.src !== store.referenceImageFallback) event.target.src = store.referenceImageFallback
   else event.target.hidden = true
 }
-const weathers = [{ id: 'sunny', icon: '☀', label: '晴天' }, { id: 'cloudy', icon: '☁', label: '多云' }, { id: 'thunder', icon: 'ϟ', label: '雷雨' }, { id: 'rain', icon: '☂', label: '降雨' }]
-const furDotStyle = preset => ({
-  background: preset.pattern === 'solid'
-    ? preset.color
-    : `linear-gradient(135deg, ${preset.color} 0 46%, ${preset.accent} 47% 62%, #f4f0e4 63% 100%)`,
-})
-const ChoiceRow = defineComponent({
-  props: ['label', 'items', 'active'],
-  emits: ['select'],
-  setup(props, { emit }) {
-    return () => h('div', { class: 'param-row' }, [
-      h('span', { class: 'param-label' }, props.label),
-      h('div', { class: 'btn-row' }, props.items.map(item => h('button', {
-        class: ['btn', 'small', { active: props.active === item }],
-        onClick: () => emit('select', item),
-      }, item))),
-    ])
-  },
+const furDotStyle = preset => ({ background: preset.pattern === 'solid' ? preset.color : `linear-gradient(135deg,${preset.color} 0 46%,${preset.accent} 47% 65%,#f4f0e4 66%)` })
+const SettingBlock = defineComponent({
+  props: { title: String },
+  setup(props, { slots }) { return () => h('div', { class: 'setting-block' }, [h('h2', props.title), h('div', { class: 'setting-content' }, slots.default?.())]) },
 })
 </script>
 
 <style scoped>
-/* ====== 面板整体 ====== */
-.right-panel {
-  position: fixed; top: 14px; right: 14px; bottom: 14px; z-index: 90;
-  display: flex; flex-direction: column; align-items: flex-end; gap: 10px;
-  animation: slideInRight .55s cubic-bezier(0.22, 0.61, 0.36, 1) .3s both;
-}
-@keyframes slideInRight {
-  from { opacity: 0; transform: translateX(80px); }
-  to   { opacity: 1; transform: translateX(0); }
-}
-
-/* ====== 顶部工具条 ====== */
-.tool-row {
-  display: flex; gap: 8px; padding: 10px 12px; border-radius: 10px;
-}
-
-/* ====== 面板标题按钮 ====== */
-.panel-header {
-  padding: 11px 20px; border-radius: 10px;
-  font-size: .84rem; color: var(--text); cursor: pointer;
-  display: flex; align-items: center; gap: 8px;
-  border: 1px solid var(--border);
-  transition: all .25s;
-}
-.panel-header:hover { background: rgba(255,255,255,.08); }
-.arrow { transition: transform .25s; }
-.arrow.open { transform: rotate(180deg); }
-
-/* ====== 展开面板主体 ====== */
-.panel-body {
-  padding: 22px 20px; border-radius: 14px;
-  display: flex; flex-direction: column; gap: 22px;
-  width: 430px;
-  max-height: calc(100vh - 92px);
-  overflow-y: auto; overflow-x: hidden;
-  flex-shrink: 1;
-}
-/* 自定义滚动条 */
-.panel-body::-webkit-scrollbar { width: 4px; }
-.panel-body::-webkit-scrollbar-thumb { background: rgba(255,255,255,.12); border-radius: 4px; }
-
-/* ====== 介绍区 ====== */
-.intro {
-  display: grid; gap: 4px;
-  padding-bottom: 14px;
-  border-bottom: 1px solid var(--border);
-}
-.intro span {
-  color: var(--accent); font-size: .63rem; letter-spacing: .25em;
-  text-transform: uppercase;
-}
-.intro b { font-size: .9rem; font-weight: 600; }
-
-.token-search { display: grid; gap: 7px; }
-.token-search label { color: var(--accent); font-size: .6rem; letter-spacing: .16em; }
-.token-search div { display: flex; gap: 7px; }
-.token-search input { min-width: 0; flex: 1; padding: 8px 10px; color: var(--text); background: rgba(255,255,255,.06); border: 1px solid var(--border); border-radius: 7px; outline: none; }
-.token-search input:focus { border-color: var(--accent); box-shadow: 0 0 0 2px var(--accent-glow); }
-.token-search small { color: #ff9b9b; font-size: .68rem; }
-.reference-card { position: relative; overflow: hidden; border: 1px solid var(--border); border-radius: 10px; background: #171725; }
-.reference-card img { display: block; width: 100%; max-height: 210px; object-fit: contain; image-rendering: pixelated; }
-.reference-card figcaption { position: absolute; right: 8px; bottom: 8px; display: flex; gap: 8px; padding: 5px 8px; border-radius: 6px; background: rgba(12,12,20,.78); font-size: .65rem; }
-.reference-card figcaption span { color: var(--text-dim); }.reference-card figcaption b { color: var(--accent); }
-
-/* ====== 参数行 ====== */
-.param-row {
-  display: flex; align-items: flex-start; gap: 12px;
-}
-.param-label {
-  font-size: .74rem; color: var(--text-dim);
-  min-width: 38px; padding-top: 5px;
-  flex-shrink: 0;
-}
-
-/* ====== 颜色行 ====== */
-.color-row { display: flex; align-items: center; gap: 10px; flex: 1; }
-.hex-text, .val-text {
-  font-family: monospace; font-size: .78rem; color: var(--text-dim);
-}
-
-/* ====== 预设颜色圆点 ====== */
-.preset-row { display: flex; gap: 6px; flex-wrap: wrap; flex: 1; }
-.preset-dot {
-  width: 22px; height: 22px; border-radius: 50%;
-  border: 2px solid transparent; cursor: pointer;
-  transition: all .18s;
-}
-.preset-dot:hover { transform: scale(1.15); }
-.preset-dot.active {
-  border-color: #fff;
-  box-shadow: 0 0 10px var(--accent-glow);
-  transform: scale(1.1);
-}
-
-/* ====== 按钮网格（视觉/表情/装备/场景） ====== */
-.btn-row {
-  display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(72px, 1fr));
-  gap: 6px;
-  flex: 1;
-}
-.btn.small { padding: 6px 8px; font-size: .71rem; border-radius: 6px; }
-
-.control-hints {
-  display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 7px;
-  margin: -12px 0 0 50px;
-}
-.control-hints span {
-  display: flex; align-items: center; gap: 7px; min-width: 0;
-  color: var(--text-dim); font-size: .67rem;
-}
-.control-hints kbd {
-  min-width: 42px; padding: 3px 6px; border-radius: 5px; text-align: center;
-  color: var(--accent); background: rgba(255,255,255,.07);
-  border: 1px solid rgba(255,255,255,.13); box-shadow: inset 0 -1px rgba(0,0,0,.25);
-  font: 600 .64rem/1.2 monospace;
-}
-.control-hints b { font-weight: 400; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-
-/* ====== 下拉选择 ====== */
-.select-input {
-  flex: 1;
-  background: rgba(255,255,255,.06);
-  border: 1px solid var(--border); border-radius: 6px;
-  color: var(--text); padding: 7px 12px;
-  font-size: .78rem; cursor: pointer;
-}
-.select-input option { background: #1a1a2e; }
-.select-input:disabled { cursor: not-allowed; opacity: .48; }
-
-/* ====== 滑块 ====== */
-.slider { accent-color: var(--accent); flex: 1; height: 4px; }
-
-/* ====== 圆形按钮（音乐/光照/天气） ====== */
-.btn.round { width: 38px; height: 38px; font-size: 1.05rem; }
-
-/* ====== 展开/收起动画 — 从右往左滑出 ====== */
-.expand-enter-active {
-  transition: all .38s cubic-bezier(0.22, 0.61, 0.36, 1);
-  overflow: hidden;
-}
-.expand-leave-active {
-  transition: all .25s ease-in;
-  overflow: hidden;
-}
-.expand-enter-from {
-  opacity: 0;
-  transform: translateX(60px);
-  max-height: 0;
-}
-.expand-enter-to {
-  opacity: 1;
-  transform: translateX(0);
-  max-height: 1200px;
-}
-.expand-leave-from {
-  opacity: 1;
-  transform: translateX(0);
-  max-height: 1200px;
-}
-.expand-leave-to {
-  opacity: 0;
-  transform: translateX(40px);
-  max-height: 0;
-}
+.right-panel{position:fixed;top:14px;right:14px;bottom:14px;z-index:110;display:flex;flex-direction:column;align-items:flex-end;gap:9px;pointer-events:none}.right-panel>*{pointer-events:auto}.quick-tools{display:flex;gap:5px;padding:5px;border-radius:12px}.icon-btn{display:grid;place-items:center;width:34px;height:34px;border:1px solid transparent;border-radius:9px;background:transparent;color:#afb6ca;font-size:1rem;cursor:pointer}.icon-btn:hover{background:rgba(255,255,255,.07)}.icon-btn.active{border-color:rgba(245,211,61,.35);background:rgba(245,211,61,.15);color:var(--accent)}
+.panel-toggle{display:flex;align-items:center;justify-content:space-between;width:168px;padding:9px 11px;color:var(--text);cursor:pointer}.panel-toggle span{display:grid;text-align:left}.panel-toggle small{color:var(--accent);font-size:.5rem;letter-spacing:.12em}.panel-toggle b{margin-top:2px;font-size:.72rem}.panel-toggle i{font-style:normal;font-size:1.4rem;color:var(--text-dim)}
+.panel-body{width:min(390px,calc(100vw - 28px));max-height:calc(100vh - 104px);overflow:auto;padding:18px;border-radius:16px;box-shadow:0 18px 55px rgba(0,0,0,.28)}.panel-body::-webkit-scrollbar{width:4px}.panel-body::-webkit-scrollbar-thumb{background:rgba(255,255,255,.14);border-radius:5px}.panel-title{display:flex;justify-content:space-between;align-items:flex-start;padding-bottom:14px;border-bottom:1px solid var(--border)}.panel-title span{color:var(--accent);font-size:.55rem;letter-spacing:.16em}.panel-title h1{margin-top:4px;font-size:1rem}.panel-title>b{padding:6px 8px;border-radius:8px;background:rgba(245,211,61,.12);color:var(--accent);font:700 .7rem monospace}
+.token-search{display:grid;gap:7px;margin-top:15px}.token-search label{color:#aeb5c8;font-size:.67rem}.token-search>div{display:flex;gap:7px}.token-search input{min-width:0;flex:1;padding:9px 10px;border:1px solid var(--border);border-radius:8px;outline:none;background:rgba(255,255,255,.055);color:var(--text)}.token-search input:focus{border-color:var(--accent);box-shadow:0 0 0 2px var(--accent-glow)}.token-search small{color:#ff9b9b;font-size:.67rem}
+.reference-card{position:relative;overflow:hidden;margin-top:12px;border:1px solid var(--border);border-radius:11px;background:#171725}.reference-card img{display:block;width:100%;max-height:188px;object-fit:contain;image-rendering:pixelated}.reference-card figcaption{position:absolute;right:7px;bottom:7px;display:flex;gap:8px;padding:5px 7px;border-radius:6px;background:rgba(12,12,20,.8);font-size:.62rem}.reference-card figcaption span{color:#aeb5c8}.reference-card figcaption b{color:var(--accent)}
+.section-tabs{display:grid;grid-template-columns:repeat(4,1fr);gap:4px;margin:15px 0;padding:4px;border-radius:10px;background:rgba(255,255,255,.04)}.section-tabs button{padding:7px 3px;border:0;border-radius:7px;background:transparent;color:#8e97ad;font-size:.69rem;cursor:pointer}.section-tabs button.active{background:rgba(255,255,255,.09);color:#fff;box-shadow:0 3px 10px rgba(0,0,0,.12)}.settings-section{display:grid;gap:15px}.setting-block{display:grid;grid-template-columns:48px minmax(0,1fr);gap:10px}.setting-block h2{padding-top:7px;color:#7f899f;font-size:.7rem;font-weight:500}.setting-content{min-width:0}.color-control{display:flex;align-items:center;gap:9px;margin-bottom:8px}.color-control span{overflow:hidden;color:#aeb5c8;font:600 .69rem monospace;text-overflow:ellipsis;white-space:nowrap}.swatches{display:flex;flex-wrap:wrap;gap:7px}.swatch{width:25px;height:25px;border:2px solid transparent;border-radius:50%;cursor:pointer}.swatch.active{border-color:#fff;box-shadow:0 0 0 2px var(--accent),0 0 12px var(--accent-glow)}.choice-grid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:6px}.choice-grid.two{grid-template-columns:repeat(2,minmax(0,1fr))}.choice{min-height:34px;padding:6px;border:1px solid var(--border);border-radius:7px;background:rgba(255,255,255,.045);color:#c9ccda;font-size:.68rem;cursor:pointer}.choice:hover{background:rgba(255,255,255,.09)}.choice.active{border-color:var(--accent);background:var(--accent);color:#1a1a2e;font-weight:700}.setting-content select{width:100%;padding:9px;border:1px solid var(--border);border-radius:8px;background:#242438;color:var(--text)}.keyboard-help{display:grid;grid-template-columns:repeat(2,1fr);gap:7px;margin-left:58px;color:#929bb0;font-size:.66rem}.keyboard-help span{display:flex;align-items:center;gap:6px}.keyboard-help kbd{min-width:42px;padding:4px;border:1px solid var(--border);border-radius:5px;background:rgba(255,255,255,.055);color:var(--accent);text-align:center;font:600 .62rem monospace}
+.panel-enter-active,.panel-leave-active{transition:opacity .22s,transform .28s}.panel-enter-from,.panel-leave-to{opacity:0;transform:translateX(28px)}@media(max-width:700px){.right-panel{top:58px;right:8px;bottom:64px}.quick-tools{display:none}.panel-body{max-height:calc(100vh - 164px);padding:14px}.panel-toggle{width:154px}.setting-block{grid-template-columns:42px 1fr}.choice-grid{grid-template-columns:repeat(2,minmax(0,1fr))}.keyboard-help{margin-left:52px}.reference-card img{max-height:145px}}
+.token-nav{display:grid;grid-template-columns:1fr 1fr;gap:7px;margin-top:8px}.token-nav .btn{min-height:32px;color:#b6bed0;font-size:.68rem}
 </style>
