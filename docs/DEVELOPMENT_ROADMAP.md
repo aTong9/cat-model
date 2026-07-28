@@ -20,6 +20,7 @@
 - 键盘输入已从 `CatCanvas.vue` 抽离为独立 `CharacterInputController`，键盘与未来虚拟摇杆共享逐帧输入协议，并保留输入框焦点保护和一次性跳跃语义。
 - 八种背景、雾色和灯光明暗已抽离为独立 `PreviewEnvironmentController`；灯光按初始强度绝对缩放，不再依赖 watcher 的累乘恢复。
 - 新增 `RenderLifecycleController`：页面进入后台时暂停渲染，恢复前重置帧间隔；监听 WebGL context lost/restored，并在卸载时断开 `ResizeObserver` 与全部生命周期事件。
+- 手机浏览器/WebView 在配置面板收起后显示方向、跳跃和按住奔跑控件；触控事件通过 `cat:virtual-input` 接入共享的 `CharacterInputController`，未建立第二套移动逻辑。
 - 主界面 GLB 导出已提供角色检查、PBR 转换、编码、回读校验和下载阶段反馈；成功后显示网格、三角面与文件体积，失败不再依赖阻塞式弹窗。
 - 10 种 Gear 已从各工厂内的写死世界坐标迁移到统一挂点配置，覆盖 `head-top`、`face-eyes`、`chest-front`、`back` 和 `paw-left`；在逐件截图验收前状态保持为 partial。
 

@@ -53,6 +53,12 @@ function onCameraView(event) {
   }
 }
 
+function onVirtualInput(event) {
+  const detail = event.detail || {}
+  if (detail.direction) inputController?.setVirtualDirection(detail.direction.x, detail.direction.z)
+  if (detail.action) inputController?.setVirtualAction(detail.action, detail.active)
+}
+
 // ===== 装备物理系统 =====
 const gearEntries = []       // { group, id, restPos, velocity, angularVel }
 let raycaster, mouse
@@ -125,6 +131,7 @@ onMounted(async () => {
 
   clock = new THREE.Clock()
   window.addEventListener('cat:set-camera-view', onCameraView)
+  window.addEventListener('cat:virtual-input', onVirtualInput)
   lifecycleController = createRenderLifecycleController({
     canvas,
     documentTarget: document,
@@ -141,6 +148,7 @@ onUnmounted(() => {
   lifecycleController?.dispose()
   stopAnimation()
   window.removeEventListener('cat:set-camera-view', onCameraView)
+  window.removeEventListener('cat:virtual-input', onVirtualInput)
   inputController?.dispose()
   catAssembly?.dispose()
   renderer?.dispose()
