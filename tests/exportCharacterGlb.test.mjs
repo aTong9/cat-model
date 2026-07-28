@@ -2,7 +2,7 @@ import test from 'node:test'
 import assert from 'node:assert/strict'
 import * as THREE from 'three'
 import { createCatAssembly } from '../src/core/createCatAssembly.js'
-import { auditCharacterRoot, createPbrExportMaterial } from '../src/export/exportCharacterGlb.js'
+import { auditCharacterRoot, createPbrExportMaterial, summarizeExportReport } from '../src/export/exportCharacterGlb.js'
 
 test('accepts a character root and reports export statistics', () => {
   const assembly = createCatAssembly({ tokenId: '1', fur: 'Golden', eyes: 'Original', face: 'Smile' })
@@ -12,6 +12,10 @@ test('accepts a character root and reports export statistics', () => {
   assert.ok(report.stats.triangles > 0)
   assert.ok(report.warnings.some(value => value.startsWith('toon-material-will-be-converted:')))
   assembly.dispose()
+})
+
+test('summarizes export statistics for interface feedback', () => {
+  assert.equal(summarizeExportReport({ audit: { stats: { meshes: 12, triangles: 3456 } }, bytes: 1048576 }), '12 个网格 · 3456 个三角面 · 1.00 MB')
 })
 
 test('rejects exporting an environment scene', () => {

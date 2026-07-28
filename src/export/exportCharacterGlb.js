@@ -157,10 +157,13 @@ function disposeGltf(gltf) {
   })
 }
 
-export async function exportCharacterGlb(root) {
+export async function exportCharacterGlb(root, options = {}) {
+  const progress = (stage, percent) => options.onProgress?.({ stage, percent })
+  progress('audit', 8)
   const audit = auditCharacterRoot(root)
   if (!audit.valid) throw new Error(`角色导出检查失败：${audit.errors.join(', ')}`)
   root.updateMatrixWorld(true)
+  progress('pbr', 24)
   const exportClone = await withSerializableUserData(root, () => prepareExportClone(root))
   const exportAudit = auditCharacterRoot(exportClone.root)
   if (!exportAudit.valid) {
@@ -168,6 +171,7 @@ export async function exportCharacterGlb(root) {
     throw new Error(`PBR 导出副本检查失败：${exportAudit.errors.join(', ')}`)
   }
   const { GLTFExporter } = await import('three/addons/exporters/GLTFExporter.js')
+  progress('encode', 42)
   let arrayBuffer
   try {
     arrayBuffer = await new GLTFExporter().parseAsync(exportClone.root, { binary: true, onlyVisible: true, trs: false })
@@ -176,12 +180,20 @@ export async function exportCharacterGlb(root) {
   }
   if (!(arrayBuffer instanceof ArrayBuffer) || arrayBuffer.byteLength === 0) throw new Error('GLB 导出结果为空')
 
+  progress('verify', 76)
   const { GLTFLoader } = await import('three/addons/loaders/GLTFLoader.js')
   const gltf = await new GLTFLoader().parseAsync(arrayBuffer, '')
   const roundTrip = inspectRoundTrip(gltf, root.userData.catTraits)
   disposeGltf(gltf)
   if (!roundTrip.valid) throw new Error(`GLB 回读检查失败：${roundTrip.errors.join(', ')}`)
+  progress('complete', 100)
   return { arrayBuffer, report: { audit, exportAudit, materialProfile: exportClone.report, roundTrip, bytes: arrayBuffer.byteLength } }
+}
+
+export function summarizeExportReport(report) {
+  const stats = report?.audit?.stats ?? {}
+  const megabytes = Number(report?.bytes || 0) / 1024 / 1024
+  return `${stats.meshes || 0} 个网格 · ${stats.triangles || 0} 个三角面 · ${megabytes.toFixed(2)} MB`
 }
 
 export function downloadGlb(arrayBuffer, filename) {
