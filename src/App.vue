@@ -59,7 +59,7 @@ onMounted(() => {
   if (params.has('gear')) store.gearType = params.get('gear') || null
   if (params.has('bg')) store.setBackground(params.get('bg'))
   if (params.has('special')) store.setSpecial(params.get('special') || null)
-  if (params.has('tokenId')) store.tokenId = parseInt(params.get('tokenId'))
+  if (params.has('tokenId')) store.loadToken(params.get('tokenId'))
 })
 </script>
 

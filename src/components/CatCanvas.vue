@@ -5,8 +5,8 @@
 <script setup>
 import { ref, onMounted, onUnmounted, watch } from 'vue'
 import { useCatStore, GEAR_LIST } from '../stores/cat.js'
+import { createCatAssembly } from '../core/createCatAssembly.js'
 import { createScene } from '../three/SceneSetup.js'
-import { CatModel } from '../three/CatModel.js'
 import { createGear, preloadGearTextures } from '../three/EquipmentFactory.js'
 import { createTimeTravelerScene } from '../three/scenes/TimeTravelerScene.js'
 import { createFujiRealmScene } from '../three/scenes/FujiScene.js'
@@ -17,6 +17,7 @@ const store = useCatStore()
 const canvasRef = ref(null)
 
 let renderer, scene, camera, controls, envGroup, updateSize
+let catAssembly
 let catModel
 let clock
 let animId
@@ -82,21 +83,23 @@ onMounted(async () => {
   envGroup = setup.envGroup
   updateSize = setup.updateSize
 
-  // 暴露 scene 给 GLB 导出
+  // 暴露 scene 给旧导出入口；角色级导出使用 __character。
   canvas.__scene = scene
 
-  // 创建猫
-  catModel = new CatModel()
-  catModel.setFurTrait(store.furStyle, store.furColor)
-  catModel.setEyeStyle(store.eyeStyle)
-  catModel.setFaceExpression(store.faceExpression)
-  catModel.setGear(store.gearType)
-  catModel.setAnimation(store.actionMode)
-  catModel.group.userData.movement = {
-    controls: 'WASD', enabled: true, walkSpeed: 1.1, runSpeed: 2.4,
-    sneakSpeed: 0.55, jumpVelocity: 3.4,
-  }
-  scene.add(catModel.group)
+  catAssembly = createCatAssembly({
+    tokenId: store.tokenId,
+    fur: store.furStyle,
+    furColor: store.furColor,
+    eyes: store.eyeStyle,
+    face: store.faceExpression,
+    gear: store.gearType,
+    background: store.background,
+    special: store.special,
+  }, { animation: store.actionMode })
+  catModel = catAssembly.model
+  canvas.__character = catAssembly.root
+  canvas.__catAssembly = catAssembly
+  scene.add(catAssembly.root)
   specialGroup = new THREE.Group()
   scene.add(specialGroup)
   applyBackground(store.background)
@@ -123,7 +126,7 @@ onUnmounted(() => {
   window.removeEventListener('keydown', onKeyDown)
   window.removeEventListener('keyup', onKeyUp)
   movementKeys.clear()
-  catModel?.dispose()
+  catAssembly?.dispose()
   renderer?.dispose()
   controls?.dispose()
   // 清理装备
@@ -291,10 +294,10 @@ function updateGearPhysics(dt) {
 }
 
 // === 监听 Store 变化 → 更新 3D 模型 ===
-watch([() => store.furStyle, () => store.furColor], ([style, color]) => catModel?.setFurTrait(style, color))
-watch(() => store.eyeStyle, (v) => catModel?.setEyeStyle(v))
+watch([() => store.furStyle, () => store.furColor], ([fur, furColor]) => catAssembly?.apply({ fur, furColor }))
+watch(() => store.eyeStyle, (eyes) => catAssembly?.apply({ eyes }))
 watch(() => store.gearType, (v) => {
-  catModel?.setGear(v)
+  catAssembly?.apply({ gear: v })
   if (!v) return
   // 点击面板选择装备 → 对应散落装备弹起
   const entry = gearEntries.find(e => e.id === v)
@@ -303,12 +306,19 @@ watch(() => store.gearType, (v) => {
     entry.angularVel.set((Math.random() - 0.5) * 6, (Math.random() - 0.5) * 6, 0)
   }
 })
-watch(() => store.faceExpression, (v) => catModel?.setFaceExpression(v))
+watch(() => store.faceExpression, (face) => catAssembly?.apply({ face }))
+watch(() => store.tokenId, (tokenId) => catAssembly?.apply({ tokenId }))
 watch(() => store.actionMode, (v) => {
   if (movementKeys.size === 0) catModel?.setAnimation(v)
 })
-watch(() => store.background, applyBackground)
-watch(() => store.special, buildSpecialScene)
+watch(() => store.background, (background) => {
+  catAssembly?.apply({ background })
+  applyBackground(background)
+})
+watch(() => store.special, (special) => {
+  catAssembly?.apply({ special })
+  buildSpecialScene(special)
+})
 watch(() => store.lightIntensity, (value) => {
   scene?.traverse((object) => { if (object.isLight && object.type !== 'HemisphereLight') object.intensity *= value === 1 ? 2.5 : 0.4 })
 })

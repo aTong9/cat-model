@@ -11,6 +11,15 @@
     <Transition name="expand">
       <div v-if="store.panelExpanded" class="panel-body glass">
         <section class="intro"><span>CHARACTER STUDIO</span><b>打造独一无二的猫咪搭档</b></section>
+        <form class="token-search" @submit.prevent="searchToken">
+          <label for="token-id">LIBERTY CAT TOKEN</label>
+          <div><input id="token-id" v-model.trim="tokenQuery" inputmode="numeric" pattern="[0-9]*" placeholder="输入 0–9901" /><button class="btn" type="submit" :disabled="store.tokenLoading">{{ store.tokenLoading ? '加载中' : '载入' }}</button></div>
+          <small v-if="store.tokenError">{{ store.tokenError }}</small>
+        </form>
+        <figure v-if="store.referenceImage" class="reference-card">
+          <img :src="store.referenceImage" :alt="`Liberty Cat #${store.tokenId} 原图`" @error="onReferenceError" />
+          <figcaption><span>原始 NFT 对照</span><b>#{{ store.tokenId }}</b></figcaption>
+        </figure>
         <div class="param-row"><span class="param-label">毛色</span><div class="color-row"><input type="color" :value="store.furColor" @input="store.setCustomFurColor($event.target.value)" /><span class="hex-text">{{ store.furStyle === 'Custom' ? store.furColor : store.furStyle }}</span></div><div class="preset-row"><button v-for="preset in FUR_PRESETS" :key="preset.id" class="preset-dot" :style="furDotStyle(preset)" :class="{ active: store.furStyle === preset.id }" :title="preset.label" @click="store.setFurStyle(preset.id)" /></div></div>
         <ChoiceRow label="视觉" :items="EYE_STYLES" :active="store.eyeStyle" @select="store.eyeStyle = $event" />
         <ChoiceRow label="表情" :items="FACE_EXPRESSIONS" :active="store.faceExpression" @select="store.faceExpression = $event" />
@@ -32,9 +41,17 @@
 </template>
 
 <script setup>
-import { defineComponent, h } from 'vue'
+import { defineComponent, h, ref } from 'vue'
 import { useCatStore, FUR_PRESETS, EYE_STYLES, FACE_EXPRESSIONS, GEAR_LIST, BACKGROUNDS, SPECIALS, ACTIONS } from '../stores/cat.js'
 const store = useCatStore()
+const tokenQuery = ref(String(store.tokenId))
+const searchToken = async () => {
+  if (await store.loadToken(tokenQuery.value)) tokenQuery.value = String(store.tokenId)
+}
+const onReferenceError = event => {
+  if (store.referenceImageFallback && event.target.src !== store.referenceImageFallback) event.target.src = store.referenceImageFallback
+  else event.target.hidden = true
+}
 const weathers = [{ id: 'sunny', icon: '☀', label: '晴天' }, { id: 'cloudy', icon: '☁', label: '多云' }, { id: 'thunder', icon: 'ϟ', label: '雷雨' }, { id: 'rain', icon: '☂', label: '降雨' }]
 const furDotStyle = preset => ({
   background: preset.pattern === 'solid'
@@ -109,6 +126,17 @@ const ChoiceRow = defineComponent({
   text-transform: uppercase;
 }
 .intro b { font-size: .9rem; font-weight: 600; }
+
+.token-search { display: grid; gap: 7px; }
+.token-search label { color: var(--accent); font-size: .6rem; letter-spacing: .16em; }
+.token-search div { display: flex; gap: 7px; }
+.token-search input { min-width: 0; flex: 1; padding: 8px 10px; color: var(--text); background: rgba(255,255,255,.06); border: 1px solid var(--border); border-radius: 7px; outline: none; }
+.token-search input:focus { border-color: var(--accent); box-shadow: 0 0 0 2px var(--accent-glow); }
+.token-search small { color: #ff9b9b; font-size: .68rem; }
+.reference-card { position: relative; overflow: hidden; border: 1px solid var(--border); border-radius: 10px; background: #171725; }
+.reference-card img { display: block; width: 100%; max-height: 210px; object-fit: contain; image-rendering: pixelated; }
+.reference-card figcaption { position: absolute; right: 8px; bottom: 8px; display: flex; gap: 8px; padding: 5px 8px; border-radius: 6px; background: rgba(12,12,20,.78); font-size: .65rem; }
+.reference-card figcaption span { color: var(--text-dim); }.reference-card figcaption b { color: var(--accent); }
 
 /* ====== 参数行 ====== */
 .param-row {

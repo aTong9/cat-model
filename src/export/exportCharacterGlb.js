@@ -1,0 +1,194 @@
+import * as THREE from 'three'
+
+function toSerializable(value, seen = new WeakSet()) {
+  if (value == null || typeof value === 'string' || typeof value === 'number' || typeof value === 'boolean') return value
+  if (typeof value === 'function' || value?.isObject3D || value?.isMaterial || value?.isTexture || value?.isBufferGeometry) return undefined
+  if (ArrayBuffer.isView(value)) return Array.from(value)
+  if (Array.isArray(value)) return value.map(item => toSerializable(item, seen)).filter(item => item !== undefined)
+  if (typeof value !== 'object' || seen.has(value)) return undefined
+  seen.add(value)
+  const output = {}
+  for (const [key, child] of Object.entries(value)) {
+    const serialized = toSerializable(child, seen)
+    if (serialized !== undefined) output[key] = serialized
+  }
+  seen.delete(value)
+  return output
+}
+
+export function auditCharacterRoot(root) {
+  const errors = []
+  const warnings = []
+  let meshes = 0
+  let triangles = 0
+  let materials = 0
+  let textures = 0
+  const materialSet = new Set()
+  const textureSet = new Set()
+
+  if (!root?.isObject3D) errors.push('missing-character-root')
+  if (root?.isScene) errors.push('scene-root-is-not-exportable-character')
+  root?.traverse(object => {
+    if (object.isCamera || object.isLight) errors.push(`environment-node:${object.name || object.type}`)
+    if (!object.isMesh) return
+    meshes++
+    const geometry = object.geometry
+    if (!geometry?.attributes?.position) errors.push(`mesh-without-position:${object.name || object.uuid}`)
+    else triangles += geometry.index ? geometry.index.count / 3 : geometry.attributes.position.count / 3
+    const meshMaterials = Array.isArray(object.material) ? object.material : [object.material]
+    for (const material of meshMaterials) {
+      if (!material || materialSet.has(material)) continue
+      materialSet.add(material)
+      materials++
+      if (material.isShaderMaterial) errors.push(`unsupported-shader-material:${material.name || material.type}`)
+      else if (material.isMeshToonMaterial) warnings.push(`toon-material-will-be-converted:${material.name || material.uuid}`)
+      for (const value of Object.values(material)) {
+        if (value?.isTexture && !textureSet.has(value)) { textureSet.add(value); textures++ }
+      }
+    }
+  })
+  if (!meshes) errors.push('character-has-no-meshes')
+  if (!root?.userData?.catTraits) errors.push('missing-cat-traits-extras')
+
+  return {
+    valid: errors.length === 0,
+    errors,
+    warnings: [...new Set(warnings)],
+    stats: { meshes, triangles: Math.round(triangles), materials, textures },
+  }
+}
+
+function withSerializableUserData(root, callback) {
+  const snapshots = []
+  root.traverse(object => {
+    snapshots.push([object, object.userData])
+    object.userData = toSerializable(object.userData) ?? {}
+  })
+  return Promise.resolve()
+    .then(callback)
+    .finally(() => { for (const [object, userData] of snapshots) object.userData = userData })
+}
+
+export function createPbrExportMaterial(material) {
+  if (!material?.isMeshToonMaterial) return material
+  const converted = new THREE.MeshStandardMaterial({
+    name: `${material.name || 'ToonMaterial'}:PBR`,
+    color: material.color?.clone() ?? new THREE.Color('#ffffff'),
+    map: material.map ?? null,
+    normalMap: material.normalMap ?? null,
+    bumpMap: material.bumpMap ?? null,
+    bumpScale: material.bumpScale,
+    displacementMap: material.displacementMap ?? null,
+    displacementScale: material.displacementScale,
+    displacementBias: material.displacementBias,
+    alphaMap: material.alphaMap ?? null,
+    aoMap: material.aoMap ?? null,
+    aoMapIntensity: material.aoMapIntensity,
+    emissive: material.emissive?.clone() ?? new THREE.Color('#000000'),
+    emissiveMap: material.emissiveMap ?? null,
+    emissiveIntensity: material.emissiveIntensity,
+    metalness: 0,
+    roughness: 0.82,
+    vertexColors: material.vertexColors,
+    transparent: material.transparent,
+    opacity: material.opacity,
+    alphaTest: material.alphaTest,
+    side: material.side,
+    depthTest: material.depthTest,
+    depthWrite: material.depthWrite,
+  })
+  converted.userData = { ...toSerializable(material.userData), sourceMaterial: 'MeshToonMaterial', exportProfile: 'blender-pbr-v1' }
+  return converted
+}
+
+function prepareExportClone(root) {
+  const convertedMaterials = new Set()
+  const materialMap = new Map()
+  const clone = root.clone(true)
+  clone.traverse(object => {
+    if (!object.isMesh) return
+    const sourceMaterials = Array.isArray(object.material) ? object.material : [object.material]
+    const exportMaterials = sourceMaterials.map(material => {
+      if (!material?.isMeshToonMaterial) return material
+      if (!materialMap.has(material)) {
+        const converted = createPbrExportMaterial(material)
+        materialMap.set(material, converted)
+        convertedMaterials.add(converted)
+      }
+      return materialMap.get(material)
+    })
+    object.material = Array.isArray(object.material) ? exportMaterials : exportMaterials[0]
+  })
+  return {
+    root: clone,
+    report: { profile: 'blender-pbr-v1', convertedToPbr: convertedMaterials.size },
+    dispose: () => { for (const material of convertedMaterials) material.dispose() },
+  }
+}
+
+function inspectRoundTrip(gltf, expectedTraits) {
+  let meshes = 0
+  let materials = 0
+  const materialSet = new Set()
+  gltf.scene.traverse(object => {
+    if (!object.isMesh) return
+    meshes++
+    for (const material of (Array.isArray(object.material) ? object.material : [object.material])) {
+      if (material) materialSet.add(material)
+    }
+  })
+  materials = materialSet.size
+  const traits = gltf.scene.getObjectByName('LibertyCat')?.userData?.catTraits ?? gltf.scene.userData?.catTraits
+  const errors = []
+  if (!meshes) errors.push('roundtrip-has-no-meshes')
+  if (!traits) errors.push('roundtrip-missing-cat-traits')
+  else if (String(traits.tokenId) !== String(expectedTraits?.tokenId)) errors.push('roundtrip-token-mismatch')
+  return { valid: errors.length === 0, errors, stats: { meshes, materials, animations: gltf.animations.length } }
+}
+
+function disposeGltf(gltf) {
+  gltf.scene.traverse(object => {
+    object.geometry?.dispose?.()
+    for (const material of (Array.isArray(object.material) ? object.material : [object.material])) {
+      if (!material) continue
+      for (const value of Object.values(material)) value?.isTexture && value.dispose()
+      material.dispose?.()
+    }
+  })
+}
+
+export async function exportCharacterGlb(root) {
+  const audit = auditCharacterRoot(root)
+  if (!audit.valid) throw new Error(`角色导出检查失败：${audit.errors.join(', ')}`)
+  root.updateMatrixWorld(true)
+  const exportClone = await withSerializableUserData(root, () => prepareExportClone(root))
+  const exportAudit = auditCharacterRoot(exportClone.root)
+  if (!exportAudit.valid) {
+    exportClone.dispose()
+    throw new Error(`PBR 导出副本检查失败：${exportAudit.errors.join(', ')}`)
+  }
+  const { GLTFExporter } = await import('three/addons/exporters/GLTFExporter.js')
+  let arrayBuffer
+  try {
+    arrayBuffer = await new GLTFExporter().parseAsync(exportClone.root, { binary: true, onlyVisible: true, trs: false })
+  } finally {
+    exportClone.dispose()
+  }
+  if (!(arrayBuffer instanceof ArrayBuffer) || arrayBuffer.byteLength === 0) throw new Error('GLB 导出结果为空')
+
+  const { GLTFLoader } = await import('three/addons/loaders/GLTFLoader.js')
+  const gltf = await new GLTFLoader().parseAsync(arrayBuffer, '')
+  const roundTrip = inspectRoundTrip(gltf, root.userData.catTraits)
+  disposeGltf(gltf)
+  if (!roundTrip.valid) throw new Error(`GLB 回读检查失败：${roundTrip.errors.join(', ')}`)
+  return { arrayBuffer, report: { audit, exportAudit, materialProfile: exportClone.report, roundTrip, bytes: arrayBuffer.byteLength } }
+}
+
+export function downloadGlb(arrayBuffer, filename) {
+  const url = URL.createObjectURL(new Blob([arrayBuffer], { type: 'model/gltf-binary' }))
+  const link = document.createElement('a')
+  link.href = url
+  link.download = filename
+  link.click()
+  setTimeout(() => URL.revokeObjectURL(url), 0)
+}

@@ -1,5 +1,6 @@
 import { defineStore } from 'pinia'
 import { computed, ref } from 'vue'
+import { getTokenById } from '../data/tokenCatalog.js'
 import {
   BACKGROUND_TRAITS,
   DEFAULT_TRAITS,
@@ -51,6 +52,10 @@ export const useCatStore = defineStore('cat', () => {
   const loadingProgress = ref(0)
   const panelExpanded = ref(true)
   const showHints = ref(true)
+  const tokenLoading = ref(false)
+  const tokenError = ref('')
+  const referenceImage = ref(null)
+  const referenceImageFallback = ref(null)
 
   const isSpecialFullScene = computed(() => SPECIALS.find(item => item.id === special.value)?.fullScene ?? false)
 
@@ -59,12 +64,14 @@ export const useCatStore = defineStore('cat', () => {
     furStyle.value = trait.id
     furColor.value = trait.color
     activePreset.value = null
+    referenceImage.value = null
   }
 
   function setCustomFurColor(color) {
     furStyle.value = 'Custom'
     furColor.value = color
     activePreset.value = null
+    referenceImage.value = null
   }
 
   function setBackground(value) {
@@ -98,6 +105,8 @@ export const useCatStore = defineStore('cat', () => {
     seed.value = Math.floor(Math.random() * 0xffffffff)
     applyGeneratedTraits(seed.value)
     tokenId.value = Math.floor(Math.random() * 9999) + 1
+    referenceImage.value = null
+    referenceImageFallback.value = null
   }
 
   function setFromSeed(value) {
@@ -106,6 +115,46 @@ export const useCatStore = defineStore('cat', () => {
     activePreset.value = null
     applyGeneratedTraits(normalized)
     tokenId.value = normalized || 1
+    referenceImage.value = null
+    referenceImageFallback.value = null
+  }
+
+  async function loadToken(value) {
+    const requested = String(value ?? '').trim()
+    if (!/^\d+$/.test(requested)) {
+      tokenError.value = '请输入有效的 token ID'
+      return false
+    }
+    tokenLoading.value = true
+    tokenError.value = ''
+    try {
+      const token = await getTokenById(requested)
+      if (!token) {
+        tokenError.value = requested === '4768' ? '#4768 已从项目范围排除' : `未找到 #${requested}`
+        return false
+      }
+      const fur = getFurTrait(token.fur || DEFAULT_TRAITS.fur)
+      tokenId.value = token.tokenId
+      seed.value = Number(token.tokenId)
+      activePreset.value = Number(token.tokenId)
+      furStyle.value = fur.id
+      furColor.value = fur.color
+      eyeStyle.value = token.eyes || DEFAULT_TRAITS.eyes
+      faceExpression.value = token.face || DEFAULT_TRAITS.face
+      gearType.value = token.gear
+      background.value = token.background
+      special.value = token.special
+      weather.value = token.special === 'Thunderous Might' ? 'thunder' : 'sunny'
+      referenceImage.value = token.remoteImage
+      referenceImageFallback.value = token.localImage
+      return true
+    } catch (error) {
+      console.warn(error)
+      tokenError.value = 'Token 数据加载失败'
+      return false
+    } finally {
+      tokenLoading.value = false
+    }
   }
 
   const cycleWeather = () => { weather.value = WEATHERS[(WEATHERS.indexOf(weather.value) + 1) % WEATHERS.length] }
@@ -125,13 +174,16 @@ export const useCatStore = defineStore('cat', () => {
     special.value = preset.special ?? null
     background.value = special.value ? null : (preset.background ?? DEFAULT_TRAITS.background)
     weather.value = preset.weather ?? 'sunny'
+    referenceImage.value = null
+    referenceImageFallback.value = null
   }
 
   return {
     furStyle, furColor, eyeStyle, gearType, faceExpression, background, special, actionMode,
     tokenId, seed, activePreset, weather, lightIntensity, rainAmount, cloudAmount,
     fishAmount, musicOn, language, loading, loadingProgress, panelExpanded, showHints,
+    tokenLoading, tokenError, referenceImage, referenceImageFallback,
     isSpecialFullScene, randomize, setFromSeed, cycleWeather, togglePanel, setLanguage,
-    applyPreset, setFurStyle, setCustomFurColor, setBackground, setSpecial,
+    applyPreset, setFurStyle, setCustomFurColor, setBackground, setSpecial, loadToken,
   }
 })

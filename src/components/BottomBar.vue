@@ -3,7 +3,7 @@
     <div class="bottom-inner glass">
       <button class="btn random-btn" @click="store.randomize">✦ 随机生成</button>
       <div class="export-group">
-        <button class="btn" @click="exportGLB">导出 GLB</button>
+        <button class="btn" :disabled="exporting" @click="exportGLB">{{ exporting ? '验证中…' : '导出 GLB' }}</button>
         <button class="btn" @click="exportPNG">保存 PNG</button>
       </div>
       <span class="hint-text">拖拽旋转 · 滚轮缩放 · 右键平移</span>
@@ -12,19 +12,24 @@
 </template>
 
 <script setup>
+import { ref } from 'vue'
+import { downloadGlb, exportCharacterGlb } from '../export/exportCharacterGlb.js'
 import { useCatStore } from '../stores/cat.js'
 const store = useCatStore()
+const exporting = ref(false)
 async function exportGLB() {
+  if (exporting.value) return
   try {
-    const { GLTFExporter } = await import('three/addons/exporters/GLTFExporter.js')
-    const scene = document.querySelector('canvas')?.__scene
-    if (!scene) return alert('场景尚未就绪')
-    new GLTFExporter().parse((scene), (gltf) => {
-      const url = URL.createObjectURL(new Blob([gltf], { type: 'application/octet-stream' }))
-      const link = document.createElement('a')
-      link.href = url; link.download = `vr-cat-${store.tokenId}.glb`; link.click(); URL.revokeObjectURL(url)
-    }, console.warn, { binary: true })
-  } catch (error) { console.warn(error); alert('GLB 导出失败，请稍后再试。') }
+    const character = document.querySelector('canvas')?.__character
+    if (!character) return alert('角色尚未就绪')
+    exporting.value = true
+    const { arrayBuffer, report } = await exportCharacterGlb(character)
+    console.info('GLB export verified', report)
+    downloadGlb(arrayBuffer, `liberty-cat-${store.tokenId}.glb`)
+  } catch (error) {
+    console.warn(error)
+    alert(error.message || 'GLB 导出失败，请稍后再试。')
+  } finally { exporting.value = false }
 }
 function exportPNG() {
   const canvas = document.querySelector('canvas')
@@ -39,5 +44,6 @@ function exportPNG() {
 .bottom-inner { display: flex; align-items: center; gap: 12px; padding: 10px 18px; border-radius: 12px; }
 .random-btn { background: var(--accent) !important; color: #1a1a2e !important; font-weight: 700 !important; border-color: var(--accent) !important; font-size: .82rem !important; padding: 8px 16px !important; }
 .random-btn:hover { opacity: .85; }.export-group { display: flex; gap: 6px; }.hint-text { font-size: .7rem; color: var(--text-dim); white-space: nowrap; }
+.btn:disabled { cursor: wait; opacity: .55; }
 @media (max-width: 700px) { .hint-text { display: none; } .bottom-inner { gap: 6px; padding: 8px; } }
 </style>
