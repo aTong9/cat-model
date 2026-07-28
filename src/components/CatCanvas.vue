@@ -8,6 +8,7 @@ import { useCatStore, GEAR_LIST } from '../stores/cat.js'
 import { createScene } from '../three/SceneSetup.js'
 import { CatModel } from '../three/CatModel.js'
 import { createGear, preloadGearTextures } from '../three/EquipmentFactory.js'
+import { createTimeTravelerScene } from '../three/scenes/TimeTravelerScene.js'
 import * as THREE from 'three'
 
 const store = useCatStore()
@@ -287,6 +288,7 @@ function applyBackground(name) {
 function buildSpecialScene(type) {
   if (!specialGroup) return
   specialGroup.clear()
+  applyBackground(store.background)
   if (!type) return
   const add = (mesh) => { specialGroup.add(mesh); return mesh }
   const pointMat = (color, size = .04) => new THREE.PointsMaterial({ color, size, transparent: true, opacity: .8, depthWrite: false })
@@ -305,8 +307,9 @@ function buildSpecialScene(type) {
     const water = add(new THREE.Mesh(new THREE.CircleGeometry(2.6, 48), new THREE.MeshStandardMaterial({ color: '#8edbe8', transparent: true, opacity: .65, roughness: .2 }))); water.rotation.x = -Math.PI / 2; water.position.set(0, -.5, -.4)
     for (let i = 0; i < 8; i++) { const steam = add(new THREE.Mesh(new THREE.SphereGeometry(.13, 10, 8), new THREE.MeshBasicMaterial({ color: '#fff', transparent: true, opacity: .25 }))); steam.position.set((Math.random() - .5) * 2, .2 + Math.random(), -1 - Math.random()); steam.userData.steam = .003 + Math.random() * .003 }
   } else if (type === 'Time Traveler') {
-    const grid = add(new THREE.GridHelper(9, 16, '#26d6ee', '#23516d')); grid.position.y = -.52
-    const portal = add(new THREE.Mesh(new THREE.TorusGeometry(1.25, .06, 10, 48), new THREE.MeshBasicMaterial({ color: '#ff71c8' }))); portal.position.set(0, 1.8, -2.5)
+    scene.background = new THREE.Color('#090522')
+    scene.fog.color.set('#19082d')
+    add(createTimeTravelerScene())
   } else if (type === 'Fitness Guru') {
     const bell = add(new THREE.Mesh(new THREE.SphereGeometry(.28, 20, 16), new THREE.MeshStandardMaterial({ color: '#34323d', roughness: .45, metalness: .6 }))); bell.position.set(-1.2, -.1, -.6)
     const handle = add(new THREE.Mesh(new THREE.TorusGeometry(.18, .055, 8, 18, Math.PI), new THREE.MeshStandardMaterial({ color: '#34323d', metalness: .6 }))); handle.position.set(-1.2, .2, -.6)
@@ -390,6 +393,7 @@ function animate() {
     if (c.position.x > c.userData.baseX + 5) c.position.x = c.userData.baseX - 5
   })
   specialGroup?.children.forEach(item => {
+    item.userData.update?.(t)
     if (item.userData.fall) { item.position.y -= item.userData.fall; item.rotation.z += .02; if (item.position.y < -.8) item.position.y = 5 }
     if (item.userData.steam) { item.position.y += item.userData.steam; item.material.opacity = .18 + Math.sin(t * 2 + item.position.x) * .08; if (item.position.y > 2.4) item.position.y = .1 }
     if (item.userData.bolt) item.visible = Math.sin(t * 9 + item.userData.bolt) > .7

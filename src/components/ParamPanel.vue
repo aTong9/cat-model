@@ -15,8 +15,8 @@
         <ChoiceRow label="视觉" :items="EYE_STYLES" :active="store.eyeStyle" @select="store.eyeStyle = $event" />
         <ChoiceRow label="表情" :items="FACE_EXPRESSIONS" :active="store.faceExpression" @select="store.faceExpression = $event" />
         <div class="param-row"><span class="param-label">装备</span><div class="btn-row"><button class="btn small" :class="{ active: store.gearType === null }" @click="store.gearType = null">无</button><button v-for="gear in GEAR_LIST" :key="gear.id" class="btn small" :class="{ active: store.gearType === gear.id }" @click="store.gearType = gear.id">{{ gear.label }}</button></div></div>
-        <div class="param-row"><span class="param-label">背景</span><select class="select-input" v-model="store.background"><option v-for="background in BACKGROUNDS" :key="background">{{ background }}</option></select></div>
-        <div class="param-row"><span class="param-label">场景</span><div class="btn-row"><button class="btn small" :class="{ active: store.special === null }" @click="store.special = null">默认</button><button v-for="special in SPECIALS" :key="special.id" class="btn small" :class="{ active: store.special === special.id }" @click="store.special = special.id">{{ special.label }}</button></div></div>
+        <div class="param-row"><span class="param-label">背景</span><select class="select-input" :value="store.background || ''" :disabled="Boolean(store.special)" @change="store.setBackground($event.target.value)"><option value="" disabled>{{ store.special ? '场景启用中' : '选择背景' }}</option><option v-for="background in BACKGROUNDS" :key="background">{{ background }}</option></select></div>
+        <div class="param-row"><span class="param-label">场景</span><div class="btn-row"><button class="btn small" :class="{ active: store.special === null }" @click="store.setSpecial(null)">默认</button><button v-for="special in SPECIALS" :key="special.id" class="btn small" :class="{ active: store.special === special.id }" @click="store.setSpecial(special.id)">{{ special.label }}</button></div></div>
         <div v-if="store.weather === 'rain' || store.weather === 'thunder'" class="param-row"><span class="param-label">雨量</span><input type="range" min="0" max="2" step=".1" v-model.number="store.rainAmount" class="slider" /><span class="val-text">{{ store.rainAmount.toFixed(1) }}</span></div>
         <div v-if="store.weather !== 'sunny'" class="param-row"><span class="param-label">云量</span><input type="range" min="0" max="2" step=".1" v-model.number="store.cloudAmount" class="slider" /><span class="val-text">{{ store.cloudAmount.toFixed(1) }}</span></div>
       </div>
@@ -67,6 +67,7 @@ const ChoiceRow = defineComponent({
 .preset-dot.active { border-color: #fff; box-shadow: 0 0 8px var(--accent); }
 .select-input { background: rgba(255,255,255,.06); border: 1px solid var(--border); border-radius: 6px; color: var(--text); padding: 6px 12px; font-size: .78rem; }
 .select-input option { background: #1a1a2e; }
+.select-input:disabled { cursor: not-allowed; opacity: .48; }
 .slider { accent-color: var(--accent); flex: 1; height: 4px; }
 .btn.small { padding: 5px 10px; font-size: .72rem; }
 .btn.round { width: 38px; height: 38px; font-size: 1.05rem; }

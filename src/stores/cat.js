@@ -61,6 +61,19 @@ export const useCatStore = defineStore('cat', () => {
     activePreset.value = null
   }
 
+  function setBackground(value) {
+    background.value = value
+    if (value) special.value = null
+    activePreset.value = null
+  }
+
+  function setSpecial(value) {
+    special.value = value
+    if (value) background.value = null
+    else if (!background.value) background.value = DEFAULT_TRAITS.background
+    activePreset.value = null
+  }
+
   function applyGeneratedTraits(value, rng = createRng(value)) {
     const pick = list => list[Math.floor(rng() * list.length)]
     const fur = pick(FUR_PRESETS)
@@ -68,9 +81,9 @@ export const useCatStore = defineStore('cat', () => {
     furColor.value = fur.color
     eyeStyle.value = pick(EYE_STYLES)
     faceExpression.value = pick(FACE_EXPRESSIONS)
-    background.value = pick(BACKGROUNDS)
     gearType.value = rng() < .2 ? null : pick(GEAR_LIST).id
     special.value = rng() < .08 ? pick(SPECIALS).id : null
+    background.value = special.value ? null : pick(BACKGROUNDS)
     weather.value = pick(WEATHERS)
   }
 
@@ -103,8 +116,8 @@ export const useCatStore = defineStore('cat', () => {
     eyeStyle.value = preset.eyes || DEFAULT_TRAITS.eyes
     faceExpression.value = preset.face || DEFAULT_TRAITS.face
     gearType.value = preset.gear ?? null
-    background.value = preset.background ?? DEFAULT_TRAITS.background
     special.value = preset.special ?? null
+    background.value = special.value ? null : (preset.background ?? DEFAULT_TRAITS.background)
     weather.value = preset.weather ?? 'sunny'
   }
 
@@ -113,6 +126,6 @@ export const useCatStore = defineStore('cat', () => {
     tokenId, seed, activePreset, weather, lightIntensity, rainAmount, cloudAmount,
     fishAmount, musicOn, language, loading, loadingProgress, panelExpanded, showHints,
     isSpecialFullScene, randomize, setFromSeed, cycleWeather, togglePanel, setLanguage,
-    applyPreset, setFurStyle, setCustomFurColor,
+    applyPreset, setFurStyle, setCustomFurColor, setBackground, setSpecial,
   }
 })

@@ -57,8 +57,8 @@ onMounted(() => {
   if (params.has('eyes')) store.eyeStyle = params.get('eyes')
   if (params.has('face')) store.faceExpression = params.get('face')
   if (params.has('gear')) store.gearType = params.get('gear') || null
-  if (params.has('bg')) store.background = params.get('bg')
-  if (params.has('special')) store.special = params.get('special') || null
+  if (params.has('bg')) store.setBackground(params.get('bg'))
+  if (params.has('special')) store.setSpecial(params.get('special') || null)
   if (params.has('tokenId')) store.tokenId = parseInt(params.get('tokenId'))
 })
 </script>

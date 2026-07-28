@@ -43,7 +43,7 @@ export const SPECIAL_TRAITS = [
   { id: 'Onsen journey', label: '温泉假日', fullScene: false },
   { id: 'Realm of Mt.Fuji', label: '富士幻境', fullScene: false },
   { id: 'Thunderous Might', label: '雷霆能量', fullScene: false },
-  { id: 'Time Traveler', label: '时空旅人', fullScene: false },
+  { id: 'Time Traveler', label: '时空旅人', fullScene: true },
 ]
 
 export const PRESET_CATS = [
