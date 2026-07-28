@@ -10,6 +10,7 @@ import { CatModel } from '../three/CatModel.js'
 import { createGear, preloadGearTextures } from '../three/EquipmentFactory.js'
 import { createTimeTravelerScene } from '../three/scenes/TimeTravelerScene.js'
 import { createFujiRealmScene } from '../three/scenes/FujiScene.js'
+import { createReferenceSpecialScene } from '../three/scenes/ReferenceSpecialScenes.js'
 import * as THREE from 'three'
 
 const store = useCatStore()
@@ -296,6 +297,19 @@ function buildSpecialScene(type) {
   specialGroup.clear()
   applyBackground(store.background)
   if (!type) return
+  const referenceScene = createReferenceSpecialScene(type)
+  if (referenceScene) {
+    const referenceBackgrounds = {
+      'Thunderous Might': '#737b82',
+      'Galactic Voyage': '#17183e',
+      'Onsen journey': '#545873',
+      'Fitness Guru': '#81958d',
+    }
+    scene.background = new THREE.Color(referenceBackgrounds[type])
+    scene.fog.color.copy(scene.background)
+    specialGroup.add(referenceScene)
+    return
+  }
   const add = (mesh) => { specialGroup.add(mesh); return mesh }
   const pointMat = (color, size = .04) => new THREE.PointsMaterial({ color, size, transparent: true, opacity: .8, depthWrite: false })
   if (type === 'Galactic Voyage') {
