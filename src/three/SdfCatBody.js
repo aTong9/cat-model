@@ -167,9 +167,12 @@ export function createSdfCatBody(furColor = '#f4c430', opts = {}) {
   ]
 
   // 网格化
-  const cellSize = resolveCatMeshCellSize(prims, 'static')
+  // Ears and legs are now separate articulated assemblies in CatModel. Keeping
+  // their old SDF primitives would create doubled silhouettes and rigid joints.
+  const bodyPrims = prims.filter(primitive => primitive.tag !== 'ear' && primitive.tag !== 'leg')
+  const cellSize = resolveCatMeshCellSize(bodyPrims, 'static')
   const floorY = -0.52
-  const geo = meshFromSDF(prims, cellSize, floorY)
+  const geo = meshFromSDF(bodyPrims, cellSize, floorY)
 
   const mat = new THREE.MeshStandardMaterial({
     color: new THREE.Color(furColor),
@@ -185,5 +188,5 @@ export function createSdfCatBody(furColor = '#f4c430', opts = {}) {
   // 头部中心（供面特征定位）
   const headCenter = new THREE.Vector3(0, 1.02, 0.02)
 
-  return { mesh, headCenter, headRadius: hRad, prims }
+  return { mesh, headCenter, headRadius: hRad, prims: bodyPrims }
 }
