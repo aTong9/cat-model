@@ -9,7 +9,6 @@ const TEXTURE_MAP = {
   'Camera': '/equipment/Camera.png',
   'Gold Round Glasses': '/equipment/GoldRoundGlasses.png',
   'Good Luck Gold Bar': '/equipment/GoodLuckGoldBar.png',
-  'Hiking Backpack': '/equipment/HikingBackpack.png',
   'Hot Coffee': '/equipment/HotCoffee.png',
   'Investment Book': '/equipment/InvestmentBook.png',
   'Ramen': '/equipment/Ramen.png',
@@ -173,7 +172,7 @@ function createBaseballCap() {
   inner.add(btn)
 
   g.add(inner)
-  g.position.set(0, 2.04, 0.04)
+  g.position.set(0, 1.32, -0.02)
   g.rotation.x = -0.25
   return g
 }
@@ -249,64 +248,206 @@ function createGoldRoundGlasses() {
   const bridge = createBridge()
   g.add(bridge)
 
-  g.position.set(0, 1.78, 0.54)
+  g.position.set(0, 1.02, 0.32)
   return g
 }
 
-// --- 登山背包 ---
+// --- 登山背包（像素风 Box 堆积建模，参考 HikingBackpack.html） ---
 function createHikingBackpack() {
   const g = new THREE.Group()
-  const t = tex('Hiking Backpack')
 
-  // 背包主体（椭圆柱体模拟包身）
-  const bagGeo = new THREE.CapsuleGeometry(0.20, 0.34, 8, 14)
-  const bag = new THREE.Mesh(
-    bagGeo,
-    new THREE.MeshStandardMaterial({ color: '#3d6f62', roughness: 0.38, metalness: 0.05 })
-  )
-  bag.rotation.x = Math.PI / 2
-  bag.scale.set(1, 1, 0.55)
-  bag.castShadow = true
-  g.add(bag)
+  // 材质
+  const orangeFabric = new THREE.MeshStandardMaterial({ color: '#E86C1A', roughness: 0.85, metalness: 0.0 })
+  const darkOrange    = new THREE.MeshStandardMaterial({ color: '#C44A10', roughness: 0.90, metalness: 0.0 })
+  const frontPanelMat = new THREE.MeshStandardMaterial({ color: '#F08020', roughness: 0.80, metalness: 0.0 })
+  const brownLeather   = new THREE.MeshStandardMaterial({ color: '#8B5A2B', roughness: 0.60, metalness: 0.0 })
+  const darkBrown     = new THREE.MeshStandardMaterial({ color: '#5C3A1A', roughness: 0.70, metalness: 0.0 })
+  const brassMetal    = new THREE.MeshStandardMaterial({ color: '#C4A35A', roughness: 0.25, metalness: 0.92 })
+  const stitchMat     = new THREE.MeshStandardMaterial({ color: '#6B3A15', roughness: 0.70 })
+  const seamMat       = new THREE.MeshStandardMaterial({ color: '#803000', roughness: 0.90 })
+  const rollHighlightMat = new THREE.MeshStandardMaterial({
+    color: '#FF9A30', roughness: 0.8, metalness: 0, transparent: true, opacity: 0.25,
+  })
 
-  // 正面前袋
-  const flap = new THREE.Mesh(
-    new THREE.BoxGeometry(0.26, 0.11, 0.035),
-    new THREE.MeshStandardMaterial({ color: '#527f70', roughness: 0.35, metalness: 0.05 })
-  )
-  flap.position.set(0, 0.07, 0.13)
-  g.add(flap)
+  const inner = new THREE.Group()
 
-  // 正面贴图
-  if (t) {
-    const aspect = t.image ? t.image.width / t.image.height : 0.8
-    const w = 0.22
-    const h = w / aspect
-    const decal = createDecal(t, w, h)
-    decal.position.set(0, 0.02, 0.11)
-    g.add(decal)
+  // 尺寸（适配站立猫比例）
+  const bodyW = 0.30
+  const bodyH = 0.40
+  const bodyD = 0.14
+  const bodyY = -0.02
+
+  // ===== 1. 包身主体 =====
+  const bodyGeo = new THREE.BoxGeometry(bodyW, bodyH, bodyD)
+  const bodyMesh = new THREE.Mesh(bodyGeo, orangeFabric)
+  bodyMesh.position.y = bodyY
+  bodyMesh.castShadow = true
+  inner.add(bodyMesh)
+
+  // 正面高光面板
+  const frontGeo = new THREE.BoxGeometry(bodyW * 0.88, bodyH * 0.86, 0.003)
+  const frontPanel = new THREE.Mesh(frontGeo, frontPanelMat)
+  frontPanel.position.set(0, bodyY, bodyD / 2 + 0.002)
+  inner.add(frontPanel)
+
+  // 侧面阴影条
+  const sideShadowGeo = new THREE.BoxGeometry(0.006, bodyH * 0.88, bodyD * 0.88)
+  const sideShadowMat = new THREE.MeshStandardMaterial({ color: '#A04000', roughness: 0.9 })
+  for (const sx of [-1, 1]) {
+    const shadow = new THREE.Mesh(sideShadowGeo, sideShadowMat)
+    shadow.position.set(sx * (bodyW / 2 + 0.003), bodyY, 0)
+    inner.add(shadow)
   }
 
-  // 两侧口袋 + 背带
-  for (const side of [-1, 1]) {
-    const pocket = new THREE.Mesh(
-      new THREE.SphereGeometry(0.06, 12, 8),
-      new THREE.MeshStandardMaterial({ color: '#d88a3c', roughness: 0.4, metalness: 0.05 })
-    )
-    pocket.scale.set(0.75, 1, 0.45)
-    pocket.position.set(side * 0.20, -0.06, 0)
-    g.add(pocket)
-
-    const strap = new THREE.Mesh(
-      new THREE.TorusGeometry(0.25, 0.013, 6, 18, Math.PI),
-      new THREE.MeshStandardMaterial({ color: '#2b473f', roughness: 0.5 })
-    )
-    strap.rotation.set(Math.PI / 2, 0, side * 0.20)
-    strap.position.set(side * 0.13, 0.02, 0.17)
-    g.add(strap)
+  // 侧面面板
+  const sidePanelGeo = new THREE.BoxGeometry(0.012, bodyH * 0.82, bodyD * 0.82)
+  for (const sx of [-1, 1]) {
+    const sidePanel = new THREE.Mesh(sidePanelGeo, darkOrange)
+    sidePanel.position.set(sx * (bodyW / 2 + 0.006), bodyY, 0)
+    inner.add(sidePanel)
   }
 
-  g.position.set(0, 1.03, -0.48)
+  // 侧面缝线
+  const seamGeo = new THREE.BoxGeometry(0.003, bodyH * 0.88, 0.003)
+  for (const sx of [-1, 1]) {
+    const seam = new THREE.Mesh(seamGeo, seamMat)
+    seam.position.set(sx * (bodyW / 2 + 0.013), bodyY, 0)
+    inner.add(seam)
+  }
+
+  // ===== 2. 顶部卷口 =====
+  const rollR = 0.07
+  const rollLen = bodyW * 1.10
+  const rollY = bodyY + bodyH / 2 + rollR * 0.65
+
+  const rollGeo = new THREE.CylinderGeometry(rollR, rollR, rollLen, 18)
+  const roll = new THREE.Mesh(rollGeo, orangeFabric)
+  roll.rotation.z = Math.PI / 2
+  roll.position.y = rollY
+  roll.castShadow = true
+  inner.add(roll)
+
+  // 卷口右侧端盖
+  const capGeo = new THREE.CylinderGeometry(rollR, rollR, 0.012, 18)
+  const rightCap = new THREE.Mesh(capGeo, darkOrange)
+  rightCap.rotation.z = Math.PI / 2
+  rightCap.position.set(rollLen / 2 + 0.006, rollY, 0)
+  inner.add(rightCap)
+
+  // 卷口高光
+  const rollHlGeo = new THREE.CylinderGeometry(rollR * 0.6, rollR * 0.6, rollLen * 0.9, 18)
+  const rollHighlight = new THREE.Mesh(rollHlGeo, rollHighlightMat)
+  rollHighlight.rotation.z = Math.PI / 2
+  rollHighlight.position.set(0, rollY + 0.012, rollR * 0.28)
+  inner.add(rollHighlight)
+
+  // 卷口下方阴影条
+  const rollShadowGeo = new THREE.BoxGeometry(bodyW * 1.04, 0.02, bodyD * 0.6)
+  const rollShadow = new THREE.Mesh(rollShadowGeo, darkOrange)
+  rollShadow.position.y = bodyY + bodyH / 2 + 0.008
+  inner.add(rollShadow)
+
+  // ===== 3. 正面口袋 =====
+  const pkW = bodyW * 0.82
+  const pkH = bodyH * 0.36
+  const pkD = 0.046
+  const pkZ = bodyD / 2 + pkD / 2
+  const pkY = bodyY - bodyH * 0.06
+
+  const pocketGeo = new THREE.BoxGeometry(pkW, pkH, pkD)
+  const pocket = new THREE.Mesh(pocketGeo, orangeFabric)
+  pocket.position.set(0, pkY, pkZ)
+  pocket.castShadow = true
+  inner.add(pocket)
+
+  // 口袋正面高光
+  const pkFrontGeo = new THREE.BoxGeometry(pkW * 0.9, pkH * 0.84, 0.003)
+  const pkFront = new THREE.Mesh(pkFrontGeo, frontPanelMat)
+  pkFront.position.set(0, pkY, pkZ + pkD / 2 + 0.002)
+  inner.add(pkFront)
+
+  // 口袋翻盖
+  const flapGeo = new THREE.BoxGeometry(pkW + 0.012, 0.016, pkD + 0.008)
+  const flap = new THREE.Mesh(flapGeo, darkOrange)
+  flap.position.set(0, pkY + pkH / 2 + 0.008, pkZ)
+  flap.castShadow = true
+  inner.add(flap)
+
+  // ===== 4. 正面竖带 + 黄铜扣 =====
+  const stW = 0.026
+  const stH = 0.20
+  const stD = 0.012
+  const stY = pkY - 0.008
+  const stZ = pkZ + pkD / 2 + stD / 2 + 0.002
+
+  const stGeo = new THREE.BoxGeometry(stW, stH, stD)
+  const frontStrap = new THREE.Mesh(stGeo, brownLeather)
+  frontStrap.position.set(0, stY, stZ)
+  frontStrap.castShadow = true
+  inner.add(frontStrap)
+
+  // 竖带缝线
+  const stitchGeo = new THREE.BoxGeometry(stW + 0.004, 0.004, stD + 0.004)
+  for (let i = 0; i < 3; i++) {
+    const stitch = new THREE.Mesh(stitchGeo, stitchMat)
+    stitch.position.set(0, stY - 0.05 + i * 0.05, stZ)
+    inner.add(stitch)
+  }
+
+  // 黄铜扣
+  const bkW = 0.044, bkH = 0.028, bkD = 0.014
+  const bkGeo = new THREE.BoxGeometry(bkW, bkH, bkD)
+  const buckle = new THREE.Mesh(bkGeo, brassMetal)
+  buckle.position.set(0, stY - stH / 2 + 0.022, stZ + 0.004)
+  buckle.castShadow = true
+  inner.add(buckle)
+
+  // 扣内凹陷
+  const bkInGeo = new THREE.BoxGeometry(bkW * 0.48, bkH * 0.36, bkD + 0.005)
+  const buckleInner = new THREE.Mesh(bkInGeo, darkBrown)
+  buckleInner.position.set(0, stY - stH / 2 + 0.022, stZ + 0.004)
+  inner.add(buckleInner)
+
+  // ===== 5. 上方左右带 + 黄铜扣 =====
+  const tStW = 0.024
+  const tStH = 0.11
+  const tStD = 0.010
+  const tStY = bodyY + bodyH * 0.28
+  const tStZ = bodyD / 2 + 0.014
+  const tStX = bodyW * 0.30
+
+  const tStGeo = new THREE.BoxGeometry(tStW, tStH, tStD)
+  const tBkGeo = new THREE.BoxGeometry(0.036, 0.028, 0.012)
+  for (const sx of [-1, 1]) {
+    const tSt = new THREE.Mesh(tStGeo, brownLeather)
+    tSt.position.set(sx * tStX, tStY, tStZ)
+    tSt.castShadow = true
+    inner.add(tSt)
+
+    const tBk = new THREE.Mesh(tBkGeo, brassMetal)
+    tBk.position.set(sx * tStX, tStY - tStH / 2 + 0.006, tStZ + 0.004)
+    inner.add(tBk)
+  }
+
+  // ===== 6. 侧面提手 =====
+  const hR = 0.020, hT = 0.006
+  const hGeo = new THREE.TorusGeometry(hR, hT, 6, 14, Math.PI)
+  const handle = new THREE.Mesh(hGeo, brownLeather)
+  handle.position.set(bodyW / 2 + hR - 0.005, bodyY + 0.015, 0)
+  handle.rotation.y = Math.PI / 2
+  handle.castShadow = true
+  inner.add(handle)
+
+  // 提手固定铆钉
+  const studGeo = new THREE.BoxGeometry(0.012, 0.012, 0.016)
+  for (const sz of [-1, 1]) {
+    const stud = new THREE.Mesh(studGeo, darkBrown)
+    stud.position.set(bodyW / 2 + 0.004, bodyY + 0.015 + hR * 0.5, sz * hR * 0.7)
+    inner.add(stud)
+  }
+
+  g.add(inner)
+  g.position.set(0, 0.60, -0.32)
   return g
 }
 
@@ -361,7 +502,7 @@ function createHotCoffee() {
     g.add(steam)
   }
 
-  g.position.set(0.42, 0.24, 0.56)
+  g.position.set(0.42, 0.22, 0.25)
   return g
 }
 
@@ -404,7 +545,7 @@ function createInvestmentBook() {
   ribbon.position.set(0, 0.02, 0.16)
   g.add(ribbon)
 
-  g.position.set(0.40, 0.38, 0.52)
+  g.position.set(0.38, 0.25, 0.24)
   g.rotation.set(0.2, -0.5, 0.1)
   return g
 }
@@ -456,7 +597,7 @@ function createSake() {
   ochoko.position.set(0.08, -0.04, 0.02)
   g.add(ochoko)
 
-  g.position.set(-0.40, 0.30, 0.54)
+  g.position.set(-0.38, 0.24, 0.24)
   return g
 }
 
@@ -548,7 +689,7 @@ function createCamera() {
 
   // 缩放适配猫的比例并定位到胸前
   g.scale.setScalar(0.1)
-  g.position.set(0, 1.18, 0.62)
+  g.position.set(0, 0.78, 0.34)
   g.rotation.x = -0.15
 
   return g
@@ -631,57 +772,135 @@ function makeGoldBarBumpMap(textLines) {
   return tex
 }
 
-// --- 大吉金条（Box 堆积建模 + 正面平面文字 decal，参考 Camera.html 风格） ---
+// --- 大吉金条（精细圆角矩形，4 边 Box + 4 角 Cylinder 切片 + CSS 风格程序化纹理） ---
 function createGoodLuckGoldBar() {
   const g = new THREE.Group()
-  const inner = new THREE.Group()
 
-  const goldMat  = new THREE.MeshStandardMaterial({ color: '#daa520', roughness: 0.18, metalness: 0.90 })
-  const rimMat   = new THREE.MeshStandardMaterial({ color: '#ffd700', roughness: 0.10, metalness: 0.96 })
-  const edgeMat  = new THREE.MeshStandardMaterial({ color: '#cd9b1d', roughness: 0.14, metalness: 0.88 })
+  const W = 0.18      // 整体宽
+  const H = 0.32      // 整体高（竖向）
+  const D = 0.055     // 厚度
+  const B = 0.025     // 边框宽
+  const CR = 0.038    // 圆角半径
 
-  // 主体：多层 Box 堆出圆角金条
-  const bodyLayers = [
-    { x: 0.00, y: 0.00, w: 0.22, h: 0.10, d: 0.28 },
-    { x: 0.00, y: 0.06, w: 0.20, h: 0.03, d: 0.27 },
-    { x: 0.00, y: -0.06, w: 0.20, h: 0.03, d: 0.27 },
-    { x: 0.11, y: 0.00, w: 0.03, h: 0.08, d: 0.27 },
-    { x: -0.11, y: 0.00, w: 0.03, h: 0.08, d: 0.27 },
+  const goldMat   = new THREE.MeshStandardMaterial({ color: '#daa520', roughness: 0.15, metalness: 0.92 })
+  const brightMat = new THREE.MeshStandardMaterial({ color: '#ffd700', roughness: 0.10, metalness: 0.95 })
+  const darkMat   = new THREE.MeshStandardMaterial({ color: '#b8860b', roughness: 0.18, metalness: 0.88 })
+
+  // ===== 外框：4 条直边 Box =====
+  const topB = new THREE.Mesh(new THREE.BoxGeometry(W - CR * 2, B, D), brightMat)
+  topB.position.set(0, H / 2 - B / 2, 0)
+  g.add(topB)
+
+  const botB = new THREE.Mesh(new THREE.BoxGeometry(W - CR * 2, B, D), brightMat)
+  botB.position.set(0, -H / 2 + B / 2, 0)
+  g.add(botB)
+
+  const leftB = new THREE.Mesh(new THREE.BoxGeometry(B, H - CR * 2, D), brightMat)
+  leftB.position.set(-W / 2 + B / 2, 0, 0)
+  g.add(leftB)
+
+  const rightB = new THREE.Mesh(new THREE.BoxGeometry(B, H - CR * 2, D), brightMat)
+  rightB.position.set(W / 2 - B / 2, 0, 0)
+  g.add(rightB)
+
+  // ===== 4 个圆角（1/4 圆柱切片） =====
+  const cornerGeo = new THREE.CylinderGeometry(CR, CR, D, 12, 1, false, 0, Math.PI / 2)
+  const corners = [
+    { x: -W / 2 + CR, y:  H / 2 - CR, rot: Math.PI },
+    { x:  W / 2 - CR, y:  H / 2 - CR, rot: -Math.PI / 2 },
+    { x: -W / 2 + CR, y: -H / 2 + CR, rot: Math.PI / 2 },
+    { x:  W / 2 - CR, y: -H / 2 + CR, rot: 0 },
   ]
-  bodyLayers.forEach(l => {
-    const block = new THREE.Mesh(
-      new THREE.BoxGeometry(l.w, l.h, l.d),
-      l.y === 0 && l.x === 0 ? goldMat : edgeMat
-    )
-    block.position.set(l.x, l.y, 0)
-    block.castShadow = true
-    inner.add(block)
+  corners.forEach(c => {
+    const corner = new THREE.Mesh(cornerGeo, brightMat)
+    corner.rotation.z = c.rot
+    corner.position.set(c.x, c.y, 0)
+    g.add(corner)
   })
 
-  // 金边外框（上下左右四条细条）
-  const rimData = [
-    { x: 0, y: 0.04, w: 0.21, h: 0.010, d: 0.28 },
-    { x: 0, y: -0.04, w: 0.21, h: 0.010, d: 0.28 },
-    { x: 0.10, y: 0, w: 0.010, h: 0.09, d: 0.28 },
-    { x: -0.10, y: 0, w: 0.010, h: 0.09, d: 0.28 },
-  ]
-  rimData.forEach(r => {
-    const rim = new THREE.Mesh(new THREE.BoxGeometry(r.w, r.h, r.d), rimMat)
-    rim.position.set(r.x, r.y, 0.002)
-    inner.add(rim)
+  // ===== 内面背景（CSS 风格程序化纹理） =====
+  function makeGoldBarFaceTexture() {
+    const w = 512, h = 832
+    const canvas = document.createElement('canvas')
+    canvas.width = w
+    canvas.height = h
+    const ctx = canvas.getContext('2d')
+
+    // CSS 径向渐变（中心亮、边缘暗）
+    const grad = ctx.createRadialGradient(w / 2, h / 2, 30, w / 2, h / 2, h * 0.55)
+    grad.addColorStop(0, '#fff8dc')
+    grad.addColorStop(0.15, '#ffec8b')
+    grad.addColorStop(0.4, '#ffd700')
+    grad.addColorStop(0.7, '#daa520')
+    grad.addColorStop(1, '#b8860b')
+    ctx.fillStyle = grad
+    ctx.fillRect(0, 0, w, h)
+
+    // CSS 水平拉丝条纹
+    ctx.strokeStyle = 'rgba(160, 120, 40, 0.14)'
+    ctx.lineWidth = 1.2
+    for (let y = 0; y < h; y += 4) {
+      ctx.beginPath()
+      ctx.moveTo(0, y)
+      ctx.lineTo(w, y)
+      ctx.stroke()
+    }
+
+    // "大吉" 文字 —— 三层绘制模拟浮雕
+    ctx.textAlign = 'center'
+    ctx.textBaseline = 'middle'
+    ctx.font = 'bold 220px "Microsoft YaHei", "SimHei", serif'
+
+    // 1. 底层阴影（深度）
+    ctx.shadowColor = 'rgba(120, 90, 20, 0.55)'
+    ctx.shadowBlur = 12
+    ctx.shadowOffsetX = 6
+    ctx.shadowOffsetY = 6
+    ctx.fillStyle = '#8b6914'
+    ctx.fillText('大', w / 2, h * 0.30)
+    ctx.fillText('吉', w / 2, h * 0.70)
+
+    // 2. 主色层
+    ctx.shadowColor = 'transparent'
+    ctx.shadowBlur = 0
+    ctx.shadowOffsetX = 0
+    ctx.shadowOffsetY = 0
+    ctx.fillStyle = '#c9a84c'
+    ctx.fillText('大', w / 2, h * 0.30)
+    ctx.fillText('吉', w / 2, h * 0.70)
+
+    // 3. 顶层高光（浮雕亮面）
+    ctx.fillStyle = '#f0d878'
+    ctx.fillText('大', w / 2 - 3, h * 0.30 - 3)
+    ctx.fillText('吉', w / 2 - 3, h * 0.70 - 3)
+
+    const tex = new THREE.CanvasTexture(canvas)
+    tex.colorSpace = THREE.SRGBColorSpace
+    return tex
+  }
+
+  const innerW = W - B * 2
+  const innerH = H - B * 2
+  const innerD = D * 0.88
+
+  const faceTex = makeGoldBarFaceTexture()
+  const innerMat = new THREE.MeshStandardMaterial({
+    color: '#ffd700',
+    roughness: 0.12,
+    metalness: 0.96,
+    map: faceTex,
   })
 
-  // 正面文字 decal（flat PlaneGeometry，清晰显示）
-  const colorMap = makeGoldBarTexture(['大', '吉'])
-  const decal = new THREE.Mesh(
-    new THREE.PlaneGeometry(0.16, 0.11),
-    new THREE.MeshBasicMaterial({ map: colorMap, transparent: true, depthTest: true, depthWrite: false })
-  )
-  decal.position.z = 0.143
-  inner.add(decal)
-
+  const inner = new THREE.Mesh(new THREE.BoxGeometry(innerW, innerH, innerD), innerMat)
+  inner.position.z = -0.002
   g.add(inner)
-  g.position.set(-0.40, 0.42, 0.52)
+
+  // ===== 背面 =====
+  const back = new THREE.Mesh(new THREE.BoxGeometry(W, H, 0.008), darkMat)
+  back.position.z = -D / 2 - 0.004
+  g.add(back)
+
+  g.position.set(-0.38, 0.28, 0.22)
   g.rotation.set(0.15, -0.42, 0.08)
   return g
 }
@@ -741,7 +960,7 @@ function createWealthGoldBar() {
   inner.add(decal)
 
   g.add(inner)
-  g.position.set(-0.42, 0.38, 0.48)
+  g.position.set(-0.40, 0.26, 0.22)
   g.rotation.set(0.3, -0.4, 0.2)
   return g
 }
@@ -826,7 +1045,7 @@ function createRamen() {
     g.add(cp)
   }
 
-  g.position.set(0, 0.16, 0.62)
+  g.position.set(0, 0.15, 0.30)
   return g
 }
 
