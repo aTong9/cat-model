@@ -40,3 +40,9 @@ export async function getAdjacentToken(tokenId, direction = 1) {
   const nextIndex = (index + (direction < 0 ? -1 : 1) + catalog.tokens.length) % catalog.tokens.length
   return catalog.tokens[nextIndex]
 }
+
+export function filterTokenCatalog(tokens, filters = {}, limit = 60) {
+  const activeFilters = Object.entries(filters).filter(([, value]) => value != null && value !== '')
+  const matches = tokens.filter(token => activeFilters.every(([key, value]) => token[key] === value))
+  return { total: matches.length, tokens: matches.slice(0, Math.max(0, limit)) }
+}
