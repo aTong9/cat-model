@@ -11,12 +11,13 @@ import { createGear, preloadGearTextures } from '../three/EquipmentFactory.js'
 import { createTimeTravelerScene } from '../three/scenes/TimeTravelerScene.js'
 import { createFujiRealmScene } from '../three/scenes/FujiScene.js'
 import { createReferenceSpecialScene } from '../three/scenes/ReferenceSpecialScenes.js'
+import { createWeatherController } from '../three/WeatherController.js'
 import * as THREE from 'three'
 
 const store = useCatStore()
 const canvasRef = ref(null)
 
-let renderer, scene, camera, controls, envGroup, updateSize
+let renderer, scene, camera, controls, envGroup, updateSize, weatherController
 let catAssembly
 let catModel
 let clock
@@ -102,6 +103,8 @@ onMounted(async () => {
   controls = setup.controls
   envGroup = setup.envGroup
   updateSize = setup.updateSize
+  weatherController = createWeatherController({ scene, root: envGroup })
+  weatherController.setWeather(store.weather)
 
   // 暴露 scene 给旧导出入口；角色级导出使用 __character。
   canvas.__scene = scene
@@ -151,6 +154,7 @@ onUnmounted(() => {
   catAssembly?.dispose()
   renderer?.dispose()
   controls?.dispose()
+  weatherController?.dispose()
   // 清理装备
   gearEntries.forEach(e => {
     e.group.traverse(c => { if (c.geometry) c.geometry.dispose(); if (c.material) c.material.dispose() })
@@ -409,51 +413,9 @@ function buildSpecialScene(type) {
 }
 
 // === 天气效果 ===
-let rainParticles = null
-let cloudMeshes = []
-
-function clearWeather() {
-  while (envGroup.children.length) envGroup.remove(envGroup.children[0])
-  rainParticles = null
-  cloudMeshes = []
-}
-
 watch(() => store.weather, (w) => {
-  clearWeather()
-  if (w === 'rain' || w === 'thunder') createRain()
-  if (w === 'cloudy' || w === 'thunder' || w === 'rain') createClouds()
+  weatherController?.setWeather(w)
 })
-
-function createRain() {
-  const count = 300
-  const geo = new THREE.BufferGeometry()
-  const positions = new Float32Array(count * 3)
-  for (let i = 0; i < count * 3; i += 3) {
-    positions[i] = (Math.random() - 0.5) * 8
-    positions[i + 1] = Math.random() * 6
-    positions[i + 2] = (Math.random() - 0.5) * 8
-  }
-  geo.setAttribute('position', new THREE.BufferAttribute(positions, 3))
-  const mat = new THREE.PointsMaterial({
-    color: '#aaccff', size: 0.04, transparent: true, opacity: 0.5,
-    depthWrite: false,
-  })
-  rainParticles = new THREE.Points(geo, mat)
-  envGroup.add(rainParticles)
-}
-
-function createClouds() {
-  for (let i = 0; i < 6; i++) {
-    const cloudGeo = new THREE.SphereGeometry(0.5 + Math.random() * 0.6, 16, 12)
-    const cloud = new THREE.Mesh(cloudGeo,
-      new THREE.MeshStandardMaterial({ color: '#8899aa', roughness: 1, transparent: true, opacity: 0.4, depthWrite: false }))
-    cloud.position.set((Math.random() - 0.5) * 8, 4 + Math.random() * 2, (Math.random() - 0.5) * 6)
-    cloud.userData.speed = 0.1 + Math.random() * 0.4
-    cloud.userData.baseX = cloud.position.x
-    envGroup.add(cloud)
-    cloudMeshes.push(cloud)
-  }
-}
 
 function emitPortalEntry(portal) {
   const detail = { ...portal.userData.portal, character: catModel?.group }
@@ -547,22 +509,11 @@ function animate() {
 
   // 装备物理
   updateGearPhysics(dt)
+  weatherController?.update(dt)
 
   // 雨滴动画
-  if (rainParticles) {
-    const pos = rainParticles.geometry.attributes.position.array
-    for (let i = 0; i < pos.length; i += 3) {
-      pos[i + 1] -= 0.06
-      if (pos[i + 1] < -0.5) pos[i + 1] = 5.5
-    }
-    rainParticles.geometry.attributes.position.needsUpdate = true
-  }
 
   // 云动画
-  cloudMeshes.forEach(c => {
-    c.position.x += c.userData.speed * 0.01
-    if (c.position.x > c.userData.baseX + 5) c.position.x = c.userData.baseX - 5
-  })
   specialGroup?.children.forEach(item => {
     item.userData.update?.(t)
     if (item.userData.fall) { item.position.y -= item.userData.fall; item.rotation.z += .02; if (item.position.y < -.8) item.position.y = 5 }
@@ -571,10 +522,6 @@ function animate() {
   })
 
   // 雷电闪烁
-  if (store.weather === 'thunder' && Math.random() < 0.003) {
-    scene.background = new THREE.Color('#ffffff')
-    setTimeout(() => { scene.background = new THREE.Color('#1a1a2e') }, 80)
-  }
 
   renderer.render(scene, camera)
 }
