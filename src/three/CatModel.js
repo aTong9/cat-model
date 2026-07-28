@@ -1,6 +1,7 @@
 import * as THREE from 'three'
 import { RoundedBoxGeometry } from 'three/addons/geometries/RoundedBoxGeometry.js'
 import { createGear, TEXTURE_GEAR_TYPES } from './EquipmentFactory.js'
+import { applyEquipmentAttachment } from './EquipmentAttachments.js'
 import { createSdfCatBody } from './SdfCatBody.js'
 import { getFurTrait } from '../config/traits.js'
 
@@ -1162,7 +1163,10 @@ export class CatModel {
 
     if (TEXTURE_GEAR_TYPES.has(this._gearType)) {
       const gear = createGear(this._gearType)
-      if (gear) this._gearRoot.add(gear)
+      if (gear) {
+        applyEquipmentAttachment(gear, this._gearType)
+        this._gearRoot.add(gear)
+      }
     }
   }
 }

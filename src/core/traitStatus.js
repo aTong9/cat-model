@@ -2,6 +2,10 @@ const STATUS_LABELS = Object.freeze({ implemented: '已实现', partial: '部分
 
 export function getTraitStatus(type, value) {
   if (value == null) return null
+  if (type === 'gear') return {
+    type, value, status: 'partial', label: STATUS_LABELS.partial,
+    note: '已接入统一挂点与缩放配置，仍需逐件完成正面和侧面视觉验收。',
+  }
   if (type === 'special') return {
     type, value, status: 'partial', label: STATUS_LABELS.partial,
     note: '已提供程序化展示场景，但尚未完成逐像素视觉验收。',
