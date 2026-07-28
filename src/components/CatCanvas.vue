@@ -12,22 +12,21 @@ import { createTimeTravelerScene } from '../three/scenes/TimeTravelerScene.js'
 import { createFujiRealmScene } from '../three/scenes/FujiScene.js'
 import { createReferenceSpecialScene } from '../three/scenes/ReferenceSpecialScenes.js'
 import { createWeatherController } from '../three/WeatherController.js'
+import { createCharacterInputController } from '../three/CharacterInputController.js'
 import * as THREE from 'three'
 
 const store = useCatStore()
 const canvasRef = ref(null)
 
-let renderer, scene, camera, controls, envGroup, updateSize, weatherController
+let renderer, scene, camera, controls, envGroup, updateSize, weatherController, inputController
 let catAssembly
 let catModel
 let clock
 let animId
 let specialGroup
-const movementKeys = new Set()
 const moveDirection = new THREE.Vector3()
 const previousCatPosition = new THREE.Vector3()
 let activePortalId = null
-let jumpRequested = false
 let verticalVelocity = 0
 let grounded = true
 let cameraTransition = null
@@ -49,23 +48,6 @@ function onCameraView(event) {
     position: target.clone().add(offset),
     target,
   }
-}
-
-function isTypingTarget(target) {
-  return target instanceof HTMLElement && ['INPUT', 'TEXTAREA', 'SELECT'].includes(target.tagName)
-}
-
-function onKeyDown(event) {
-  if (isTypingTarget(event.target)) return
-  const supported = ['KeyW', 'KeyA', 'KeyS', 'KeyD', 'ShiftLeft', 'ShiftRight', 'ControlLeft', 'ControlRight', 'Space']
-  if (!supported.includes(event.code)) return
-  movementKeys.add(event.code)
-  if (event.code === 'Space' && !event.repeat) jumpRequested = true
-  event.preventDefault()
-}
-
-function onKeyUp(event) {
-  movementKeys.delete(event.code)
 }
 
 // ===== 装备物理系统 =====
@@ -105,6 +87,8 @@ onMounted(async () => {
   updateSize = setup.updateSize
   weatherController = createWeatherController({ scene, root: envGroup })
   weatherController.setWeather(store.weather)
+  inputController = createCharacterInputController(window)
+  inputController.attach()
 
   // 暴露 scene 给旧导出入口；角色级导出使用 __character。
   canvas.__scene = scene
@@ -135,8 +119,6 @@ onMounted(async () => {
   createAllGearItems()
 
   clock = new THREE.Clock()
-  window.addEventListener('keydown', onKeyDown)
-  window.addEventListener('keyup', onKeyUp)
   window.addEventListener('cat:set-camera-view', onCameraView)
   animate()
 
@@ -147,10 +129,8 @@ onMounted(async () => {
 
 onUnmounted(() => {
   if (animId) cancelAnimationFrame(animId)
-  window.removeEventListener('keydown', onKeyDown)
-  window.removeEventListener('keyup', onKeyUp)
   window.removeEventListener('cat:set-camera-view', onCameraView)
-  movementKeys.clear()
+  inputController?.dispose()
   catAssembly?.dispose()
   renderer?.dispose()
   controls?.dispose()
@@ -335,7 +315,7 @@ watch(() => store.gearType, (v) => {
 watch(() => store.faceExpression, (face) => catAssembly?.apply({ face }))
 watch(() => store.tokenId, (tokenId) => catAssembly?.apply({ tokenId }))
 watch(() => store.actionMode, (v) => {
-  if (movementKeys.size === 0) catModel?.setAnimation(v)
+  if (!inputController?.isMoving) catModel?.setAnimation(v)
 })
 watch(() => store.background, (background) => {
   catAssembly?.apply({ background })
@@ -438,21 +418,17 @@ function checkPortalEntry() {
 
 function updateCharacterMovement(dt) {
   if (!catModel) return
-  moveDirection.set(
-    (movementKeys.has('KeyD') ? 1 : 0) - (movementKeys.has('KeyA') ? 1 : 0),
-    0,
-    (movementKeys.has('KeyS') ? 1 : 0) - (movementKeys.has('KeyW') ? 1 : 0),
-  )
+  const input = inputController?.consumeFrame() || { x: 0, z: 0, sprinting: false, sneaking: false, jump: false }
+  moveDirection.set(input.x, 0, input.z)
   const moving = moveDirection.lengthSq() > 0
-  const sprinting = movementKeys.has('ShiftLeft') || movementKeys.has('ShiftRight')
-  const sneaking = movementKeys.has('ControlLeft') || movementKeys.has('ControlRight')
+  const sprinting = input.sprinting
+  const sneaking = input.sneaking
   const movement = catModel.group.userData.movement
 
-  if (jumpRequested && grounded) {
+  if (input.jump && grounded) {
     verticalVelocity = movement.jumpVelocity
     grounded = false
   }
-  jumpRequested = false
   if (!grounded) {
     verticalVelocity -= 9.8 * dt
     catModel.group.position.y += verticalVelocity * dt
