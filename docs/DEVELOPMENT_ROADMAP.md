@@ -18,6 +18,7 @@
 - 5 种 Face 已建立独立嘴型配置和可导出的轮廓元数据，统一了表情缩放与尺寸边界；在逐项对照截图完成前保持 `partial`。
 - 天气效果已从 `CatCanvas.vue` 抽离为独立 `WeatherController`，初始天气可立即生效，雨云资源可统一销毁，雷电结束后恢复当前场景背景而非固定颜色。
 - 键盘输入已从 `CatCanvas.vue` 抽离为独立 `CharacterInputController`，键盘与未来虚拟摇杆共享逐帧输入协议，并保留输入框焦点保护和一次性跳跃语义。
+- 八种背景、雾色和灯光明暗已抽离为独立 `PreviewEnvironmentController`；灯光按初始强度绝对缩放，不再依赖 watcher 的累乘恢复。
 - 主界面 GLB 导出已提供角色检查、PBR 转换、编码、回读校验和下载阶段反馈；成功后显示网格、三角面与文件体积，失败不再依赖阻塞式弹窗。
 - 10 种 Gear 已从各工厂内的写死世界坐标迁移到统一挂点配置，覆盖 `head-top`、`face-eyes`、`chest-front`、`back` 和 `paw-left`；在逐件截图验收前状态保持为 partial。
 

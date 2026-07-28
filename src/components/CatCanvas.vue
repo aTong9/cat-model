@@ -13,12 +13,13 @@ import { createFujiRealmScene } from '../three/scenes/FujiScene.js'
 import { createReferenceSpecialScene } from '../three/scenes/ReferenceSpecialScenes.js'
 import { createWeatherController } from '../three/WeatherController.js'
 import { createCharacterInputController } from '../three/CharacterInputController.js'
+import { createPreviewEnvironmentController } from '../three/PreviewEnvironmentController.js'
 import * as THREE from 'three'
 
 const store = useCatStore()
 const canvasRef = ref(null)
 
-let renderer, scene, camera, controls, envGroup, updateSize, weatherController, inputController
+let renderer, scene, camera, controls, envGroup, updateSize, weatherController, inputController, environmentController
 let catAssembly
 let catModel
 let clock
@@ -89,6 +90,8 @@ onMounted(async () => {
   weatherController.setWeather(store.weather)
   inputController = createCharacterInputController(window)
   inputController.attach()
+  environmentController = createPreviewEnvironmentController(scene)
+  environmentController.setLightIntensity(store.lightIntensity)
 
   // 暴露 scene 给旧导出入口；角色级导出使用 __character。
   canvas.__scene = scene
@@ -326,18 +329,11 @@ watch(() => store.special, (special) => {
   buildSpecialScene(special)
 })
 watch(() => store.lightIntensity, (value) => {
-  scene?.traverse((object) => { if (object.isLight && object.type !== 'HemisphereLight') object.intensity *= value === 1 ? 2.5 : 0.4 })
+  environmentController?.setLightIntensity(value)
 })
 
 function applyBackground(name) {
-  if (!scene) return
-  const colors = {
-    'Blue Gradient': '#253f88', 'Green Gradient': '#28624a', 'Green To Blue Gradient': '#277b88', 'Orange Gradient': '#9b4d2e',
-    'Pink To Orange Gradient': '#b4506e', 'Purple Gradient': '#5f3e9f', 'Red To Pink Gradient': '#9a3e59', 'Yellow To Green Gradient': '#878e31',
-  }
-  const color = colors[name] || '#11111c'
-  scene.background = new THREE.Color(color)
-  scene.fog.color.set(color)
+  environmentController?.setBackground(name)
 }
 
 function buildSpecialScene(type) {
