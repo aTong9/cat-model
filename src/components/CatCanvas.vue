@@ -8,9 +8,7 @@ import { useCatStore, GEAR_LIST } from '../stores/cat.js'
 import { createCatAssembly } from '../core/createCatAssembly.js'
 import { createScene } from '../three/SceneSetup.js'
 import { createGear, preloadGearTextures } from '../three/EquipmentFactory.js'
-import { createTimeTravelerScene } from '../three/scenes/TimeTravelerScene.js'
-import { createFujiRealmScene } from '../three/scenes/FujiScene.js'
-import { createReferenceSpecialScene } from '../three/scenes/ReferenceSpecialScenes.js'
+import { createLatestLoadGuard, loadDetailedSpecialScene, loadReferenceSpecialScene } from '../three/SpecialSceneLoader.js'
 import { createWeatherController } from '../three/WeatherController.js'
 import { createCharacterInputController } from '../three/CharacterInputController.js'
 import { createPreviewEnvironmentController } from '../three/PreviewEnvironmentController.js'
@@ -29,6 +27,7 @@ let catModel
 let clock
 let animId
 let specialGroup
+const specialSceneLoadGuard = createLatestLoadGuard()
 const moveDirection = new THREE.Vector3()
 const previousCatPosition = new THREE.Vector3()
 let activePortalId = null
@@ -129,7 +128,7 @@ onMounted(async () => {
   specialGroup = new THREE.Group()
   scene.add(specialGroup)
   applyBackground(store.background)
-  buildSpecialScene(store.special)
+  requestSpecialScene(store.special)
 
   // 初始化 raycaster
   initRaycaster()
@@ -156,6 +155,7 @@ onMounted(async () => {
 })
 
 onUnmounted(() => {
+  specialSceneLoadGuard.invalidate()
   lifecycleController?.dispose()
   stopAnimation()
   window.removeEventListener('cat:set-camera-view', onCameraView)
@@ -165,6 +165,9 @@ onUnmounted(() => {
   renderer?.dispose()
   controls?.dispose()
   weatherController?.dispose()
+  disposeObject3DResources(specialGroup)
+  specialGroup?.removeFromParent()
+  specialGroup = null
   // 清理装备
   gearEntries.forEach(e => {
     e.group.traverse(c => { if (c.geometry) c.geometry.dispose(); if (c.material) c.material.dispose() })
@@ -353,7 +356,7 @@ watch(() => store.background, (background) => {
 })
 watch(() => store.special, (special) => {
   catAssembly?.apply({ special })
-  buildSpecialScene(special)
+  requestSpecialScene(special)
 })
 watch(() => store.lightIntensity, (value) => {
   environmentController?.setLightIntensity(value)
@@ -367,27 +370,36 @@ function applyBackground(name) {
   environmentController?.setBackground(name)
 }
 
-function buildSpecialScene(type) {
-  if (!specialGroup) return
-  specialGroup.traverse(object => {
+function disposeObject3DResources(root) {
+  root?.traverse(object => {
     object.geometry?.dispose?.()
     if (Array.isArray(object.material)) object.material.forEach(material => material.dispose?.())
     else object.material?.dispose?.()
   })
+}
+
+function requestSpecialScene(type) {
+  void buildSpecialScene(type).catch((error) => {
+    if (specialGroup) console.error(`无法加载特殊场景：${type}`, error)
+  })
+}
+
+async function buildSpecialScene(type) {
+  const loadVersion = specialSceneLoadGuard.begin()
+  if (!specialGroup) return
+  disposeObject3DResources(specialGroup)
   specialGroup.clear()
   applyBackground(store.background)
   if (!type) return
-  const referenceScene = createReferenceSpecialScene(type)
-  if (referenceScene) {
-    const referenceBackgrounds = {
-      'Thunderous Might': '#737b82',
-      'Galactic Voyage': '#17183e',
-      'Onsen journey': '#545873',
-      'Fitness Guru': '#81958d',
-    }
-    scene.background = new THREE.Color(referenceBackgrounds[type])
+  const reference = await loadReferenceSpecialScene(type)
+  if (!specialSceneLoadGuard.isCurrent(loadVersion) || !specialGroup) {
+    disposeObject3DResources(reference.group)
+    return
+  }
+  if (reference.group) {
+    scene.background = new THREE.Color(reference.background)
     scene.fog.color.copy(scene.background)
-    specialGroup.add(referenceScene)
+    specialGroup.add(reference.group)
     return
   }
   const add = (mesh) => { specialGroup.add(mesh); return mesh }
@@ -401,16 +413,20 @@ function buildSpecialScene(type) {
   } else if (type === 'Golden General') {
     for (let i = 0; i < 18; i++) { const coin = add(new THREE.Mesh(new THREE.CylinderGeometry(.12, .12, .035, 20), new THREE.MeshStandardMaterial({ color: '#f6cb38', metalness: .7, roughness: .25 }))); coin.rotation.x = Math.PI / 2; coin.position.set((Math.random() - .5) * 6, Math.random() * 5, -2 - Math.random()); coin.userData.fall = .005 + Math.random() * .01 }
   } else if (type === 'Realm of Mt.Fuji') {
+    const createSceneGroup = await loadDetailedSpecialScene(type)
+    if (!specialSceneLoadGuard.isCurrent(loadVersion) || !specialGroup) return
     scene.background = new THREE.Color('#3471df')
     scene.fog.color.set('#8db7ee')
-    add(createFujiRealmScene())
+    add(createSceneGroup())
   } else if (type === 'Onsen journey') {
     const water = add(new THREE.Mesh(new THREE.CircleGeometry(2.6, 48), new THREE.MeshStandardMaterial({ color: '#8edbe8', transparent: true, opacity: .65, roughness: .2 }))); water.rotation.x = -Math.PI / 2; water.position.set(0, -.5, -.4)
     for (let i = 0; i < 8; i++) { const steam = add(new THREE.Mesh(new THREE.SphereGeometry(.13, 10, 8), new THREE.MeshBasicMaterial({ color: '#fff', transparent: true, opacity: .25 }))); steam.position.set((Math.random() - .5) * 2, .2 + Math.random(), -1 - Math.random()); steam.userData.steam = .003 + Math.random() * .003 }
   } else if (type === 'Time Traveler') {
+    const createSceneGroup = await loadDetailedSpecialScene(type)
+    if (!specialSceneLoadGuard.isCurrent(loadVersion) || !specialGroup) return
     scene.background = new THREE.Color('#090522')
     scene.fog.color.set('#19082d')
-    add(createTimeTravelerScene())
+    add(createSceneGroup())
   } else if (type === 'Fitness Guru') {
     const bell = add(new THREE.Mesh(new THREE.SphereGeometry(.28, 20, 16), new THREE.MeshStandardMaterial({ color: '#34323d', roughness: .45, metalness: .6 }))); bell.position.set(-1.2, -.1, -.6)
     const handle = add(new THREE.Mesh(new THREE.TorusGeometry(.18, .055, 8, 18, Math.PI), new THREE.MeshStandardMaterial({ color: '#34323d', metalness: .6 }))); handle.position.set(-1.2, .2, -.6)
