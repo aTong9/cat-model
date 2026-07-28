@@ -4,6 +4,7 @@ import { createGear, TEXTURE_GEAR_TYPES } from './EquipmentFactory.js'
 import { applyEquipmentAttachment } from './EquipmentAttachments.js'
 import { createSdfCatBody } from './SdfCatBody.js'
 import { getFurTrait } from '../config/traits.js'
+import { getEyeAppearanceProfile, getFurAppearanceProfile } from './AppearanceProfiles.js'
 
 // ===== Toon 渐变贴图（参考 Meow-Generator MeshToonMaterial） =====
 let _sharedToonMap = null
@@ -63,11 +64,9 @@ function layeredNoise(x, y, z, seed = 0) {
 }
 
 function applyFurVertexColors(geometry, style, customColor) {
-  const trait = style === 'Custom'
-    ? { color: customColor, accent: customColor, pattern: 'solid' }
-    : getFurTrait(style)
-  const base = new THREE.Color(customColor || trait.color)
-  const accent = new THREE.Color(trait.accent || trait.color)
+  const trait = getFurAppearanceProfile(style, customColor)
+  const base = new THREE.Color(trait.base)
+  const accent = new THREE.Color(trait.accent)
   const positions = geometry.attributes.position
   const colors = new Float32Array(positions.count * 3)
   const color = new THREE.Color()
@@ -78,19 +77,19 @@ function applyFurVertexColors(geometry, style, customColor) {
     const z = positions.getZ(i)
     const ax = Math.abs(x)
     const front = z > 0.08
-    const muzzle = front && y > 0.76 && y < 1.12 && ax < 0.27
-    const chestWidth = 0.13 + Math.max(0, 0.82 - y) * 0.25
-    const chest = front && y > -0.38 && y < 0.86 && ax < chestWidth
+    const muzzle = front && y > 0.64 && y < 1.04 && ax < 0.27
+    const chestWidth = 0.13 + Math.max(0, 0.72 - y) * 0.25
+    const chest = front && y > -0.38 && y < 0.74 && ax < chestWidth
     const paws = front && y < -0.30 && ax > 0.065
     const whiteMask = muzzle || chest || paws
 
     color.copy(base)
     if (trait.pattern === 'tuxedo') {
-      const blazeWidth = 0.055 + Math.max(0, 1.42 - y) * 0.055
-      if (whiteMask || (front && y > 0.86 && ax < blazeWidth)) color.copy(WHITE_FUR)
+      const blazeWidth = 0.045 + Math.max(0, 1.25 - y) * 0.050
+      if (whiteMask || (front && y > 0.74 && ax < blazeWidth)) color.copy(WHITE_FUR)
     } else if (trait.pattern === 'calico') {
       color.copy(WHITE_FUR)
-      const headPatch = front && y > 0.82
+      const headPatch = front && y > 0.70
       if (!whiteMask && headPatch && x < -0.035) color.copy(accent)
       else if (!whiteMask && headPatch && x > 0.035) color.copy(DARK_FUR)
       else if (!whiteMask) {
@@ -105,8 +104,8 @@ function applyFurVertexColors(geometry, style, customColor) {
       }
     } else if (trait.pattern === 'lightning-tabby') {
       if (whiteMask) color.copy(WHITE_FUR)
-      const foreheadBolt = front && y > 1.03 && ax < 0.19 && Math.abs(x - Math.sin(y * 30) * 0.055) < 0.035
-      const cheekStripe = front && y > 0.62 && y < 0.91 && ax > 0.24 && Math.sin(y * 48 + ax * 20) > 0.30
+      const foreheadBolt = front && y > 0.84 && ax < 0.19 && Math.abs(x - Math.sin(y * 30) * 0.055) < 0.040
+      const cheekStripe = front && y > 0.54 && y < 0.86 && ax > 0.22 && Math.sin(y * 48 + ax * 20) > 0.30
       if ((foreheadBolt || cheekStripe) && !whiteMask) color.copy(accent)
     } else if (whiteMask) {
       color.copy(WHITE_FUR)
@@ -987,13 +986,14 @@ export class CatModel {
     const eyeR = 0.118
     const irR = 0.084
     const hlR = 0.026
+    const profile = getEyeAppearanceProfile(this._eyeStyle)
 
     const build = (group, side) => {
       switch (this._eyeStyle) {
         case 'Original': {
           const rim = new THREE.Mesh(
             new THREE.TorusGeometry(eyeR * 0.82, eyeR * 0.09, 10, 28),
-            new THREE.MeshStandardMaterial({ color: '#d9a900', roughness: 0.28, metalness: 0.18 })
+            new THREE.MeshStandardMaterial({ color: profile.accent, roughness: profile.roughness, metalness: profile.metalness })
           )
           rim.position.z = 0.078; group.add(rim)
           const p = new THREE.Mesh(new THREE.SphereGeometry(irR, 18, 14), pupil())
@@ -1012,7 +1012,7 @@ export class CatModel {
           for (let line = -1; line <= 1; line++) {
             const bar = new THREE.Mesh(
               new RoundedBoxGeometry(eyeR * 1.25, 0.010, 0.016, 2, 0.005),
-              new THREE.MeshBasicMaterial({ color: '#17151b' })
+            new THREE.MeshBasicMaterial({ color: profile.primary })
             )
             bar.position.set(0, line * 0.025, 0.100)
             group.add(bar)
@@ -1021,10 +1021,10 @@ export class CatModel {
         }
         case 'Alert': {
           const rim = new THREE.Mesh(new THREE.TorusGeometry(eyeR * 0.88, eyeR * 0.10, 10, 28),
-            new THREE.MeshStandardMaterial({ color: '#17130b', roughness: 0.32 }))
+            new THREE.MeshStandardMaterial({ color: profile.accent, roughness: 0.32 }))
           rim.position.z = 0.076; group.add(rim)
           const iris = new THREE.Mesh(new THREE.SphereGeometry(eyeR * 0.82, 20, 16),
-            new THREE.MeshStandardMaterial({ color: '#e5aa20', roughness: 0.25, metalness: 0.08 }))
+            new THREE.MeshStandardMaterial({ color: profile.primary, roughness: profile.roughness, metalness: profile.metalness }))
           iris.scale.set(0.88, 1.06, 0.68); iris.position.z = 0.080; group.add(iris)
           const p = new THREE.Mesh(new THREE.CapsuleGeometry(irR * 0.16, irR * 1.18, 6, 10), pupil())
           p.position.z = 0.142; group.add(p)
@@ -1035,8 +1035,8 @@ export class CatModel {
         }
         case 'Blue Ring': {
           const ring = new THREE.Mesh(new THREE.TorusGeometry(eyeR * 0.76, eyeR * 0.13, 12, 28),
-            new THREE.MeshStandardMaterial({ color: '#42dcec', roughness: 0.18, metalness: 0.12,
-              emissive: '#0b6170', emissiveIntensity: 0.45 }))
+            new THREE.MeshStandardMaterial({ color: profile.accent, roughness: profile.roughness, metalness: profile.metalness,
+              emissive: profile.emissive, emissiveIntensity: profile.emissiveIntensity }))
           ring.position.z = 0.086; group.add(ring)
           const p = new THREE.Mesh(new THREE.SphereGeometry(irR * 0.90, 18, 14), pupil())
           p.scale.z = 0.68; p.position.z = 0.088; group.add(p)
@@ -1046,7 +1046,7 @@ export class CatModel {
         }
         case 'Sunglasses': {
           const lens = new THREE.Mesh(new RoundedBoxGeometry(eyeR * 2.05, eyeR * 1.18, 0.055, 4, 0.025),
-            new THREE.MeshStandardMaterial({ color: '#09090d', roughness: 0.12, metalness: 0.42 }))
+            new THREE.MeshStandardMaterial({ color: profile.primary, roughness: profile.roughness, metalness: profile.metalness }))
           lens.position.z = 0.080; group.add(lens)
           for (const [x, y, scale] of [[-0.035, 0.025, 1], [0.025, -0.018, 0.62]]) {
             const refl = new THREE.Mesh(new RoundedBoxGeometry(0.036 * scale, 0.055 * scale, 0.008, 2, 0.004),
@@ -1066,7 +1066,7 @@ export class CatModel {
         }
         case 'Big Black': {
           const be = new THREE.Mesh(new THREE.SphereGeometry(eyeR * 1.22, 22, 18),
-            new THREE.MeshStandardMaterial({ color: '#0a0a0a', roughness: 0.12, metalness: 0.05 }))
+            new THREE.MeshStandardMaterial({ color: profile.primary, roughness: profile.roughness, metalness: profile.metalness }))
           be.scale.set(1, 1.15, 0.7); group.add(be)
           for (const [x, y, s] of [[0.022, 0.035, 0.022], [-0.018, 0.048, 0.010]]) {
             const h = new THREE.Mesh(new THREE.SphereGeometry(s, 8, 6),
@@ -1094,12 +1094,13 @@ export class CatModel {
     this._vrHeadset.visible = true
 
     const g = this._vrHeadset
+    const profile = getEyeAppearanceProfile('VR')
 
     // 深黑玻璃曲面
     const visorMat = new THREE.MeshPhysicalMaterial({
-      color: '#0a0a12',
-      roughness: 0.04,
-      metalness: 0.35,
+      color: profile.primary,
+      roughness: profile.roughness,
+      metalness: profile.metalness,
       clearcoat: 1.0,
       clearcoatRoughness: 0.02,
       envMapIntensity: 1.5,
@@ -1107,7 +1108,7 @@ export class CatModel {
 
     const frameShell = new THREE.Mesh(
       new RoundedBoxGeometry(0.90, 0.38, 0.20, 5, 0.10),
-      metal('#d0d5dd')
+      metal(profile.accent)
     )
     frameShell.position.set(0, 0, 0.18)
     frameShell.castShadow = true
@@ -1119,7 +1120,7 @@ export class CatModel {
     g.add(visor)
 
     // 银色铝框
-    const frameMat = metal('#d0d5dd')
+    const frameMat = metal(profile.accent)
 
     // 头带
     const strap = new THREE.Mesh(

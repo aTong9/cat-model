@@ -2,10 +2,10 @@ import test from 'node:test'
 import assert from 'node:assert/strict'
 import { summarizeTraitStatuses } from '../src/core/traitStatus.js'
 
-test('normal traits are implemented while special scenes remain partial', () => {
+test('visually unverified fur, eyes, gear and special remain partial', () => {
   const result = summarizeTraitStatuses({ fur: 'Golden', eyes: 'VR', face: 'Smile', gear: 'Camera', background: null, special: 'Time Traveler' })
-  assert.equal(result.implemented, 3)
-  assert.equal(result.partial, 2)
+  assert.equal(result.implemented, 1)
+  assert.equal(result.partial, 4)
   assert.equal(result.blocked, 0)
 })
 
