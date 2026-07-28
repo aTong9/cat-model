@@ -128,7 +128,7 @@ function noseMat() {
   return new THREE.MeshStandardMaterial({ color: '#e8917a', roughness: 0.38 })
 }
 
-function createHeartNose(size) {
+function createHeartNose(size, material = noseMat()) {
   const shape = new THREE.Shape()
   shape.moveTo(0, -size * 0.72)
   shape.bezierCurveTo(-size * 0.18, -size * 0.48, -size, size * 0.02, -size * 0.48, size * 0.52)
@@ -143,7 +143,7 @@ function createHeartNose(size) {
     bevelThickness: size * 0.10,
   })
   geometry.center()
-  return new THREE.Mesh(geometry, noseMat())
+  return new THREE.Mesh(geometry, material)
 }
 function mouthCavityMat() {
   return new THREE.MeshStandardMaterial({ color: '#381212', roughness: 0.50 })
@@ -257,8 +257,8 @@ function createRaisedArm(side) {
     group.add(fingerPad)
   })
 
-  const pawPad = new THREE.Mesh(new THREE.SphereGeometry(0.064, 16, 12), pad)
-  pawPad.scale.set(1.12, 0.96, 0.32)
+  const pawPad = createHeartNose(0.058, pad)
+  pawPad.scale.set(1.06, 0.94, 0.58)
   pawPad.position.set(wrist.x, wrist.y - 0.018, wrist.z + 0.112)
   pawPad.name = `${group.name}Pad`
   group.add(pawPad)
@@ -310,8 +310,8 @@ function createFoot(side, lifted = false) {
     group.add(toePad)
   })
 
-  const solePad = new THREE.Mesh(new THREE.SphereGeometry(0.062, 16, 12), pad)
-  solePad.scale.set(1.12, 0.92, 0.30)
+  const solePad = createHeartNose(0.057, pad)
+  solePad.scale.set(1.06, 0.92, 0.56)
   solePad.position.set(center.x, center.y - (lifted ? 0.015 : 0), center.z + (lifted ? 0.092 : 0.13))
   solePad.name = `${group.name}MainPad`
   group.add(solePad)
@@ -569,13 +569,16 @@ export class CatModel {
 
     // -- 鼻子 --
     const n = createHeartNose(headRadius * 0.105)
-    n.position.set(0, -headRadius * 0.22, headRadius * 1.08)
+    // Keep the default heart nose proud of the rounded muzzle, like the pixel references.
+    n.position.set(0, -headRadius * 0.22, headRadius * 1.22)
     n.castShadow = true
     headGroup.add(n)
 
     // -- 嘴巴组 --
     this._mouthGroup = new THREE.Group()
-    this._mouthGroup.position.set(0, -headRadius * 0.50, headRadius * 0.86)
+    // Keep the expression root on the muzzle surface. Small line/tube expressions were
+    // previously buried inside the deeper SDF head while only the large Excited mouth escaped.
+    this._mouthGroup.position.set(0, -headRadius * 0.50, headRadius * 1.18)
     this._mouthGroup.scale.setScalar(1.32)
     headGroup.add(this._mouthGroup)
     this._rebuildMouth()
@@ -635,7 +638,7 @@ export class CatModel {
       )
       cavity.scale.set(1.18, 1.02, 0.72)
       cavity.rotation.x = Math.PI
-      cavity.position.set(0, -0.025, 0.01)
+      cavity.position.set(0, -0.025, -0.060)
       g.add(cavity)
 
       const tongue = new THREE.Mesh(
@@ -643,7 +646,7 @@ export class CatModel {
         tongueMat()
       )
       tongue.scale.set(1.25, 0.82, 0.8)
-      tongue.position.set(0, -0.080, 0.055)
+      tongue.position.set(0, -0.080, -0.015)
       g.add(tongue)
 
       for (const sx of [-1, 1]) {
@@ -651,19 +654,32 @@ export class CatModel {
           new THREE.ConeGeometry(0.014, 0.05, 8),
           new THREE.MeshStandardMaterial({ color: '#ffffff', roughness: 0.2 })
         )
-        fang.position.set(sx * 0.065, 0.03, 0.03)
+        fang.position.set(sx * 0.065, 0.03, -0.040)
         fang.rotation.z = sx * 0.15
         g.add(fang)
       }
     } else if (expr === 'Smile') {
       const smileMat = new THREE.MeshStandardMaterial({ color: '#381212', roughness: 0.5 })
+      // A short philtrum and two asymmetric cubic arcs read more naturally than a sharp V.
+      const philtrum = new THREE.CatmullRomCurve3([
+        new THREE.Vector3(0, 0.046, 0.025),
+        new THREE.Vector3(0, 0.025, 0.031),
+        new THREE.Vector3(0, 0.010, 0.031),
+      ])
+      g.add(new THREE.Mesh(new THREE.TubeGeometry(philtrum, 8, 0.0065, 6, false), smileMat))
       for (const side of [-1, 1]) {
-        const curve = new THREE.CatmullRomCurve3([
-          new THREE.Vector3(0, 0.018, 0.02),
-          new THREE.Vector3(side * 0.032, -0.022, 0.025),
-          new THREE.Vector3(side * 0.072, 0.006, 0.018),
+        const curve = new THREE.CubicBezierCurve3(
+          new THREE.Vector3(0, 0.010, 0.030),
+          new THREE.Vector3(side * 0.018, -0.030, 0.036),
+          new THREE.Vector3(side * 0.060, -0.031, 0.031),
+          new THREE.Vector3(side * 0.084, 0.008, 0.022),
+        )
+        const cheek = new THREE.CatmullRomCurve3([
+          new THREE.Vector3(side * 0.084, 0.008, 0.022),
+          new THREE.Vector3(side * 0.090, 0.018, 0.018),
         ])
-        g.add(new THREE.Mesh(new THREE.TubeGeometry(curve, 12, 0.008, 6, false), smileMat))
+        g.add(new THREE.Mesh(new THREE.TubeGeometry(curve, 18, 0.007, 7, false), smileMat))
+        g.add(new THREE.Mesh(new THREE.TubeGeometry(cheek, 4, 0.006, 6, false), smileMat))
       }
     } else if (expr === 'Whistling') {
       const o = new THREE.Mesh(
@@ -688,30 +704,47 @@ export class CatModel {
       noteHead.scale.x = 1.35; noteHead.position.set(0.100, -0.105, 0.04); g.add(noteHead)
     } else if (expr === 'Wow') {
       const o = new THREE.Mesh(
-        new THREE.SphereGeometry(0.078, 22, 16),
+        new THREE.CapsuleGeometry(0.063, 0.055, 8, 20),
         mouthCavityMat()
       )
-      o.scale.set(0.82, 1.28, 0.72)
-      o.position.set(0, -0.035, 0.01)
+      o.scale.set(0.92, 1.05, 0.48)
+      o.position.set(0, -0.040, 0.028)
       g.add(o)
-      const tongue = new THREE.Mesh(new THREE.SphereGeometry(0.050, 16, 10), tongueMat())
-      tongue.scale.set(0.92, 0.52, 0.72); tongue.position.set(0, -0.088, 0.065); g.add(tongue)
-      const lowerLip = new THREE.Mesh(new THREE.TorusGeometry(0.052, 0.008, 8, 18, Math.PI), eyeWhite())
-      lowerLip.rotation.z = Math.PI; lowerLip.position.set(0, -0.105, 0.072); g.add(lowerLip)
+      const tongue = new THREE.Mesh(new THREE.SphereGeometry(0.048, 18, 12), tongueMat())
+      tongue.scale.set(1.04, 0.55, 0.42)
+      tongue.position.set(0, -0.091, 0.063)
+      g.add(tongue)
+      const lowerLip = new THREE.CatmullRomCurve3([
+        new THREE.Vector3(-0.043, -0.112, 0.066),
+        new THREE.Vector3(0, -0.122, 0.072),
+        new THREE.Vector3(0.043, -0.112, 0.066),
+      ])
+      g.add(new THREE.Mesh(new THREE.TubeGeometry(lowerLip, 12, 0.006, 6, false), tongueMat()))
     } else if (expr === 'Yum') {
       const smileMat = new THREE.MeshStandardMaterial({ color: '#381212', roughness: 0.5 })
       const curve = new THREE.CatmullRomCurve3([
         new THREE.Vector3(-0.065, 0, 0.02), new THREE.Vector3(0, -0.022, 0.025), new THREE.Vector3(0.065, 0, 0.02),
       ])
       g.add(new THREE.Mesh(new THREE.TubeGeometry(curve, 14, 0.008, 6, false), smileMat))
-      const tongue = new THREE.Mesh(
-        new THREE.CapsuleGeometry(0.035, 0.055, 6, 12),
-        tongueMat()
-      )
-      tongue.scale.set(0.90, 1, 0.55)
-      tongue.position.set(0.060, -0.015, 0.075)
-      tongue.rotation.z = -0.72
+      // Side-licking tongue: broad at the mouth, rounded at the tip, and visibly creased.
+      const tongueShape = new THREE.Shape()
+      tongueShape.moveTo(-0.010, 0.020)
+      tongueShape.bezierCurveTo(0.020, 0.012, 0.055, 0.002, 0.077, -0.020)
+      tongueShape.bezierCurveTo(0.095, -0.040, 0.088, -0.068, 0.064, -0.073)
+      tongueShape.bezierCurveTo(0.032, -0.078, 0.006, -0.050, -0.010, -0.025)
+      tongueShape.closePath()
+      const tongueGeo = new THREE.ExtrudeGeometry(tongueShape, {
+        depth: 0.018, bevelEnabled: true, bevelSegments: 3, bevelSize: 0.006, bevelThickness: 0.005,
+      })
+      const tongue = new THREE.Mesh(tongueGeo, tongueMat())
+      tongue.position.set(0.025, -0.006, 0.060)
       g.add(tongue)
+      const crease = new THREE.CatmullRomCurve3([
+        new THREE.Vector3(0.072, -0.030, 0.088),
+        new THREE.Vector3(0.078, -0.047, 0.090),
+        new THREE.Vector3(0.066, -0.060, 0.088),
+      ])
+      g.add(new THREE.Mesh(new THREE.TubeGeometry(crease, 8, 0.003, 5, false), smileMat))
     }
   }
 
