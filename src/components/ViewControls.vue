@@ -6,13 +6,16 @@
 </template>
 
 <script setup>
-import { ref } from 'vue'
+import { onMounted, onUnmounted, ref } from 'vue'
 const active = ref('front')
 const views = [{ id: 'front', label: '正面' }, { id: 'three-quarter', label: '3/4' }, { id: 'side', label: '侧面' }, { id: 'back', label: '背面' }]
 function select(view) {
   active.value = view
   window.dispatchEvent(new CustomEvent('cat:set-camera-view', { detail: { view } }))
 }
+function syncView(event) { if (views.some(view => view.id === event.detail?.view)) active.value = event.detail.view }
+onMounted(() => window.addEventListener('cat:set-camera-view', syncView))
+onUnmounted(() => window.removeEventListener('cat:set-camera-view', syncView))
 </script>
 
 <style scoped>

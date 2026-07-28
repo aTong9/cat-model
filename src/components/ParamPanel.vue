@@ -27,10 +27,6 @@
           <button class="btn" :disabled="store.tokenLoading" @click="navigateToken(1)">下一只 →</button>
         </div>
 
-        <figure v-if="store.referenceImage" class="reference-card">
-          <img :src="store.referenceImage" :alt="`Liberty Cat #${store.tokenId} 原图`" @error="onReferenceError" />
-          <figcaption><span>原始 NFT 对照</span><b>#{{ store.tokenId }}</b></figcaption>
-        </figure>
         <details class="trait-audit">
           <summary><span>当前 Trait 状态</span><b>{{ traitSummary.implemented }} 已实现<span v-if="traitSummary.partial"> · {{ traitSummary.partial }} 部分实现</span></b></summary>
           <ul>
@@ -87,10 +83,6 @@ const tabs = [{ id: 'look', label: '外观' }, { id: 'gear', label: '装备' }, 
 const weathers = [{ id: 'sunny', icon: '☀', label: '晴天' }, { id: 'cloudy', icon: '☁', label: '多云' }, { id: 'rain', icon: '☂', label: '降雨' }, { id: 'thunder', icon: 'ϟ', label: '雷雨' }]
 const searchToken = async () => { if (await store.loadToken(tokenQuery.value)) tokenQuery.value = String(store.tokenId) }
 const navigateToken = async direction => { if (await store.loadAdjacent(direction)) tokenQuery.value = String(store.tokenId) }
-const onReferenceError = event => {
-  if (store.referenceImageFallback && event.target.src !== store.referenceImageFallback) event.target.src = store.referenceImageFallback
-  else event.target.hidden = true
-}
 const furDotStyle = preset => ({ background: preset.pattern === 'solid' ? preset.color : `linear-gradient(135deg,${preset.color} 0 46%,${preset.accent} 47% 65%,#f4f0e4 66%)` })
 const SettingBlock = defineComponent({
   props: { title: String },

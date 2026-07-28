@@ -57,6 +57,7 @@ export const useCatStore = defineStore('cat', () => {
   const tokenError = ref('')
   const referenceImage = ref(null)
   const referenceImageFallback = ref(null)
+  const comparisonOpen = ref(false)
 
   const isSpecialFullScene = computed(() => SPECIALS.find(item => item.id === special.value)?.fullScene ?? false)
   const currentTraits = computed(() => createCatTraits({
@@ -193,7 +194,7 @@ export const useCatStore = defineStore('cat', () => {
     furStyle, furColor, eyeStyle, gearType, faceExpression, background, special, actionMode,
     tokenId, seed, activePreset, weather, lightIntensity, rainAmount, cloudAmount,
     fishAmount, musicOn, language, loading, loadingProgress, panelExpanded, showHints,
-    tokenLoading, tokenError, referenceImage, referenceImageFallback,
+    tokenLoading, tokenError, referenceImage, referenceImageFallback, comparisonOpen,
     isSpecialFullScene, currentTraits, randomize, setFromSeed, cycleWeather, togglePanel, setLanguage,
     applyPreset, setFurStyle, setCustomFurColor, setBackground, setSpecial, loadToken, loadAdjacent,
   }

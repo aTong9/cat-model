@@ -4,6 +4,7 @@
     <CatCanvas />
     <CollectionDrawer />
     <ViewControls />
+    <ComparisonPanel />
     <div class="brand-lockup">
       <span class="brand-mark">M</span>
       <div><strong>MEOWVERSE</strong><small>VR CAT LAB</small></div>
@@ -28,6 +29,7 @@ import BottomBar from './components/BottomBar.vue'
 import LoadingScreen from './components/LoadingScreen.vue'
 import CollectionDrawer from './components/CollectionDrawer.vue'
 import ViewControls from './components/ViewControls.vue'
+import ComparisonPanel from './components/ComparisonPanel.vue'
 import { parseShareQuery } from './core/shareCatConfig.js'
 
 const catImage = new URL('../pixel_cat_3d/cat.png', import.meta.url).href
