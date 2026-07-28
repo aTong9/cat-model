@@ -50,28 +50,142 @@ const ChoiceRow = defineComponent({
 </script>
 
 <style scoped>
-.right-panel { position: fixed; top: 14px; right: 14px; bottom: 14px; z-index: 90; display: flex; flex-direction: column; align-items: flex-end; gap: 8px; animation: slideLeft .5s ease-out .4s both; }
-.tool-row { display: flex; gap: 8px; padding: 10px 12px; border-radius: 10px; }
-.panel-header { padding: 10px 18px; border-radius: 10px; font-size: .82rem; color: var(--text); cursor: pointer; display: flex; align-items: center; gap: 8px; border: 1px solid var(--border); }
-.arrow { transition: transform .25s; }.arrow.open { transform: rotate(180deg); }
-.panel-body { padding: 18px 16px; border-radius: 12px; display: flex; flex-direction: column; gap: 18px; width: 370px; max-height: calc(100vh - 92px); overflow-y: auto; flex-shrink: 1; }
-.intro { display: grid; gap: 5px; padding-bottom: 12px; border-bottom: 1px solid var(--border); }
-.intro span { color: var(--accent); font-size: .62rem; letter-spacing: .2em; }
-.intro b { font-size: .88rem; }
-.param-row { display: flex; align-items: center; gap: 12px; flex-wrap: wrap; }
-.param-label { font-size: .73rem; color: var(--text-dim); min-width: 38px; }
-.color-row { display: flex; align-items: center; gap: 10px; }
-.hex-text, .val-text { font-family: monospace; font-size: .76rem; color: var(--text-dim); }
-.preset-row, .btn-row { display: flex; gap: 5px; flex-wrap: wrap; flex: 1; }
-.preset-dot { width: 20px; height: 20px; border-radius: 50%; border: 2px solid transparent; cursor: pointer; }
-.preset-dot.active { border-color: #fff; box-shadow: 0 0 8px var(--accent); }
-.select-input { background: rgba(255,255,255,.06); border: 1px solid var(--border); border-radius: 6px; color: var(--text); padding: 6px 12px; font-size: .78rem; }
+/* ====== 面板整体 ====== */
+.right-panel {
+  position: fixed; top: 14px; right: 14px; bottom: 14px; z-index: 90;
+  display: flex; flex-direction: column; align-items: flex-end; gap: 10px;
+  animation: slideInRight .55s cubic-bezier(0.22, 0.61, 0.36, 1) .3s both;
+}
+@keyframes slideInRight {
+  from { opacity: 0; transform: translateX(80px); }
+  to   { opacity: 1; transform: translateX(0); }
+}
+
+/* ====== 顶部工具条 ====== */
+.tool-row {
+  display: flex; gap: 8px; padding: 10px 12px; border-radius: 10px;
+}
+
+/* ====== 面板标题按钮 ====== */
+.panel-header {
+  padding: 11px 20px; border-radius: 10px;
+  font-size: .84rem; color: var(--text); cursor: pointer;
+  display: flex; align-items: center; gap: 8px;
+  border: 1px solid var(--border);
+  transition: all .25s;
+}
+.panel-header:hover { background: rgba(255,255,255,.08); }
+.arrow { transition: transform .25s; }
+.arrow.open { transform: rotate(180deg); }
+
+/* ====== 展开面板主体 ====== */
+.panel-body {
+  padding: 22px 20px; border-radius: 14px;
+  display: flex; flex-direction: column; gap: 22px;
+  width: 430px;
+  max-height: calc(100vh - 92px);
+  overflow-y: auto; overflow-x: hidden;
+  flex-shrink: 1;
+}
+/* 自定义滚动条 */
+.panel-body::-webkit-scrollbar { width: 4px; }
+.panel-body::-webkit-scrollbar-thumb { background: rgba(255,255,255,.12); border-radius: 4px; }
+
+/* ====== 介绍区 ====== */
+.intro {
+  display: grid; gap: 4px;
+  padding-bottom: 14px;
+  border-bottom: 1px solid var(--border);
+}
+.intro span {
+  color: var(--accent); font-size: .63rem; letter-spacing: .25em;
+  text-transform: uppercase;
+}
+.intro b { font-size: .9rem; font-weight: 600; }
+
+/* ====== 参数行 ====== */
+.param-row {
+  display: flex; align-items: flex-start; gap: 12px;
+}
+.param-label {
+  font-size: .74rem; color: var(--text-dim);
+  min-width: 38px; padding-top: 5px;
+  flex-shrink: 0;
+}
+
+/* ====== 颜色行 ====== */
+.color-row { display: flex; align-items: center; gap: 10px; flex: 1; }
+.hex-text, .val-text {
+  font-family: monospace; font-size: .78rem; color: var(--text-dim);
+}
+
+/* ====== 预设颜色圆点 ====== */
+.preset-row { display: flex; gap: 6px; flex-wrap: wrap; flex: 1; }
+.preset-dot {
+  width: 22px; height: 22px; border-radius: 50%;
+  border: 2px solid transparent; cursor: pointer;
+  transition: all .18s;
+}
+.preset-dot:hover { transform: scale(1.15); }
+.preset-dot.active {
+  border-color: #fff;
+  box-shadow: 0 0 10px var(--accent-glow);
+  transform: scale(1.1);
+}
+
+/* ====== 按钮网格（视觉/表情/装备/场景） ====== */
+.btn-row {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(72px, 1fr));
+  gap: 6px;
+  flex: 1;
+}
+.btn.small { padding: 6px 8px; font-size: .71rem; border-radius: 6px; }
+
+/* ====== 下拉选择 ====== */
+.select-input {
+  flex: 1;
+  background: rgba(255,255,255,.06);
+  border: 1px solid var(--border); border-radius: 6px;
+  color: var(--text); padding: 7px 12px;
+  font-size: .78rem; cursor: pointer;
+}
 .select-input option { background: #1a1a2e; }
 .select-input:disabled { cursor: not-allowed; opacity: .48; }
+
+/* ====== 滑块 ====== */
 .slider { accent-color: var(--accent); flex: 1; height: 4px; }
-.btn.small { padding: 5px 10px; font-size: .72rem; }
+
+/* ====== 圆形按钮（音乐/光照/天气） ====== */
 .btn.round { width: 38px; height: 38px; font-size: 1.05rem; }
-.expand-enter-active, .expand-leave-active { transition: all .3s ease; overflow: hidden; }
-.expand-enter-from, .expand-leave-to { opacity: 0; max-height: 0; padding-top: 0; padding-bottom: 0; }
-.expand-enter-to, .expand-leave-from { opacity: 1; max-height: 1200px; }
+
+/* ====== 展开/收起动画 — 从右往左滑出 ====== */
+.expand-enter-active {
+  transition: all .38s cubic-bezier(0.22, 0.61, 0.36, 1);
+  overflow: hidden;
+}
+.expand-leave-active {
+  transition: all .25s ease-in;
+  overflow: hidden;
+}
+.expand-enter-from {
+  opacity: 0;
+  transform: translateX(60px);
+  max-height: 0;
+}
+.expand-enter-to {
+  opacity: 1;
+  transform: translateX(0);
+  max-height: 1200px;
+}
+.expand-leave-from {
+  opacity: 1;
+  transform: translateX(0);
+  max-height: 1200px;
+}
+.expand-leave-to {
+  opacity: 0;
+  transform: translateX(40px);
+  max-height: 0;
+}
 </style>

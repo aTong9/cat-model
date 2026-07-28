@@ -51,13 +51,13 @@ export const GEAR_MODEL_SPECS = {
   'Baseball Cap': { reference: '/equipment/BaseballCap.png', socket: 'head-top', collider: { type: 'box', size: [0.78, 0.28, 0.62] } },
   'Camera': { reference: '/equipment/Camera.png', socket: 'chest-front', collider: { type: 'box', size: [0.32, 0.20, 0.16] } },
   'Gold Round Glasses': { reference: '/equipment/GoldRoundGlasses.png', socket: 'face-eyes', collider: { type: 'box', size: [0.48, 0.22, 0.06] } },
-  'Good Luck Gold Bar': { reference: '/equipment/GoodLuckGoldBar.png', socket: 'paw-left', collider: { type: 'box', size: [0.18, 0.32, 0.06] } },
+  'Good Luck Gold Bar': { reference: '/equipment/GoodLuckGoldBar.png', socket: 'paw-left', collider: { type: 'box', size: [0.21, 0.36, 0.08] } },
   'Hiking Backpack': { reference: '/equipment/HikingBackpack.png', socket: 'back', collider: { type: 'box', size: [0.30, 0.42, 0.16] } },
   'Hot Coffee': { reference: '/equipment/HotCoffee.png', socket: 'head-top', collider: { type: 'cylinder', radius: 0.08, height: 0.25 } },
   'Investment Book': { reference: '/equipment/InvestmentBook.png', socket: 'head-top', collider: { type: 'box', size: [0.30, 0.06, 0.24] } },
   'Ramen': { reference: '/equipment/Ramen.png', socket: 'head-top', collider: { type: 'cylinder', radius: 0.16, height: 0.22 } },
   'Sake': { reference: '/equipment/Sake.png', socket: 'paw-left', collider: { type: 'compound', parts: ['bottle', 'cup'] } },
-  'Wealth Gold Bar': { reference: '/equipment/WealthGoldBar.png', socket: 'paw-left', collider: { type: 'box', size: [0.20, 0.34, 0.08] } },
+  'Wealth Gold Bar': { reference: '/equipment/WealthGoldBar.png', socket: 'paw-left', collider: { type: 'box', size: [0.22, 0.38, 0.12] } },
 }
 
 function decorateGearModel(type, root) {
@@ -776,237 +776,149 @@ function createCamera() {
   return g
 }
 
-// ===== 金条纹理生成（CSS 风格金色渐变 + 浮雕文字 + 金属条纹） =====
-function makeGoldBarTexture(textLines) {
-  const w = 512, h = 256
-  const canvas = document.createElement('canvas')
-  canvas.width = w
-  canvas.height = h
-  const ctx = canvas.getContext('2d')
-
-  // CSS 风格金色线性渐变背景
-  const grad = ctx.createLinearGradient(0, 0, 0, h)
-  grad.addColorStop(0, '#f4d03f')
-  grad.addColorStop(0.25, '#ffd700')
-  grad.addColorStop(0.5, '#ffec8b')
-  grad.addColorStop(0.75, '#daa520')
-  grad.addColorStop(1, '#b8860b')
-  ctx.fillStyle = grad
-  ctx.fillRect(0, 0, w, h)
-
-  // CSS rgba 半透明水平金属条纹
-  ctx.strokeStyle = 'rgba(184, 134, 11, 0.22)'
-  ctx.lineWidth = 2
-  for (let y = 0; y < h; y += 10) {
-    ctx.beginPath()
-    ctx.moveTo(0, y)
-    ctx.lineTo(w, y)
-    ctx.stroke()
-  }
-
-  // CSS text-shadow 模拟浮雕深度
-  ctx.shadowColor = 'rgba(101, 67, 33, 0.55)'
-  ctx.shadowBlur = 6
-  ctx.shadowOffsetX = 3
-  ctx.shadowOffsetY = 3
-
-  // 文字
-  ctx.fillStyle = '#8b6914'
-  ctx.font = 'bold 80px "Microsoft YaHei", "SimHei", serif'
-  ctx.textAlign = 'center'
-  ctx.textBaseline = 'middle'
-  textLines.forEach((line, i) => {
-    const y = h / 2 + (i - (textLines.length - 1) / 2) * 86
-    ctx.fillText(line, w / 2, y)
+// ===== 金牌结构：胶囊外壳、内凹面、横向起伏、实例化凸字 =====
+function makeCapsulePlateGeometry(width, height, depth, radius, bevelSize = 0.006) {
+  const shape = new THREE.Shape()
+  const x = width / 2
+  const y = height / 2
+  shape.moveTo(-x + radius, -y)
+  shape.lineTo(x - radius, -y)
+  shape.quadraticCurveTo(x, -y, x, -y + radius)
+  shape.lineTo(x, y - radius)
+  shape.quadraticCurveTo(x, y, x - radius, y)
+  shape.lineTo(-x + radius, y)
+  shape.quadraticCurveTo(-x, y, -x, y - radius)
+  shape.lineTo(-x, -y + radius)
+  shape.quadraticCurveTo(-x, -y, -x + radius, -y)
+  const geometry = new THREE.ExtrudeGeometry(shape, {
+    depth,
+    steps: 1,
+    curveSegments: 12,
+    bevelEnabled: true,
+    bevelSegments: 3,
+    bevelSize,
+    bevelThickness: bevelSize,
   })
-
-  ctx.shadowColor = 'transparent'
-
-  const tex = new THREE.CanvasTexture(canvas)
-  tex.colorSpace = THREE.SRGBColorSpace
-  return tex
+  geometry.translate(0, 0, -depth / 2)
+  return geometry
 }
 
-// 辅助：生成 bump map（文字凸起浮雕）
-function makeGoldBarBumpMap(textLines) {
-  const w = 512, h = 256
+function createEmbossedGlyph(character, width, height, depth, material, name) {
   const canvas = document.createElement('canvas')
-  canvas.width = w
-  canvas.height = h
-  const ctx = canvas.getContext('2d')
-
-  // 中性灰背景
-  ctx.fillStyle = '#808080'
-  ctx.fillRect(0, 0, w, h)
-
-  // 文字白色（凸起）
-  ctx.fillStyle = '#e0e0e0'
-  ctx.font = 'bold 80px "Microsoft YaHei", "SimHei", serif'
+  canvas.width = 128
+  canvas.height = 128
+  const ctx = canvas.getContext('2d', { willReadFrequently: true })
+  ctx.clearRect(0, 0, 128, 128)
+  ctx.fillStyle = '#fff'
+  ctx.font = '900 108px "Microsoft YaHei", "SimHei", sans-serif'
   ctx.textAlign = 'center'
   ctx.textBaseline = 'middle'
-  textLines.forEach((line, i) => {
-    const y = h / 2 + (i - (textLines.length - 1) / 2) * 86
-    ctx.fillText(line, w / 2, y)
-  })
-
-  const tex = new THREE.CanvasTexture(canvas)
-  return tex
-}
-
-// --- 大吉金条（精细圆角矩形，4 边 Box + 4 角 Cylinder 切片 + CSS 风格程序化纹理） ---
-function createGoodLuckGoldBar() {
-  const g = new THREE.Group()
-
-  const W = 0.18      // 整体宽
-  const H = 0.32      // 整体高（竖向）
-  const D = 0.055     // 厚度
-  const B = 0.025     // 边框宽
-  const CR = 0.038    // 圆角半径
-
-  const goldMat   = new THREE.MeshStandardMaterial({ color: '#daa520', roughness: 0.15, metalness: 0.92 })
-  const brightMat = new THREE.MeshStandardMaterial({ color: '#ffd700', roughness: 0.10, metalness: 0.95 })
-  const darkMat   = new THREE.MeshStandardMaterial({ color: '#b8860b', roughness: 0.18, metalness: 0.88 })
-
-  // ===== 外框：4 条直边 Box =====
-  const topB = new THREE.Mesh(new THREE.BoxGeometry(W - CR * 2, B, D), brightMat)
-  topB.position.set(0, H / 2 - B / 2, 0)
-  g.add(topB)
-
-  const botB = new THREE.Mesh(new THREE.BoxGeometry(W - CR * 2, B, D), brightMat)
-  botB.position.set(0, -H / 2 + B / 2, 0)
-  g.add(botB)
-
-  const leftB = new THREE.Mesh(new THREE.BoxGeometry(B, H - CR * 2, D), brightMat)
-  leftB.position.set(-W / 2 + B / 2, 0, 0)
-  g.add(leftB)
-
-  const rightB = new THREE.Mesh(new THREE.BoxGeometry(B, H - CR * 2, D), brightMat)
-  rightB.position.set(W / 2 - B / 2, 0, 0)
-  g.add(rightB)
-
-  // ===== 4 个圆角（1/4 圆柱切片） =====
-  const cornerGeo = new THREE.CylinderGeometry(CR, CR, D, 12, 1, false, 0, Math.PI / 2)
-  const corners = [
-    { x: -W / 2 + CR, y:  H / 2 - CR, rot: Math.PI },
-    { x:  W / 2 - CR, y:  H / 2 - CR, rot: -Math.PI / 2 },
-    { x: -W / 2 + CR, y: -H / 2 + CR, rot: Math.PI / 2 },
-    { x:  W / 2 - CR, y: -H / 2 + CR, rot: 0 },
-  ]
-  corners.forEach(c => {
-    const corner = new THREE.Mesh(cornerGeo, brightMat)
-    corner.rotation.z = c.rot
-    corner.position.set(c.x, c.y, 0)
-    g.add(corner)
-  })
-
-  // ===== 内面背景（CSS 风格程序化纹理） =====
-  function makeGoldBarFaceTexture() {
-    const w = 512, h = 832
-    const canvas = document.createElement('canvas')
-    canvas.width = w
-    canvas.height = h
-    const ctx = canvas.getContext('2d')
-
-    // CSS 径向渐变（中心亮、边缘暗）
-    const grad = ctx.createRadialGradient(w / 2, h / 2, 30, w / 2, h / 2, h * 0.55)
-    grad.addColorStop(0, '#fff8dc')
-    grad.addColorStop(0.15, '#ffec8b')
-    grad.addColorStop(0.4, '#ffd700')
-    grad.addColorStop(0.7, '#daa520')
-    grad.addColorStop(1, '#b8860b')
-    ctx.fillStyle = grad
-    ctx.fillRect(0, 0, w, h)
-
-    // CSS 水平拉丝条纹
-    ctx.strokeStyle = 'rgba(160, 120, 40, 0.14)'
-    ctx.lineWidth = 1.2
-    for (let y = 0; y < h; y += 4) {
-      ctx.beginPath()
-      ctx.moveTo(0, y)
-      ctx.lineTo(w, y)
-      ctx.stroke()
+  ctx.fillText(character, 64, 68)
+  const pixels = ctx.getImageData(0, 0, 128, 128).data
+  const cells = 24
+  const filled = []
+  for (let row = 0; row < cells; row++) {
+    for (let column = 0; column < cells; column++) {
+      const px = Math.floor((column + .5) * 128 / cells)
+      const py = Math.floor((row + .5) * 128 / cells)
+      if (pixels[(py * 128 + px) * 4 + 3] > 72) filled.push([column, row])
     }
-
-    // "大吉" 文字 —— 三层绘制模拟浮雕
-    ctx.textAlign = 'center'
-    ctx.textBaseline = 'middle'
-    ctx.font = 'bold 220px "Microsoft YaHei", "SimHei", serif'
-
-    // 1. 底层阴影（深度）
-    ctx.shadowColor = 'rgba(120, 90, 20, 0.55)'
-    ctx.shadowBlur = 12
-    ctx.shadowOffsetX = 6
-    ctx.shadowOffsetY = 6
-    ctx.fillStyle = '#8b6914'
-    ctx.fillText('大', w / 2, h * 0.30)
-    ctx.fillText('吉', w / 2, h * 0.70)
-
-    // 2. 主色层
-    ctx.shadowColor = 'transparent'
-    ctx.shadowBlur = 0
-    ctx.shadowOffsetX = 0
-    ctx.shadowOffsetY = 0
-    ctx.fillStyle = '#c9a84c'
-    ctx.fillText('大', w / 2, h * 0.30)
-    ctx.fillText('吉', w / 2, h * 0.70)
-
-    // 3. 顶层高光（浮雕亮面）
-    ctx.fillStyle = '#f0d878'
-    ctx.fillText('大', w / 2 - 3, h * 0.30 - 3)
-    ctx.fillText('吉', w / 2 - 3, h * 0.70 - 3)
-
-    const tex = new THREE.CanvasTexture(canvas)
-    tex.colorSpace = THREE.SRGBColorSpace
-    return tex
   }
 
-  const innerW = W - B * 2
-  const innerH = H - B * 2
-  const innerD = D * 0.88
+  const cellW = width / cells
+  const cellH = height / cells
+  const geometry = new THREE.BoxGeometry(cellW * 1.12, cellH * 1.12, depth)
+  const mesh = new THREE.InstancedMesh(geometry, material, filled.length)
+  mesh.name = name
+  const matrix = new THREE.Matrix4()
+  filled.forEach(([column, row], index) => {
+    const px = (column + .5) * cellW - width / 2
+    const py = height / 2 - (row + .5) * cellH
+    matrix.makeTranslation(px, py, 0)
+    mesh.setMatrixAt(index, matrix)
+  })
+  mesh.instanceMatrix.needsUpdate = true
+  mesh.castShadow = true
+  return mesh
+}
 
-  const faceTex = makeGoldBarFaceTexture()
-  const innerMat = new THREE.MeshStandardMaterial({
-    color: '#ffd700',
-    roughness: 0.12,
-    metalness: 0.96,
-    map: faceTex,
+function createGoldPlaque({ characters, width, height, depth, faceInset, ridgeCount }) {
+  const root = new THREE.Group()
+  const shellMat = new THREE.MeshPhysicalMaterial({ color: '#d8a817', metalness: .96, roughness: .16, clearcoat: .62, clearcoatRoughness: .14 })
+  const rimMat = new THREE.MeshPhysicalMaterial({ color: '#ffe05a', metalness: .98, roughness: .10, clearcoat: .78, clearcoatRoughness: .09 })
+  const recessMat = new THREE.MeshStandardMaterial({ color: '#9f6d08', metalness: .94, roughness: .21 })
+  const faceMat = new THREE.MeshPhysicalMaterial({ color: '#c78b09', metalness: .92, roughness: .22, clearcoat: .42, clearcoatRoughness: .16 })
+  const glyphShadowMat = new THREE.MeshStandardMaterial({ color: '#4d2702', metalness: .70, roughness: .34 })
+  const glyphMat = new THREE.MeshPhysicalMaterial({
+    color: '#fff0a0',
+    emissive: '#9a5b08',
+    emissiveIntensity: .32,
+    metalness: .88,
+    roughness: .12,
+    clearcoat: .76,
+    clearcoatRoughness: .08,
   })
 
-  const inner = new THREE.Mesh(new THREE.BoxGeometry(innerW, innerH, innerD), innerMat)
-  inner.position.z = -0.002
-  g.add(inner)
+  const shell = new THREE.Mesh(makeCapsulePlateGeometry(width, height, depth, width * .44, .007), shellMat)
+  shell.name = 'GoldPlaque:solid-shell'
+  root.add(shell)
 
-  // ===== 背面 =====
-  const back = new THREE.Mesh(new THREE.BoxGeometry(W, H, 0.008), darkMat)
-  back.position.z = -D / 2 - 0.004
-  g.add(back)
+  const rim = new THREE.Mesh(makeCapsulePlateGeometry(width * .965, height * .972, .014, width * .415, .004), rimMat)
+  rim.name = 'GoldPlaque:bright-rim'
+  rim.position.z = depth / 2 + .005
+  root.add(rim)
 
-  g.position.set(-0.38, 0.28, 0.22)
-  g.rotation.set(0.15, -0.42, 0.08)
+  const recess = new THREE.Mesh(makeCapsulePlateGeometry(width - faceInset * 1.38, height - faceInset * 1.28, .012, width * .34, .003), recessMat)
+  recess.name = 'GoldPlaque:recess-shadow'
+  recess.position.z = depth / 2 + .013
+  root.add(recess)
+
+  const faceWidth = width - faceInset * 1.75
+  const faceHeight = height - faceInset * 1.52
+  const face = new THREE.Mesh(makeCapsulePlateGeometry(faceWidth, faceHeight, .010, width * .31, .0025), faceMat)
+  face.name = 'GoldPlaque:inset-face'
+  face.position.z = depth / 2 + .020
+  root.add(face)
+
+  for (let index = 0; index < ridgeCount; index++) {
+    const normalized = ridgeCount === 1 ? 0 : index / (ridgeCount - 1)
+    const ridge = new THREE.Mesh(
+      new RoundedBoxGeometry(faceWidth * (.88 - Math.abs(normalized - .5) * .08), .016, .010, 2, .006),
+      index % 2 ? faceMat : rimMat
+    )
+    ridge.name = `GoldPlaque:horizontal-ridge-${index}`
+    ridge.position.set(0, (normalized - .5) * faceHeight * .82, depth / 2 + .030)
+    ridge.userData.explodeWithParent = true
+    root.add(ridge)
+  }
+
+  const glyphHeight = faceHeight / characters.length * .88
+  characters.forEach((character, index) => {
+    const y = (characters.length - 1) * glyphHeight * .51 - index * glyphHeight * 1.02
+    const glyphWidth = faceWidth * (characters.length === 2 ? .88 : .84)
+    const shadow = createEmbossedGlyph(character, glyphWidth, glyphHeight, .016, glyphShadowMat, `GoldPlaque:glyph-shadow-${character}`)
+    shadow.position.set(.004, y - .005, depth / 2 + .040)
+    shadow.scale.set(1.10, 1.10, 1)
+    root.add(shadow)
+    const glyph = createEmbossedGlyph(character, glyphWidth, glyphHeight, .018, glyphMat, `GoldPlaque:glyph-${character}`)
+    glyph.position.set(0, y, depth / 2 + .054)
+    root.add(glyph)
+  })
+
+  return root
+}
+
+function createGoodLuckGoldBar() {
+  const g = createGoldPlaque({ characters: ['大', '吉'], width: .205, height: .355, depth: .060, faceInset: .030, ridgeCount: 7 })
+  g.position.set(-.38, .28, .22)
+  g.rotation.set(.10, -.22, .05)
   return g
 }
 
-// --- 招财金条（Box 堆积建模 + 正面平面文字 decal，参考 Camera.html 风格） ---
 function createWealthGoldBar() {
-  const g = new THREE.Group()
-  const shellMat = new THREE.MeshStandardMaterial({ color: '#d6a814', roughness: 0.14, metalness: 0.94 })
-  const faceMat = new THREE.MeshStandardMaterial({ color: '#ffd83d', roughness: 0.11, metalness: 0.97 })
-  const body = new THREE.Mesh(new RoundedBoxGeometry(0.21, 0.36, 0.08, 5, 0.055), shellMat)
-  g.add(body)
-  const face = new THREE.Mesh(new RoundedBoxGeometry(0.178, 0.325, 0.083, 5, 0.043), faceMat)
-  face.position.z = 0.008
-  g.add(face)
-
-  // 图片中的“億万両”作为正面浮雕式 decal，侧面仍由真实厚度承担。
-  const colorMap = makeGoldBarTexture(['億', '万', '両'])
-  const decal = new THREE.Mesh(
-    new THREE.PlaneGeometry(0.135, 0.275),
-    new THREE.MeshBasicMaterial({ map: colorMap, transparent: true, depthTest: true, depthWrite: false })
-  )
-  decal.position.z = 0.052
-  g.add(decal)
-  g.position.set(-0.40, 0.26, 0.22)
-  g.rotation.set(0.12, -0.28, 0.08)
+  const g = createGoldPlaque({ characters: ['億', '万', '両'], width: .220, height: .375, depth: .105, faceInset: .030, ridgeCount: 8 })
+  g.position.set(-.40, .26, .22)
+  g.rotation.set(.10, -.38, .06)
   return g
 }
 

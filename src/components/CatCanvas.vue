@@ -9,6 +9,7 @@ import { createScene } from '../three/SceneSetup.js'
 import { CatModel } from '../three/CatModel.js'
 import { createGear, preloadGearTextures } from '../three/EquipmentFactory.js'
 import { createTimeTravelerScene } from '../three/scenes/TimeTravelerScene.js'
+import { createFujiRealmScene } from '../three/scenes/FujiScene.js'
 import * as THREE from 'three'
 
 const store = useCatStore()
@@ -287,6 +288,11 @@ function applyBackground(name) {
 
 function buildSpecialScene(type) {
   if (!specialGroup) return
+  specialGroup.traverse(object => {
+    object.geometry?.dispose?.()
+    if (Array.isArray(object.material)) object.material.forEach(material => material.dispose?.())
+    else object.material?.dispose?.()
+  })
   specialGroup.clear()
   applyBackground(store.background)
   if (!type) return
@@ -301,8 +307,9 @@ function buildSpecialScene(type) {
   } else if (type === 'Golden General') {
     for (let i = 0; i < 18; i++) { const coin = add(new THREE.Mesh(new THREE.CylinderGeometry(.12, .12, .035, 20), new THREE.MeshStandardMaterial({ color: '#f6cb38', metalness: .7, roughness: .25 }))); coin.rotation.x = Math.PI / 2; coin.position.set((Math.random() - .5) * 6, Math.random() * 5, -2 - Math.random()); coin.userData.fall = .005 + Math.random() * .01 }
   } else if (type === 'Realm of Mt.Fuji') {
-    const mountain = add(new THREE.Mesh(new THREE.ConeGeometry(2.3, 2.5, 4), new THREE.MeshStandardMaterial({ color: '#66839d', roughness: .9 }))); mountain.position.set(0, .25, -3.4); mountain.rotation.y = Math.PI / 4
-    const snow = add(new THREE.Mesh(new THREE.ConeGeometry(.83, .55, 4), new THREE.MeshStandardMaterial({ color: '#f6fbff', roughness: .8 }))); snow.position.set(0, 1.48, -3.4); snow.rotation.y = Math.PI / 4
+    scene.background = new THREE.Color('#3471df')
+    scene.fog.color.set('#8db7ee')
+    add(createFujiRealmScene())
   } else if (type === 'Onsen journey') {
     const water = add(new THREE.Mesh(new THREE.CircleGeometry(2.6, 48), new THREE.MeshStandardMaterial({ color: '#8edbe8', transparent: true, opacity: .65, roughness: .2 }))); water.rotation.x = -Math.PI / 2; water.position.set(0, -.5, -.4)
     for (let i = 0; i < 8; i++) { const steam = add(new THREE.Mesh(new THREE.SphereGeometry(.13, 10, 8), new THREE.MeshBasicMaterial({ color: '#fff', transparent: true, opacity: .25 }))); steam.position.set((Math.random() - .5) * 2, .2 + Math.random(), -1 - Math.random()); steam.userData.steam = .003 + Math.random() * .003 }
