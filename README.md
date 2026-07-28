@@ -51,5 +51,4 @@ output/              模型开发过程的输出文件
 - 保存当前 Three.js 画布为 PNG；
 - 使用 Three.js `GLTFExporter` 导出 GLB。
 
-当前 GLB 导出仍以整个场景为输入。面向小游戏的角色级 GLB 重构计划见 [`docs/LIBERTY_CATS_3D_ROADMAP.md`](docs/LIBERTY_CATS_3D_ROADMAP.md)。
-
+当前 GLB 导出仍以整个场景为输入。下一阶段的完整实施计划见 [`docs/DEVELOPMENT_ROADMAP.md`](docs/DEVELOPMENT_ROADMAP.md)，早期架构分析见 [`docs/LIBERTY_CATS_3D_ROADMAP.md`](docs/LIBERTY_CATS_3D_ROADMAP.md)。
