@@ -5,6 +5,7 @@ import { applyEquipmentAttachment } from './EquipmentAttachments.js'
 import { createSdfCatBody } from './SdfCatBody.js'
 import { getFurTrait } from '../config/traits.js'
 import { getEyeAppearanceProfile, getFurAppearanceProfile } from './AppearanceProfiles.js'
+import { getFaceAppearanceProfile } from './FaceProfiles.js'
 
 // ===== Toon 渐变贴图（参考 Meow-Generator MeshToonMaterial） =====
 let _sharedToonMap = null
@@ -802,6 +803,7 @@ export class CatModel {
 
     // -- 嘴巴组 --
     this._mouthGroup = new THREE.Group()
+    this._mouthGroup.name = 'FaceMouth'
     // Keep the expression root on the muzzle surface. Small line/tube expressions were
     // previously buried inside the deeper SDF head while only the large Excited mouth escaped.
     this._mouthGroup.position.set(0, -headRadius * 0.50, headRadius * 1.18)
@@ -856,6 +858,13 @@ export class CatModel {
 
     const expr = this._faceExpression
     const g = this._mouthGroup
+    const profile = getFaceAppearanceProfile(expr)
+    g.scale.setScalar(1.32 * profile.scale)
+    g.userData.faceExpression = expr
+    g.userData.faceFamily = profile.family
+    g.userData.faceBounds = { width: profile.mouthWidth, height: profile.mouthHeight }
+    g.userData.hasTongue = profile.hasTongue
+    g.userData.hasFangs = profile.hasFangs
 
     if (expr === 'Excited') {
       const cavity = new THREE.Mesh(

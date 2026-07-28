@@ -4,8 +4,8 @@ import { summarizeTraitStatuses } from '../src/core/traitStatus.js'
 
 test('visually unverified fur, eyes, gear and special remain partial', () => {
   const result = summarizeTraitStatuses({ fur: 'Golden', eyes: 'VR', face: 'Smile', gear: 'Camera', background: null, special: 'Time Traveler' })
-  assert.equal(result.implemented, 1)
-  assert.equal(result.partial, 4)
+  assert.equal(result.implemented, 0)
+  assert.equal(result.partial, 5)
   assert.equal(result.blocked, 0)
 })
 

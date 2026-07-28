@@ -2,7 +2,7 @@ const STATUS_LABELS = Object.freeze({ implemented: '已实现', partial: '部分
 
 export function getTraitStatus(type, value) {
   if (value == null) return null
-  if (type === 'fur' || type === 'eyes') return {
+  if (type === 'fur' || type === 'eyes' || type === 'face') return {
     type, value, status: 'partial', label: STATUS_LABELS.partial,
     note: '已接入独立视觉配置与参数化导出，仍需对照原 NFT 完成逐项截图验收。',
   }
