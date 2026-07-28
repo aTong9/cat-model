@@ -49,6 +49,10 @@ function cellNoise(x, y, z, seed = 0) {
   return value - Math.floor(value)
 }
 
+function layeredNoise(x, y, z, seed = 0) {
+  return cellNoise(x, y, z, seed) * 0.58 + cellNoise(x * 2.1, y * 2.1, z * 2.1, seed + 11) * 0.42
+}
+
 function applyFurVertexColors(geometry, style, customColor) {
   const trait = style === 'Custom'
     ? { color: customColor, accent: customColor, pattern: 'solid' }
@@ -65,30 +69,36 @@ function applyFurVertexColors(geometry, style, customColor) {
     const z = positions.getZ(i)
     const ax = Math.abs(x)
     const front = z > 0.08
-    const muzzle = front && y > 0.79 && y < 1.13 && ax < 0.235
-    const chestWidth = 0.10 + Math.max(0, 0.82 - y) * 0.14
-    const chest = front && y > -0.35 && y < 0.84 && ax < chestWidth
+    const muzzle = front && y > 0.76 && y < 1.12 && ax < 0.27
+    const chestWidth = 0.13 + Math.max(0, 0.82 - y) * 0.25
+    const chest = front && y > -0.38 && y < 0.86 && ax < chestWidth
     const paws = front && y < -0.30 && ax > 0.065
     const whiteMask = muzzle || chest || paws
 
     color.copy(base)
     if (trait.pattern === 'tuxedo') {
-      if (whiteMask || (front && y > 0.80 && ax < 0.11)) color.copy(WHITE_FUR)
+      const blazeWidth = 0.055 + Math.max(0, 1.42 - y) * 0.055
+      if (whiteMask || (front && y > 0.86 && ax < blazeWidth)) color.copy(WHITE_FUR)
     } else if (trait.pattern === 'calico') {
       color.copy(WHITE_FUR)
-      const patch = cellNoise(x * 0.8, y * 0.75, z * 0.8, 3)
-      if (!whiteMask && patch > 0.57) color.copy(patch > 0.78 ? DARK_FUR : accent)
+      const headPatch = front && y > 0.82
+      if (!whiteMask && headPatch && x < -0.035) color.copy(accent)
+      else if (!whiteMask && headPatch && x > 0.035) color.copy(DARK_FUR)
+      else if (!whiteMask) {
+        const patch = layeredNoise(x * 1.15, y, z, 3)
+        if (patch > 0.61) color.copy(patch > 0.78 ? DARK_FUR : accent)
+      }
     } else if (trait.pattern === 'leopard') {
       if (whiteMask) color.copy(WHITE_FUR)
       else {
-        const spot = cellNoise(x * 1.8, y * 1.7, z * 1.5, 7)
-        if (spot > 0.74) color.copy(accent)
+        const spot = layeredNoise(x * 1.65, y * 1.55, z * 1.4, 7)
+        if (spot > 0.63) color.copy(accent)
       }
     } else if (trait.pattern === 'lightning-tabby') {
       if (whiteMask) color.copy(WHITE_FUR)
-      const forehead = front && y > 1.05 && ax < 0.20
-      const bodyStripe = Math.sin((y + x * 0.75) * 34) > 0.58 && z > -0.05
-      if ((forehead && Math.sin((x + y) * 48) > 0.05) || (bodyStripe && !whiteMask)) color.copy(accent)
+      const foreheadBolt = front && y > 1.03 && ax < 0.19 && Math.abs(x - Math.sin(y * 30) * 0.055) < 0.035
+      const cheekStripe = front && y > 0.62 && y < 0.91 && ax > 0.24 && Math.sin(y * 48 + ax * 20) > 0.30
+      if ((foreheadBolt || cheekStripe) && !whiteMask) color.copy(accent)
     } else if (whiteMask) {
       color.copy(WHITE_FUR)
     }
@@ -388,6 +398,12 @@ export class CatModel {
     if (this._bodyGeoRef) applyFurVertexColors(this._bodyGeoRef, this._furStyle, this._furColor)
     this._furMaterials.forEach(m => m.color.set('#ffffff'))
     this._eyelids.forEach(lid => lid.material.color.set(hex))
+    const trait = style === 'Custom' ? { color: hex } : getFurTrait(style)
+    this.root.traverse(part => {
+      if (!part.isMesh || !part.material?.color) return
+      if (/Arm(Left|Right)(Upper|Fore)|TailSegment/.test(part.name)) part.material.color.set(trait.color)
+      if (/Paw$|Digit\d|Foot(Left|Right)Sole|Toe\d/.test(part.name)) part.material.color.set('#f5f1e6')
+    })
   }
 
   setFurColor(hex) { this.setFurTrait('Custom', hex) }
@@ -614,20 +630,20 @@ export class CatModel {
 
     if (expr === 'Excited') {
       const cavity = new THREE.Mesh(
-        new THREE.SphereGeometry(0.09, 20, 14, 0, Math.PI * 2, 0, Math.PI),
+        new THREE.SphereGeometry(0.105, 22, 16, 0, Math.PI * 2, 0, Math.PI),
         mouthCavityMat()
       )
-      cavity.scale.set(1.3, 0.8, 0.7)
+      cavity.scale.set(1.18, 1.02, 0.72)
       cavity.rotation.x = Math.PI
-      cavity.position.set(0, -0.01, 0.01)
+      cavity.position.set(0, -0.025, 0.01)
       g.add(cavity)
 
       const tongue = new THREE.Mesh(
         new THREE.SphereGeometry(0.055, 16, 12, 0, Math.PI * 2, 0, Math.PI * 0.6),
         tongueMat()
       )
-      tongue.scale.set(1.1, 0.6, 0.8)
-      tongue.position.set(0, -0.045, 0.025)
+      tongue.scale.set(1.25, 0.82, 0.8)
+      tongue.position.set(0, -0.080, 0.055)
       g.add(tongue)
 
       for (const sx of [-1, 1]) {
@@ -640,16 +656,18 @@ export class CatModel {
         g.add(fang)
       }
     } else if (expr === 'Smile') {
-      const smile = new THREE.Mesh(
-        new THREE.TorusGeometry(0.055, 0.010, 8, 20, Math.PI),
-        new THREE.MeshStandardMaterial({ color: '#381212', roughness: 0.5 })
-      )
-      smile.rotation.x = Math.PI
-      smile.position.set(0, -0.015, 0.01)
-      g.add(smile)
+      const smileMat = new THREE.MeshStandardMaterial({ color: '#381212', roughness: 0.5 })
+      for (const side of [-1, 1]) {
+        const curve = new THREE.CatmullRomCurve3([
+          new THREE.Vector3(0, 0.018, 0.02),
+          new THREE.Vector3(side * 0.032, -0.022, 0.025),
+          new THREE.Vector3(side * 0.072, 0.006, 0.018),
+        ])
+        g.add(new THREE.Mesh(new THREE.TubeGeometry(curve, 12, 0.008, 6, false), smileMat))
+      }
     } else if (expr === 'Whistling') {
       const o = new THREE.Mesh(
-        new THREE.CylinderGeometry(0.035, 0.035, 0.015, 20, 1, false),
+        new THREE.CylinderGeometry(0.030, 0.030, 0.018, 20, 1, false),
         mouthCavityMat()
       )
       o.rotation.x = Math.PI / 2
@@ -661,30 +679,38 @@ export class CatModel {
       )
       lip.position.set(0, -0.015, 0.02)
       g.add(lip)
+      const noteMat = new THREE.MeshBasicMaterial({ color: '#17151b' })
+      const stem = new THREE.Mesh(new RoundedBoxGeometry(0.015, 0.105, 0.015, 2, 0.006), noteMat)
+      stem.position.set(0.115, -0.055, 0.035); stem.rotation.z = -0.10; g.add(stem)
+      const flag = new THREE.Mesh(new RoundedBoxGeometry(0.070, 0.018, 0.015, 2, 0.007), noteMat)
+      flag.position.set(0.085, -0.005, 0.035); flag.rotation.z = -0.25; g.add(flag)
+      const noteHead = new THREE.Mesh(new THREE.SphereGeometry(0.027, 12, 8), noteMat)
+      noteHead.scale.x = 1.35; noteHead.position.set(0.100, -0.105, 0.04); g.add(noteHead)
     } else if (expr === 'Wow') {
       const o = new THREE.Mesh(
-        new THREE.SphereGeometry(0.060, 20, 14),
+        new THREE.SphereGeometry(0.078, 22, 16),
         mouthCavityMat()
       )
-      o.scale.set(1, 1.1, 0.7)
-      o.position.set(0, -0.02, 0.01)
+      o.scale.set(0.82, 1.28, 0.72)
+      o.position.set(0, -0.035, 0.01)
       g.add(o)
+      const tongue = new THREE.Mesh(new THREE.SphereGeometry(0.050, 16, 10), tongueMat())
+      tongue.scale.set(0.92, 0.52, 0.72); tongue.position.set(0, -0.088, 0.065); g.add(tongue)
+      const lowerLip = new THREE.Mesh(new THREE.TorusGeometry(0.052, 0.008, 8, 18, Math.PI), eyeWhite())
+      lowerLip.rotation.z = Math.PI; lowerLip.position.set(0, -0.105, 0.072); g.add(lowerLip)
     } else if (expr === 'Yum') {
-      const cavity = new THREE.Mesh(
-        new THREE.SphereGeometry(0.065, 18, 12, 0, Math.PI * 2, 0, Math.PI),
-        mouthCavityMat()
-      )
-      cavity.scale.set(1.2, 0.6, 0.7)
-      cavity.rotation.x = Math.PI
-      cavity.position.set(0, -0.005, 0.01)
-      g.add(cavity)
+      const smileMat = new THREE.MeshStandardMaterial({ color: '#381212', roughness: 0.5 })
+      const curve = new THREE.CatmullRomCurve3([
+        new THREE.Vector3(-0.065, 0, 0.02), new THREE.Vector3(0, -0.022, 0.025), new THREE.Vector3(0.065, 0, 0.02),
+      ])
+      g.add(new THREE.Mesh(new THREE.TubeGeometry(curve, 14, 0.008, 6, false), smileMat))
       const tongue = new THREE.Mesh(
-        new THREE.SphereGeometry(0.045, 16, 12, 0, Math.PI * 2, 0, Math.PI * 0.5),
+        new THREE.CapsuleGeometry(0.035, 0.055, 6, 12),
         tongueMat()
       )
-      tongue.scale.set(1, 0.4, 0.9)
-      tongue.position.set(0, -0.04, 0.06)
-      tongue.rotation.x = 0.4
+      tongue.scale.set(0.90, 1, 0.55)
+      tongue.position.set(0.060, -0.015, 0.075)
+      tongue.rotation.z = -0.72
       g.add(tongue)
     }
   }
@@ -702,7 +728,7 @@ export class CatModel {
     const irR = 0.084
     const hlR = 0.026
 
-    const build = (group) => {
+    const build = (group, side) => {
       switch (this._eyeStyle) {
         case 'Original': {
           const rim = new THREE.Mesh(
@@ -721,46 +747,57 @@ export class CatModel {
           break
         }
         case 'Relaxed': {
-          const w = new THREE.Mesh(new THREE.SphereGeometry(eyeR * 0.95, 20, 14), eyeWhite())
-          w.scale.y = 0.66; group.add(w)
+          const w = new THREE.Mesh(new THREE.SphereGeometry(eyeR * 0.94, 20, 16), eyeWhite())
+          w.scale.z = 0.72; group.add(w)
           for (let line = -1; line <= 1; line++) {
             const bar = new THREE.Mesh(
-              new THREE.BoxGeometry(eyeR * 1.35, 0.009, 0.012),
+              new RoundedBoxGeometry(eyeR * 1.25, 0.010, 0.016, 2, 0.005),
               new THREE.MeshBasicMaterial({ color: '#17151b' })
             )
-            bar.position.set(0, line * 0.022, 0.094)
+            bar.position.set(0, line * 0.025, 0.100)
             group.add(bar)
           }
           break
         }
         case 'Alert': {
-          group.add(new THREE.Mesh(new THREE.SphereGeometry(eyeR * 1.18, 20, 16), eyeWhite()))
-          const p = new THREE.Mesh(new THREE.SphereGeometry(irR * 0.65, 12, 8), pupil())
-          p.position.z = 0.112; group.add(p)
+          const rim = new THREE.Mesh(new THREE.TorusGeometry(eyeR * 0.88, eyeR * 0.10, 10, 28),
+            new THREE.MeshStandardMaterial({ color: '#17130b', roughness: 0.32 }))
+          rim.position.z = 0.076; group.add(rim)
+          const iris = new THREE.Mesh(new THREE.SphereGeometry(eyeR * 0.82, 20, 16),
+            new THREE.MeshStandardMaterial({ color: '#e5aa20', roughness: 0.25, metalness: 0.08 }))
+          iris.scale.set(0.88, 1.06, 0.68); iris.position.z = 0.080; group.add(iris)
+          const p = new THREE.Mesh(new THREE.CapsuleGeometry(irR * 0.16, irR * 1.18, 6, 10), pupil())
+          p.position.z = 0.142; group.add(p)
           const h = new THREE.Mesh(new THREE.SphereGeometry(hlR * 1.1, 8, 6),
             new THREE.MeshBasicMaterial({ color: '#ffffff' }))
-          h.position.set(0.012, 0.020, 0.136); group.add(h)
+          h.position.set(0.035, 0.043, 0.157); group.add(h)
           break
         }
         case 'Blue Ring': {
-          group.add(new THREE.Mesh(new THREE.SphereGeometry(eyeR * 0.95, 20, 16), eyeWhite()))
-          const ring = new THREE.Mesh(new THREE.TorusGeometry(irR * 1.05, 0.016, 10, 22),
-            new THREE.MeshStandardMaterial({ color: '#4488ff', roughness: 0.2, metalness: 0.3,
-              emissive: '#112244', emissiveIntensity: 0.4 }))
-          ring.position.z = 0.104; group.add(ring)
-          const p = new THREE.Mesh(new THREE.SphereGeometry(irR * 0.70, 12, 8), pupil())
-          p.position.z = 0.110; group.add(p)
+          const ring = new THREE.Mesh(new THREE.TorusGeometry(eyeR * 0.76, eyeR * 0.13, 12, 28),
+            new THREE.MeshStandardMaterial({ color: '#42dcec', roughness: 0.18, metalness: 0.12,
+              emissive: '#0b6170', emissiveIntensity: 0.45 }))
+          ring.position.z = 0.086; group.add(ring)
+          const p = new THREE.Mesh(new THREE.SphereGeometry(irR * 0.90, 18, 14), pupil())
+          p.scale.z = 0.68; p.position.z = 0.088; group.add(p)
           const h = new THREE.Mesh(new THREE.SphereGeometry(hlR, 8, 6), new THREE.MeshBasicMaterial({ color: '#ffffff' }))
-          h.position.set(0.020, 0.024, 0.130); group.add(h)
+          h.position.set(0.032, 0.040, 0.150); group.add(h)
           break
         }
         case 'Sunglasses': {
-          const lens = new THREE.Mesh(new THREE.CylinderGeometry(eyeR * 1.10, eyeR * 1.10, 0.035, 24),
-            new THREE.MeshStandardMaterial({ color: '#1a1a2e', roughness: 0.15, metalness: 0.5 }))
-          lens.rotation.x = Math.PI / 2; lens.position.z = 0.022; group.add(lens)
-          const refl = new THREE.Mesh(new THREE.SphereGeometry(eyeR * 0.65, 12, 6),
-            new THREE.MeshBasicMaterial({ color: '#667799', transparent: true, opacity: 0.25 }))
-          refl.position.set(0.018, 0.026, 0.042); group.add(refl)
+          const lens = new THREE.Mesh(new RoundedBoxGeometry(eyeR * 2.05, eyeR * 1.18, 0.055, 4, 0.025),
+            new THREE.MeshStandardMaterial({ color: '#09090d', roughness: 0.12, metalness: 0.42 }))
+          lens.position.z = 0.080; group.add(lens)
+          for (const [x, y, scale] of [[-0.035, 0.025, 1], [0.025, -0.018, 0.62]]) {
+            const refl = new THREE.Mesh(new RoundedBoxGeometry(0.036 * scale, 0.055 * scale, 0.008, 2, 0.004),
+              new THREE.MeshBasicMaterial({ color: '#ffffff' }))
+            refl.position.set(x, y, 0.112); refl.rotation.z = -0.55; group.add(refl)
+          }
+          if (side < 0) {
+            const bridge = new THREE.Mesh(new RoundedBoxGeometry(eyeR * 0.72, 0.032, 0.035, 2, 0.012),
+              new THREE.MeshStandardMaterial({ color: '#09090d', roughness: 0.15, metalness: 0.4 }))
+            bridge.position.set(eyeR * 1.35, 0.005, 0.091); group.add(bridge)
+          }
           break
         }
         case 'VR': {
@@ -780,8 +817,8 @@ export class CatModel {
         }
       }
     }
-    build(this._eyeGroupL)
-    build(this._eyeGroupR)
+    build(this._eyeGroupL, -1)
+    build(this._eyeGroupR, 1)
   }
 
   // ========== Private: VR 头显 ==========

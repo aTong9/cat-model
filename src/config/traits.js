@@ -1,12 +1,12 @@
 export const FUR_TRAITS = [
-  { id: 'Black', label: '午夜黑', color: '#3f3d48', accent: '#25232d', pattern: 'solid' },
-  { id: 'Blue Lightning Tabby', label: '蓝闪电虎斑', color: '#57627d', accent: '#72d8ef', pattern: 'lightning-tabby' },
-  { id: 'Calico', label: '三花', color: '#f3efe2', accent: '#e7a34d', pattern: 'calico' },
-  { id: 'Golden', label: '招财金', color: '#f4c430', accent: '#e6ae27', pattern: 'solid' },
-  { id: 'Gray', label: '太空灰', color: '#97979f', accent: '#686873', pattern: 'solid' },
-  { id: 'Leopard Patterned', label: '豹纹', color: '#d8ae60', accent: '#75562d', pattern: 'leopard' },
-  { id: 'Orange', label: '焦糖橙', color: '#f4bd84', accent: '#d97938', pattern: 'solid' },
-  { id: 'Tuxedo', label: '燕尾服', color: '#41413d', accent: '#20211f', pattern: 'tuxedo' },
+  { id: 'Black', label: '午夜黑', color: '#53515b', accent: '#29272f', pattern: 'solid' },
+  { id: 'Blue Lightning Tabby', label: '蓝闪电虎斑', color: '#59647f', accent: '#75dff2', pattern: 'lightning-tabby' },
+  { id: 'Calico', label: '三花', color: '#f5f1e8', accent: '#f0aa52', pattern: 'calico' },
+  { id: 'Golden', label: '招财金', color: '#f4dc7a', accent: '#d5ae35', pattern: 'solid' },
+  { id: 'Gray', label: '太空灰', color: '#9999a2', accent: '#696973', pattern: 'solid' },
+  { id: 'Leopard Patterned', label: '豹纹', color: '#efc66f', accent: '#705a34', pattern: 'leopard' },
+  { id: 'Orange', label: '焦糖橙', color: '#f5cda4', accent: '#d98242', pattern: 'solid' },
+  { id: 'Tuxedo', label: '燕尾服', color: '#62635f', accent: '#2b2c2a', pattern: 'tuxedo' },
 ]
 
 export const EYE_STYLES = ['Original', 'Relaxed', 'Alert', 'Blue Ring', 'Sunglasses', 'VR', 'Big Black']
