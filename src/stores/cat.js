@@ -19,6 +19,7 @@ export const GEAR_LIST = GEAR_TRAITS
 export const BACKGROUNDS = BACKGROUND_TRAITS
 export const SPECIALS = SPECIAL_TRAITS
 export const ACTIONS = [
+  { id: 'idle', label: '默认' },
   { id: 'run', label: '跑步' },
   { id: 'flex', label: '秀肌肉' },
 ]
@@ -37,7 +38,7 @@ export const useCatStore = defineStore('cat', () => {
   const tokenId = ref(1)
   const seed = ref(Date.now())
   const activePreset = ref(null)
-  const actionMode = ref('run')
+  const actionMode = ref('idle')
 
   const weather = ref('sunny')
   const lightIntensity = ref(1)

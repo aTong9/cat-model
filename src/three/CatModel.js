@@ -228,6 +228,7 @@ function createArticulatedEar(headRadius, side) {
   inner.rotation.z = -side * 0.13
   inner.scale.set(0.68, 0.78, 1)
   outer.add(inner)
+  root.scale.set(1.24, 1.24, 1.12)
   return root
 }
 
@@ -245,19 +246,27 @@ function capsuleBetween(start, end, radius, material, name) {
   return mesh
 }
 
+function createFurJointCover(radius, material, name, scale = [1, 1, 1]) {
+  const cover = new THREE.Mesh(new THREE.SphereGeometry(radius, 28, 20), material)
+  cover.scale.set(...scale)
+  cover.name = name
+  cover.castShadow = true
+  return cover
+}
+
 function createRaisedArm(side) {
   const shoulder = new THREE.Group()
   shoulder.name = side < 0 ? 'ArmLeft' : 'ArmRight'
   shoulder.position.set(side * 0.41, 0.66, 0.16)
   const fur = new THREE.MeshToonMaterial({
-    color: '#f5f1e6',
+    color: '#f4c430',
     gradientMap: getToonGradientMap(),
   })
+  const pawFur = new THREE.MeshToonMaterial({ color: '#f5f1e6', gradientMap: getToonGradientMap() })
   const pad = new THREE.MeshStandardMaterial({ color: '#f06f78', roughness: 0.42 })
   const upperVector = new THREE.Vector3(side * 0.15, -0.18, 0.14)
   shoulder.add(capsuleBetween(new THREE.Vector3(), upperVector, 0.105, fur, `${shoulder.name}Upper`))
-  const socket = new THREE.Mesh(new THREE.SphereGeometry(0.125, 20, 16), fur)
-  socket.name = `${shoulder.name}Socket`; shoulder.add(socket)
+  shoulder.add(createFurJointCover(0.150, fur, `${shoulder.name}Socket`, [1.10, 1.12, 1.08]))
 
   const elbow = new THREE.Group()
   elbow.name = `${shoulder.name}Elbow`
@@ -265,15 +274,15 @@ function createRaisedArm(side) {
   shoulder.add(elbow)
   const foreVector = new THREE.Vector3(-side * 0.03, 0.28, 0.11)
   elbow.add(capsuleBetween(new THREE.Vector3(), foreVector, 0.092, fur, `${shoulder.name}Fore`))
-  const elbowBlend = new THREE.Mesh(new THREE.SphereGeometry(0.108, 20, 16), fur)
-  elbowBlend.name = `${shoulder.name}ElbowBlend`; elbow.add(elbowBlend)
+  elbow.add(createFurJointCover(0.132, fur, `${shoulder.name}ElbowBlend`, [1.04, 1.12, 1.05]))
 
   const wrist = new THREE.Group()
   wrist.name = `${shoulder.name}Wrist`
   wrist.position.copy(foreVector)
   elbow.add(wrist)
+  wrist.add(createFurJointCover(0.112, fur, `${shoulder.name}WristCover`, [1.04, 1.16, 1.05]))
 
-  const palm = new THREE.Mesh(new THREE.SphereGeometry(0.125, 20, 16), fur)
+  const palm = new THREE.Mesh(new THREE.SphereGeometry(0.125, 20, 16), pawFur)
   palm.scale.set(0.98, 1.16, 0.90)
   palm.name = `${shoulder.name}Paw`
   palm.castShadow = true
@@ -288,7 +297,7 @@ function createRaisedArm(side) {
     { x: 0.068, y: 0.052, s: 0.92 },
   ]
   digits.forEach((finger, index) => {
-    const digit = new THREE.Mesh(new THREE.SphereGeometry(0.050 * finger.s, 16, 12), fur)
+    const digit = new THREE.Mesh(new THREE.SphereGeometry(0.050 * finger.s, 16, 12), pawFur)
     digit.scale.set(0.88, 1.10, 0.82)
     digit.position.set(finger.x, finger.y, 0.018)
     digit.name = `${shoulder.name}Digit${index + 1}`
@@ -316,27 +325,27 @@ function createFoot(side) {
   hip.name = side < 0 ? 'LegLeft' : 'LegRight'
   hip.position.set(side * 0.18, -0.10, 0.02)
   const fur = new THREE.MeshToonMaterial({
-    color: '#f5f1e6',
+    color: '#f4c430',
     gradientMap: getToonGradientMap(),
   })
+  const pawFur = new THREE.MeshToonMaterial({ color: '#f5f1e6', gradientMap: getToonGradientMap() })
   const pad = new THREE.MeshStandardMaterial({ color: '#f06f78', roughness: 0.42 })
   const thighVector = new THREE.Vector3(side * 0.01, -0.22, 0.045)
   hip.add(capsuleBetween(new THREE.Vector3(), thighVector, 0.105, fur, `${hip.name}Upper`))
-  const hipBlend = new THREE.Mesh(new THREE.SphereGeometry(0.125, 20, 16), fur)
-  hipBlend.name = `${hip.name}HipBlend`; hip.add(hipBlend)
+  hip.add(createFurJointCover(0.148, fur, `${hip.name}HipBlend`, [1.08, 1.14, 1.08]))
 
   const knee = new THREE.Group()
   knee.name = `${hip.name}Knee`; knee.position.copy(thighVector); hip.add(knee)
   const shinVector = new THREE.Vector3(-side * 0.01, -0.17, 0.075)
   knee.add(capsuleBetween(new THREE.Vector3(), shinVector, 0.078, fur, `${hip.name}Lower`))
-  const kneeBlend = new THREE.Mesh(new THREE.SphereGeometry(0.094, 20, 16), fur)
-  kneeBlend.name = `${hip.name}KneeBlend`; knee.add(kneeBlend)
+  knee.add(createFurJointCover(0.108, fur, `${hip.name}KneeBlend`, [1.04, 1.15, 1.06]))
 
   const ankle = new THREE.Group()
   ankle.name = `${hip.name}Ankle`; ankle.position.copy(shinVector); knee.add(ankle)
+  ankle.add(createFurJointCover(0.094, fur, `${hip.name}AnkleCover`, [1.08, 1.16, 1.08]))
   const center = new THREE.Vector3(0, -0.025, 0.105)
 
-  const sole = new THREE.Mesh(new THREE.SphereGeometry(0.13, 20, 16), fur)
+  const sole = new THREE.Mesh(new THREE.SphereGeometry(0.13, 20, 16), pawFur)
   sole.scale.set(1.18, 0.74, 1.34)
   sole.position.copy(center)
   sole.name = `${hip.name}Sole`
@@ -346,7 +355,7 @@ function createFoot(side) {
   const toeOffsets = [-0.086, -0.043, 0, 0.043, 0.086]
   toeOffsets.forEach((offset, index) => {
     const edgeScale = index === 0 || index === 4 ? 0.88 : 1
-    const toe = new THREE.Mesh(new THREE.SphereGeometry(0.041 * edgeScale, 14, 10), fur)
+    const toe = new THREE.Mesh(new THREE.SphereGeometry(0.041 * edgeScale, 14, 10), pawFur)
     toe.scale.set(0.92, 1.02, 1.02)
     toe.position.set(
       center.x + offset,
@@ -366,7 +375,7 @@ function createFoot(side) {
 
   const solePad = createHeartNose(0.067, pad)
   solePad.scale.set(1.12, 1.02, 0.72)
-  solePad.position.set(center.x, center.y - 0.002, center.z + 0.215)
+  solePad.position.set(center.x, center.y - 0.040, center.z + 0.225)
   solePad.name = `${hip.name}MainPad`
   ankle.add(solePad)
   hip.userData.joints = { knee, ankle }
@@ -469,7 +478,7 @@ export class CatModel {
     const trait = style === 'Custom' ? { color: hex } : getFurTrait(style)
     this.root.traverse(part => {
       if (!part.isMesh || !part.material?.color) return
-      if (/Arm(Left|Right)(Upper|Fore)|Leg(Left|Right)(Upper|Lower)|Tail(Segment|Blend|Surface)|Ear(Left|Right)Outer/.test(part.name)) part.material.color.set(trait.color)
+      if (/Arm(Left|Right)(Upper|Fore|Socket|ElbowBlend|WristCover)|Leg(Left|Right)(Upper|Lower|HipBlend|KneeBlend|AnkleCover)|Tail(Segment|Blend|Surface)|Ear(Left|Right)Outer/.test(part.name)) part.material.color.set(trait.color)
       if (/Paw$|Digit\d|Leg(Left|Right)Sole|Toe\d/.test(part.name)) part.material.color.set('#f5f1e6')
     })
   }
@@ -635,12 +644,15 @@ export class CatModel {
     // 呼吸动画 + Meow-Generator 风格 idle
     const breathe = 1 + Math.sin(time * 1.5) * 0.012
     this.root.scale.set(1.05 * breathe, 1.02 * breathe, breathe)
-    for (const limb of [this._armLGroup, this._armRGroup, this._footLGroup, this._footRGroup]) {
-      const joints = limb?.userData.joints
-      if (joints?.elbow) joints.elbow.rotation.x = 0
-      if (joints?.wrist) joints.wrist.rotation.x = 0
-      if (joints?.knee) joints.knee.rotation.x = 0
-      if (joints?.ankle) joints.ankle.rotation.x = 0
+    for (const arm of [this._armLGroup, this._armRGroup]) {
+      const { elbow, wrist } = arm?.userData.joints || {}
+      if (elbow) elbow.rotation.set(0, 0, Math.PI)
+      if (wrist) wrist.rotation.set(0, 0, 0)
+    }
+    for (const leg of [this._footLGroup, this._footRGroup]) {
+      const { knee, ankle } = leg?.userData.joints || {}
+      if (knee) knee.rotation.set(0, 0, 0)
+      if (ankle) ankle.rotation.set(0, 0, 0)
     }
 
     if (this._headGroup) {
@@ -662,20 +674,22 @@ export class CatModel {
 
     // Independent limb motion uses local shoulder/ankle pivots and staggered phases.
     if (this._armLGroup) {
-      this._armLGroup.rotation.z = Math.sin(time * 1.15) * 0.10
-      this._armLGroup.rotation.x = Math.sin(time * 0.92 + 0.6) * 0.055
+      this._armLGroup.rotation.y = 0
+      this._armLGroup.rotation.z = Math.sin(time * 1.15) * 0.025
+      this._armLGroup.rotation.x = Math.sin(time * 0.92 + 0.6) * 0.018
     }
     if (this._armRGroup) {
-      this._armRGroup.rotation.z = Math.sin(time * 1.15 + Math.PI) * 0.10
-      this._armRGroup.rotation.x = Math.sin(time * 0.92 + 2.1) * 0.055
+      this._armRGroup.rotation.y = 0
+      this._armRGroup.rotation.z = Math.sin(time * 1.15 + Math.PI) * 0.025
+      this._armRGroup.rotation.x = Math.sin(time * 0.92 + 2.1) * 0.018
     }
     if (this._footLGroup) {
       this._footLGroup.rotation.x = Math.sin(time * 1.35 + 0.4) * 0.035
       this._footLGroup.rotation.z = Math.sin(time * 1.05) * 0.025
     }
     if (this._footRGroup) {
-      this._footRGroup.rotation.x = Math.sin(time * 1.35 + 2.2) * 0.10
-      this._footRGroup.rotation.z = Math.sin(time * 1.05 + Math.PI) * 0.055
+      this._footRGroup.rotation.x = Math.sin(time * 1.35 + 2.2) * 0.035
+      this._footRGroup.rotation.z = Math.sin(time * 1.05 + Math.PI) * 0.025
     }
 
     this._updateTailSurface(time, 0.045, 1.25)
@@ -735,7 +749,7 @@ export class CatModel {
     const stitchMat = new THREE.MeshBasicMaterial({ color: '#241d20' })
     for (const angle of [-0.72, 0.72]) {
       const stitch = new THREE.Mesh(new THREE.CapsuleGeometry(0.009, 0.10, 4, 8), stitchMat)
-      stitch.position.set(0, -0.21, 0.485)
+      stitch.position.set(0, -0.08, 0.495)
       stitch.rotation.z = angle
       stitch.name = 'BellyStitch'
       bodyGroup.add(stitch)
