@@ -195,7 +195,7 @@ Vue/Pinia 只负责界面状态。核心模块不得依赖 Vue、DOM 或页面�
 - Full-scene/Legendary：明确判断是独立角色模型，还是只在展示时替换完整场景；
 - Background 永远不进入角色 GLB；
 - 场景中的散落装备不进入角色 GLB；
-- 所有 trait 必须有 `implemented / partial / blocked` 状态。
+- 所有 trait 必须有 `implemented / partial / blocked` 状态；主界面实现矩阵可浏览并直接切换全部 45 项。
 
 ## 六、实施阶段
 
@@ -255,7 +255,7 @@ Vue/Pinia 只负责界面状态。核心模块不得依赖 Vue、DOM 或页面�
 
 ## Phase 3：trait 视觉覆盖
 
-目标：完成所有 44 个唯一 trait 的独立 3D 实现。
+目标：完成当前目录中所有 45 个唯一 trait 的独立 3D 实现。
 
 实施顺序：
 
@@ -275,7 +275,7 @@ Vue/Pinia 只负责界面状态。核心模块不得依赖 Vue、DOM 或页面�
 - 三角面、材质数和纹理预算；
 - 已知穿模或差异说明。
 
-验收：44 个 trait 均为 implemented，视觉覆盖集无阻断性差异。
+验收：45 个 trait 均为 implemented，视觉覆盖集无阻断性差异。
 
 ## Phase 4：游戏级骨架与动画
 
@@ -445,7 +445,7 @@ Vue/Pinia 只负责界面状态。核心模块不得依赖 Vue、DOM 或页面�
 
 ```text
 test:data          metadata、token 范围、trait schema
-test:traits        44 个 trait 构建与组合规则
+test:traits        45 个 trait 构建与组合规则
 test:character     节点树、包围盒、socket、collider
 test:motion        clips、骨架、蒙皮、状态机
 test:export        GLB 导出与回读
@@ -513,7 +513,7 @@ test:all-tokens    9,901 token 全量构建审计
 1. 确定 WebView/生产环境的 9,901 张参考图打包与分发策略；
 2. 把场景、天气和输入从 `CatCanvas.vue` 继续拆出；
 3. 在具备 Blender 的环境中建立自动/人工导入检查，并校准 Toon→PBR 的颜色、粗糙度与透明材质；
-4. 建立 44 个 trait 的实现矩阵与视觉覆盖集；
+4. 建立 45 个 trait 的实现矩阵与视觉覆盖集；
 5. 为 token 搜索增加上一只、下一只和 trait 筛选。
 
 ### P0：现在开始

@@ -37,6 +37,8 @@
           </ul>
         </details>
 
+        <TraitMatrix />
+
         <nav class="section-tabs" aria-label="配置分类">
           <button v-for="tab in tabs" :key="tab.id" :class="{ active: activeTab === tab.id }" @click="activeTab = tab.id">{{ tab.label }}</button>
         </nav>
@@ -74,6 +76,7 @@
 import { computed, defineComponent, h, ref } from 'vue'
 import { useCatStore, FUR_PRESETS, EYE_STYLES, FACE_EXPRESSIONS, GEAR_LIST, BACKGROUNDS, SPECIALS, ACTIONS } from '../stores/cat.js'
 import { summarizeTraitStatuses } from '../core/traitStatus.js'
+import TraitMatrix from './TraitMatrix.vue'
 const store = useCatStore()
 const tokenQuery = ref(String(store.tokenId))
 const activeTab = ref('look')
