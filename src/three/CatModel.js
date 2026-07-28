@@ -1,6 +1,8 @@
 import * as THREE from 'three'
+import { RoundedBoxGeometry } from 'three/addons/geometries/RoundedBoxGeometry.js'
 import { createGear, TEXTURE_GEAR_TYPES } from './EquipmentFactory.js'
 import { createSdfCatBody } from './SdfCatBody.js'
+import { getFurTrait } from '../config/traits.js'
 
 // ===== Toon 渐变贴图（参考 Meow-Generator MeshToonMaterial） =====
 let _sharedToonMap = null
@@ -32,9 +34,72 @@ function furMat(hex) {
   return new THREE.MeshToonMaterial({
     color: new THREE.Color(hex),
     gradientMap: getToonGradientMap(),
-    roughness: 0.55,
-    metalness: 0.02,
+    vertexColors: true,
   })
+}
+
+const WHITE_FUR = new THREE.Color('#f5f1e6')
+const DARK_FUR = new THREE.Color('#29272f')
+
+function cellNoise(x, y, z, seed = 0) {
+  const qx = Math.floor(x * 13)
+  const qy = Math.floor(y * 11)
+  const qz = Math.floor(z * 9)
+  const value = Math.sin(qx * 127.1 + qy * 311.7 + qz * 74.7 + seed * 19.19) * 43758.5453
+  return value - Math.floor(value)
+}
+
+function applyFurVertexColors(geometry, style, customColor) {
+  const trait = style === 'Custom'
+    ? { color: customColor, accent: customColor, pattern: 'solid' }
+    : getFurTrait(style)
+  const base = new THREE.Color(customColor || trait.color)
+  const accent = new THREE.Color(trait.accent || trait.color)
+  const positions = geometry.attributes.position
+  const colors = new Float32Array(positions.count * 3)
+  const color = new THREE.Color()
+
+  for (let i = 0; i < positions.count; i++) {
+    const x = positions.getX(i)
+    const y = positions.getY(i)
+    const z = positions.getZ(i)
+    const ax = Math.abs(x)
+    const front = z > 0.08
+    const muzzle = front && y > 0.79 && y < 1.13 && ax < 0.235
+    const chestWidth = 0.10 + Math.max(0, 0.82 - y) * 0.14
+    const chest = front && y > -0.35 && y < 0.84 && ax < chestWidth
+    const paws = front && y < -0.30 && ax > 0.065
+    const whiteMask = muzzle || chest || paws
+
+    color.copy(base)
+    if (trait.pattern === 'tuxedo') {
+      if (whiteMask || (front && y > 0.80 && ax < 0.11)) color.copy(WHITE_FUR)
+    } else if (trait.pattern === 'calico') {
+      color.copy(WHITE_FUR)
+      const patch = cellNoise(x * 0.8, y * 0.75, z * 0.8, 3)
+      if (!whiteMask && patch > 0.57) color.copy(patch > 0.78 ? DARK_FUR : accent)
+    } else if (trait.pattern === 'leopard') {
+      if (whiteMask) color.copy(WHITE_FUR)
+      else {
+        const spot = cellNoise(x * 1.8, y * 1.7, z * 1.5, 7)
+        if (spot > 0.74) color.copy(accent)
+      }
+    } else if (trait.pattern === 'lightning-tabby') {
+      if (whiteMask) color.copy(WHITE_FUR)
+      const forehead = front && y > 1.05 && ax < 0.20
+      const bodyStripe = Math.sin((y + x * 0.75) * 34) > 0.58 && z > -0.05
+      if ((forehead && Math.sin((x + y) * 48) > 0.05) || (bodyStripe && !whiteMask)) color.copy(accent)
+    } else if (whiteMask) {
+      color.copy(WHITE_FUR)
+    }
+
+    colors[i * 3] = color.r
+    colors[i * 3 + 1] = color.g
+    colors[i * 3 + 2] = color.b
+  }
+
+  geometry.setAttribute('color', new THREE.BufferAttribute(colors, 3))
+  geometry.attributes.color.needsUpdate = true
 }
 function innerEarMat() {
   return new THREE.MeshStandardMaterial({
@@ -88,44 +153,18 @@ function createOutlineGeometry(sourceGeo, thickness = 0.020) {
 }
 
 // ===== 内耳贴花（参考 Meow-Generator makeInnerEarDecal） =====
-function createInnerEarDecal(headCenter, headRadius, earSide) {
-  // 耳朵根部在头部上的位置
-  const sx = earSide > 0 ? 1 : -1
-  const earBase = new THREE.Vector3(
-    headCenter.x + sx * headRadius * 0.52,
-    headCenter.y + headRadius * 0.62,
-    headCenter.z - headRadius * 0.08
-  )
-  const earTip = new THREE.Vector3(
-    headCenter.x + sx * headRadius * 0.62,
-    headCenter.y + headRadius * 1.20,
-    headCenter.z - headRadius * 0.15
-  )
-  // 方向：耳朵轴线
-  const dir = new THREE.Vector3().subVectors(earTip, earBase).normalize()
-  const up = new THREE.Vector3(0, 1, 0)
-  // 构建局部坐标系
-  const right = new THREE.Vector3().crossVectors(dir, up).normalize()
-  if (right.length() < 0.01) right.set(1, 0, 0)
-  up.crossVectors(right, dir).normalize()
-
-  // 创建一个锥形来表示内耳粉红色区域
-  const innerGeo = new THREE.ConeGeometry(headRadius * 0.28, headRadius * 0.65, 12, 4)
+function createInnerEarDecal(headRadius, earSide) {
+  const shape = new THREE.Shape()
+  shape.moveTo(-headRadius * 0.20, -headRadius * 0.20)
+  shape.lineTo(headRadius * 0.20, -headRadius * 0.20)
+  shape.lineTo(0, headRadius * 0.34)
+  shape.closePath()
+  const innerGeo = new THREE.ExtrudeGeometry(shape, { depth: 0.018, bevelEnabled: true, bevelSize: 0.01, bevelThickness: 0.008, bevelSegments: 2 })
+  innerGeo.center()
   const innerMesh = new THREE.Mesh(innerGeo, innerEarMat())
-
-  // 放置到耳朵位置
-  innerMesh.position.copy(earBase).addScaledVector(dir, headRadius * 0.20)
-  // 旋转使锥体沿耳朵方向
-  const quat = new THREE.Quaternion()
-  const m4 = new THREE.Matrix4().lookAt(
-    new THREE.Vector3(0, 0, 0),
-    dir,
-    up
-  )
-  quat.setFromRotationMatrix(m4)
-  innerMesh.setRotationFromQuaternion(quat)
-  innerMesh.scale.set(1, 1, 0.6) // 压扁贴合耳朵
-
+  innerMesh.position.set(earSide * headRadius * 0.72, headRadius * 1.02, headRadius * 0.10)
+  innerMesh.rotation.z = -earSide * 0.12
+  innerMesh.castShadow = true
   return innerMesh
 }
 
@@ -134,6 +173,7 @@ export class CatModel {
     this.root = new THREE.Group()
     this._furMaterials = []
     this._furColor = '#f4c430'
+    this._furStyle = 'Golden'
     this._eyeStyle = 'Original'
     this._faceExpression = 'Excited'
     this._gearType = null
@@ -159,11 +199,15 @@ export class CatModel {
 
   get group() { return this.root }
 
-  setFurColor(hex) {
+  setFurTrait(style, hex) {
+    this._furStyle = style || 'Custom'
     this._furColor = hex
-    this._furMaterials.forEach(m => m.color.set(hex))
+    if (this._bodyGeoRef) applyFurVertexColors(this._bodyGeoRef, this._furStyle, this._furColor)
+    this._furMaterials.forEach(m => m.color.set('#ffffff'))
     this._eyelids.forEach(lid => lid.material.color.set(hex))
   }
+
+  setFurColor(hex) { this.setFurTrait('Custom', hex) }
 
   setEyeStyle(style) {
     this._eyeStyle = style
@@ -184,7 +228,7 @@ export class CatModel {
   update(time) {
     // 呼吸动画 + Meow-Generator 风格 idle
     const breathe = 1 + Math.sin(time * 1.5) * 0.012
-    this.root.scale.setScalar(breathe)
+    this.root.scale.set(1.14 * breathe, 0.92 * breathe, breathe)
 
     if (this._headGroup) {
       // 头部轻微独立晃动
@@ -232,8 +276,10 @@ export class CatModel {
     // 替换 SDF 默认材质为 ToonMaterial
     if (sdfBody.material) sdfBody.material.dispose()
     sdfBody.material = furMat(this._furColor)
+    sdfBody.material.color.set('#ffffff')
     this._furMaterials.push(sdfBody.material)
     this._bodyGeoRef = sdfBody.geometry
+    applyFurVertexColors(sdfBody.geometry, this._furStyle, this._furColor)
 
     // 描边
     const outlineGeo = createOutlineGeometry(sdfBody.geometry, 0.018)
@@ -262,44 +308,43 @@ export class CatModel {
 
     // -- 内耳贴花（粉红耳内） --
     this._earLGroup = new THREE.Group()
-    const earLDecal = createInnerEarDecal(headCenter, headRadius, -1)
+    const earLDecal = createInnerEarDecal(headRadius, -1)
     this._earLGroup.add(earLDecal)
     this._earLGroup.position.copy(headCenter)
     this.root.add(this._earLGroup)
 
     this._earRGroup = new THREE.Group()
-    const earRDecal = createInnerEarDecal(headCenter, headRadius, 1)
+    const earRDecal = createInnerEarDecal(headRadius, 1)
     this._earRGroup.add(earRDecal)
     this._earRGroup.position.copy(headCenter)
     this.root.add(this._earRGroup)
 
     // -- 鼻子 --
-    const nGeo = new THREE.SphereGeometry(headRadius * 0.16, 16, 12)
+    const nGeo = new THREE.SphereGeometry(headRadius * 0.11, 16, 12)
     const n = new THREE.Mesh(nGeo, noseMat())
     n.scale.set(1.2, 0.8, 1)
-    n.position.set(0, -headRadius * 0.25, headRadius * 0.88)
+    n.position.set(0, -headRadius * 0.22, headRadius * 0.91)
     n.castShadow = true
     headGroup.add(n)
 
     // -- 嘴巴组 --
     this._mouthGroup = new THREE.Group()
-    this._mouthGroup.position.set(0, -headRadius * 0.42, headRadius * 0.80)
+    this._mouthGroup.position.set(0, -headRadius * 0.52, headRadius * 0.82)
+    this._mouthGroup.scale.setScalar(1.18)
     headGroup.add(this._mouthGroup)
     this._rebuildMouth()
 
     // -- 胡须 --
     for (let s = -1; s <= 1; s += 2) {
       for (let i = 0; i < 3; i++) {
-        const wGeo = new THREE.CylinderGeometry(0.005, 0.009, headRadius * 0.70, 6)
-        const w = new THREE.Mesh(wGeo, new THREE.MeshStandardMaterial({ color: '#d8d8d8', roughness: 0.5 }))
-        w.position.set(
-          s * (headRadius * 0.32 + i * 0.06),
-          -headRadius * 0.28 - i * 0.10,
-          headRadius * 0.78
-        )
-        w.rotation.z = s * (0.12 + i * 0.06)
-        w.rotation.y = s * (0.48 + i * 0.08)
-        w.rotation.x = -0.06
+        const startY = -headRadius * (0.28 + i * 0.12)
+        const curve = new THREE.CatmullRomCurve3([
+          new THREE.Vector3(s * headRadius * 0.28, startY, headRadius * 0.82),
+          new THREE.Vector3(s * headRadius * 0.52, startY + (1 - i) * 0.015, headRadius * 0.85),
+          new THREE.Vector3(s * headRadius * (0.82 + i * 0.08), startY + (1 - i) * 0.035, headRadius * 0.78),
+        ])
+        const wGeo = new THREE.TubeGeometry(curve, 12, 0.006, 5, false)
+        const w = new THREE.Mesh(wGeo, new THREE.MeshStandardMaterial({ color: '#27232b', roughness: 0.62 }))
         w.castShadow = true
         headGroup.add(w)
       }
@@ -307,11 +352,11 @@ export class CatModel {
 
     // -- 眼睛占位 --
     this._eyeGroupL = new THREE.Group()
-    this._eyeGroupL.position.set(-headRadius * 0.50, headRadius * 0.10, headRadius * 0.82)
+    this._eyeGroupL.position.set(-headRadius * 0.43, headRadius * 0.08, headRadius * 0.84)
     headGroup.add(this._eyeGroupL)
 
     this._eyeGroupR = new THREE.Group()
-    this._eyeGroupR.position.set(headRadius * 0.50, headRadius * 0.10, headRadius * 0.82)
+    this._eyeGroupR.position.set(headRadius * 0.43, headRadius * 0.08, headRadius * 0.84)
     headGroup.add(this._eyeGroupR)
 
     // -- VR 头显根 --
@@ -423,38 +468,41 @@ export class CatModel {
     this._eyelids = []
 
     // 头部半径参考（约 0.3）
-    const eyeR = 0.082
-    const irR = 0.036
-    const hlR = 0.013
+    const eyeR = 0.098
+    const irR = 0.043
+    const hlR = 0.016
 
     const build = (group) => {
       switch (this._eyeStyle) {
         case 'Original': {
           group.add(new THREE.Mesh(new THREE.SphereGeometry(eyeR, 20, 16), eyeWhite()))
           const p = new THREE.Mesh(new THREE.SphereGeometry(irR, 14, 10), pupil())
-          p.position.z = 0.055; group.add(p)
+          p.position.z = 0.095; group.add(p)
           const h = new THREE.Mesh(new THREE.SphereGeometry(hlR, 8, 6),
             new THREE.MeshBasicMaterial({ color: '#ffffff' }))
-          h.position.set(0.016, 0.022, 0.070); group.add(h)
+          h.position.set(0.018, 0.024, 0.126); group.add(h)
           break
         }
         case 'Relaxed': {
           const w = new THREE.Mesh(new THREE.SphereGeometry(eyeR * 0.95, 20, 14), eyeWhite())
-          w.scale.y = 0.55; group.add(w)
-          const lidGeo = new THREE.CylinderGeometry(eyeR, eyeR, 0.10, 20, 1, false, 0, Math.PI)
-          const lid = new THREE.Mesh(lidGeo, furMat(this._furColor))
-          lid.rotation.z = Math.PI / 2; lid.position.y = 0.025
-          group.add(lid)
-          this._eyelids.push(lid)
+          w.scale.y = 0.66; group.add(w)
+          for (let line = -1; line <= 1; line++) {
+            const bar = new THREE.Mesh(
+              new THREE.BoxGeometry(eyeR * 1.35, 0.009, 0.012),
+              new THREE.MeshBasicMaterial({ color: '#17151b' })
+            )
+            bar.position.set(0, line * 0.022, 0.094)
+            group.add(bar)
+          }
           break
         }
         case 'Alert': {
           group.add(new THREE.Mesh(new THREE.SphereGeometry(eyeR * 1.18, 20, 16), eyeWhite()))
           const p = new THREE.Mesh(new THREE.SphereGeometry(irR * 0.65, 12, 8), pupil())
-          p.position.z = 0.065; group.add(p)
+          p.position.z = 0.112; group.add(p)
           const h = new THREE.Mesh(new THREE.SphereGeometry(hlR * 1.1, 8, 6),
             new THREE.MeshBasicMaterial({ color: '#ffffff' }))
-          h.position.set(0.010, 0.018, 0.080); group.add(h)
+          h.position.set(0.012, 0.020, 0.136); group.add(h)
           break
         }
         case 'Blue Ring': {
@@ -462,9 +510,11 @@ export class CatModel {
           const ring = new THREE.Mesh(new THREE.TorusGeometry(irR * 1.05, 0.016, 10, 22),
             new THREE.MeshStandardMaterial({ color: '#4488ff', roughness: 0.2, metalness: 0.3,
               emissive: '#112244', emissiveIntensity: 0.4 }))
-          ring.position.z = 0.045; group.add(ring)
+          ring.position.z = 0.104; group.add(ring)
           const p = new THREE.Mesh(new THREE.SphereGeometry(irR * 0.70, 12, 8), pupil())
-          p.position.z = 0.052; group.add(p)
+          p.position.z = 0.110; group.add(p)
+          const h = new THREE.Mesh(new THREE.SphereGeometry(hlR, 8, 6), new THREE.MeshBasicMaterial({ color: '#ffffff' }))
+          h.position.set(0.020, 0.024, 0.130); group.add(h)
           break
         }
         case 'Sunglasses': {
@@ -521,29 +571,21 @@ export class CatModel {
       envMapIntensity: 1.5,
     })
 
-    const visorGeo = new THREE.CylinderGeometry(0.38, 0.38, 0.26, 48, 1, true, -Math.PI * 0.62, Math.PI * 1.24)
-    const visor = new THREE.Mesh(visorGeo, visorMat)
-    visor.rotation.z = Math.PI / 2
-    visor.scale.set(1.15, 1, 0.78)
-    visor.position.set(0, 0, 0.18)
+    const frameShell = new THREE.Mesh(
+      new RoundedBoxGeometry(0.90, 0.38, 0.20, 5, 0.10),
+      metal('#d0d5dd')
+    )
+    frameShell.position.set(0, 0, 0.18)
+    frameShell.castShadow = true
+    g.add(frameShell)
+
+    const visor = new THREE.Mesh(new RoundedBoxGeometry(0.84, 0.32, 0.20, 5, 0.09), visorMat)
+    visor.position.set(0, 0, 0.205)
     visor.castShadow = true
     g.add(visor)
 
     // 银色铝框
     const frameMat = metal('#d0d5dd')
-    const frameCurve = new THREE.CatmullRomCurve3([
-      new THREE.Vector3(-0.40, 0.12, 0.28),
-      new THREE.Vector3(-0.46, 0, 0.22),
-      new THREE.Vector3(-0.40, -0.12, 0.28),
-      new THREE.Vector3(0, -0.16, 0.32),
-      new THREE.Vector3(0.40, -0.12, 0.28),
-      new THREE.Vector3(0.46, 0, 0.22),
-      new THREE.Vector3(0.40, 0.12, 0.28),
-      new THREE.Vector3(0, 0.16, 0.32),
-      new THREE.Vector3(-0.40, 0.12, 0.28),
-    ], true)
-    const frame = new THREE.Mesh(new THREE.TubeGeometry(frameCurve, 64, 0.014, 8, true), frameMat)
-    g.add(frame)
 
     // 头带
     const strap = new THREE.Mesh(
@@ -558,11 +600,11 @@ export class CatModel {
     // 玻璃反光条
     const reflMat = new THREE.MeshBasicMaterial({ color: '#ffffff', transparent: true, opacity: 0.55 })
     const refl1 = new THREE.Mesh(new THREE.PlaneGeometry(0.16, 0.018), reflMat)
-    refl1.position.set(-0.08, 0.045, 0.36)
+    refl1.position.set(-0.08, 0.045, 0.315)
     refl1.rotation.y = -0.08
     g.add(refl1)
     const refl2 = new THREE.Mesh(new THREE.PlaneGeometry(0.08, 0.018), reflMat)
-    refl2.position.set(0.07, 0.045, 0.36)
+    refl2.position.set(0.07, 0.045, 0.315)
     refl2.rotation.y = 0.06
     g.add(refl2)
 

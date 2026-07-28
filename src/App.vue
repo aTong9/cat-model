@@ -49,9 +49,16 @@ onMounted(() => {
   if (params.has('seed')) {
     store.setFromSeed(parseInt(params.get('seed')))
   }
-  if (params.has('fur')) store.furColor = params.get('fur')
+  if (params.has('fur')) {
+    const fur = params.get('fur')
+    if (fur?.startsWith('#')) store.setCustomFurColor(fur)
+    else store.setFurStyle(fur)
+  }
   if (params.has('eyes')) store.eyeStyle = params.get('eyes')
+  if (params.has('face')) store.faceExpression = params.get('face')
   if (params.has('gear')) store.gearType = params.get('gear') || null
+  if (params.has('bg')) store.background = params.get('bg')
+  if (params.has('special')) store.special = params.get('special') || null
   if (params.has('tokenId')) store.tokenId = parseInt(params.get('tokenId'))
 })
 </script>

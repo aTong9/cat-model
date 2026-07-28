@@ -11,7 +11,7 @@
     <Transition name="expand">
       <div v-if="store.panelExpanded" class="panel-body glass">
         <section class="intro"><span>CHARACTER STUDIO</span><b>打造独一无二的猫咪搭档</b></section>
-        <div class="param-row"><span class="param-label">毛色</span><div class="color-row"><input type="color" :value="store.furColor" @input="store.furColor = $event.target.value" /><span class="hex-text">{{ store.furColor }}</span></div><div class="preset-row"><button v-for="preset in FUR_PRESETS" :key="preset.label" class="preset-dot" :style="{ background: preset.color }" :class="{ active: store.furColor === preset.color }" :title="preset.label" @click="store.furColor = preset.color" /></div></div>
+        <div class="param-row"><span class="param-label">毛色</span><div class="color-row"><input type="color" :value="store.furColor" @input="store.setCustomFurColor($event.target.value)" /><span class="hex-text">{{ store.furStyle === 'Custom' ? store.furColor : store.furStyle }}</span></div><div class="preset-row"><button v-for="preset in FUR_PRESETS" :key="preset.id" class="preset-dot" :style="furDotStyle(preset)" :class="{ active: store.furStyle === preset.id }" :title="preset.label" @click="store.setFurStyle(preset.id)" /></div></div>
         <ChoiceRow label="视觉" :items="EYE_STYLES" :active="store.eyeStyle" @select="store.eyeStyle = $event" />
         <ChoiceRow label="表情" :items="FACE_EXPRESSIONS" :active="store.faceExpression" @select="store.faceExpression = $event" />
         <div class="param-row"><span class="param-label">装备</span><div class="btn-row"><button class="btn small" :class="{ active: store.gearType === null }" @click="store.gearType = null">无</button><button v-for="gear in GEAR_LIST" :key="gear.id" class="btn small" :class="{ active: store.gearType === gear.id }" @click="store.gearType = gear.id">{{ gear.label }}</button></div></div>
@@ -29,6 +29,11 @@ import { defineComponent, h } from 'vue'
 import { useCatStore, FUR_PRESETS, EYE_STYLES, FACE_EXPRESSIONS, GEAR_LIST, BACKGROUNDS, SPECIALS } from '../stores/cat.js'
 const store = useCatStore()
 const weathers = [{ id: 'sunny', icon: '☀', label: '晴天' }, { id: 'cloudy', icon: '☁', label: '多云' }, { id: 'thunder', icon: 'ϟ', label: '雷雨' }, { id: 'rain', icon: '☂', label: '降雨' }]
+const furDotStyle = preset => ({
+  background: preset.pattern === 'solid'
+    ? preset.color
+    : `linear-gradient(135deg, ${preset.color} 0 46%, ${preset.accent} 47% 62%, #f4f0e4 63% 100%)`,
+})
 const ChoiceRow = defineComponent({
   props: ['label', 'items', 'active'],
   emits: ['select'],

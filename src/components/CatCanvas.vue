@@ -60,7 +60,10 @@ onMounted(async () => {
 
   // 创建猫
   catModel = new CatModel()
+  catModel.setFurTrait(store.furStyle, store.furColor)
+  catModel.setEyeStyle(store.eyeStyle)
   catModel.setFaceExpression(store.faceExpression)
+  catModel.setGear(store.gearType)
   scene.add(catModel.group)
   specialGroup = new THREE.Group()
   scene.add(specialGroup)
@@ -96,8 +99,8 @@ onUnmounted(() => {
 
 // ===== 散落装备 =====
 const GROUND_Y = -0.52
-const SCATTER_RADIUS_MIN = 1.0
-const SCATTER_RADIUS_MAX = 2.0
+const SCATTER_RADIUS_MIN = 2.2
+const SCATTER_RADIUS_MAX = 3.2
 
 function createAllGearItems() {
   gearEntries.forEach(e => scene.remove(e.group))
@@ -121,7 +124,7 @@ function createAllGearItems() {
       Math.random() * 0.1 - 0.05
     )
     // 缩放适配
-    const s = 0.7 + Math.random() * 0.25
+    const s = 0.42 + Math.random() * 0.16
     gearGroup.scale.setScalar(s)
 
     gearGroup.userData._scatterAngle = angle
@@ -251,9 +254,10 @@ function updateGearPhysics(dt) {
 }
 
 // === 监听 Store 变化 → 更新 3D 模型 ===
-watch(() => store.furColor, (v) => catModel?.setFurColor(v))
+watch([() => store.furStyle, () => store.furColor], ([style, color]) => catModel?.setFurTrait(style, color))
 watch(() => store.eyeStyle, (v) => catModel?.setEyeStyle(v))
 watch(() => store.gearType, (v) => {
+  catModel?.setGear(v)
   if (!v) return
   // 点击面板选择装备 → 对应散落装备弹起
   const entry = gearEntries.find(e => e.id === v)

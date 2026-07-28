@@ -25,3 +25,4 @@ layers/
 *.njsproj
 *.sln
 *.sw?
+.env_CUNAI_API_KEY

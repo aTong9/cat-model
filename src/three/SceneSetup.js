@@ -22,12 +22,12 @@ export function createScene(canvas) {
 
   // --- Camera ---
   const camera = new THREE.PerspectiveCamera(38, 2, 0.5, 30)
-  camera.position.set(3.2, 2.0, 4.8)
-  camera.lookAt(0, 1.1, 0)
+  camera.position.set(0, 1.15, 4.6)
+  camera.lookAt(0, 0.72, 0)
 
   // --- OrbitControls ---
   const controls = new OrbitControls(camera, renderer.domElement)
-  controls.target.set(0, 1.1, 0)
+  controls.target.set(0, 0.72, 0)
   controls.enableDamping = true
   controls.dampingFactor = 0.08
   controls.minDistance = 2.5

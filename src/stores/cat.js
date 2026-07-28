@@ -1,57 +1,118 @@
 import { defineStore } from 'pinia'
 import { computed, ref } from 'vue'
+import {
+  BACKGROUND_TRAITS,
+  DEFAULT_TRAITS,
+  EYE_STYLES,
+  FACE_EXPRESSIONS,
+  FUR_TRAITS,
+  GEAR_TRAITS,
+  PRESET_CATS,
+  SPECIAL_TRAITS,
+  createRng,
+  getFurTrait,
+} from '../config/traits.js'
 
-export const FUR_PRESETS = [
-  { label: '招财黄', color: '#f4c430' }, { label: '蜜糖黄', color: '#e6ae27' },
-  { label: '奶油白', color: '#f5f0dc' }, { label: '焦糖橙', color: '#e98b3a' },
-  { label: '太空灰', color: '#657080' }, { label: '午夜黑', color: '#282634' },
-]
-export const EYE_STYLES = ['Original', 'Relaxed', 'Alert', 'Blue Ring', 'Sunglasses', 'Big Black']
-export const FACE_EXPRESSIONS = ['Excited', 'Smile', 'Wow', 'Yum', 'Whistling']
-export const GEAR_LIST = [
-  { id: 'Baseball Cap', label: '棒球帽' }, { id: 'Camera', label: '相机' },
-  { id: 'Gold Round Glasses', label: '金框眼镜' }, { id: 'Good Luck Gold Bar', label: '大吉金条' },
-  { id: 'Hiking Backpack', label: '登山背包' }, { id: 'Hot Coffee', label: '热咖啡' },
-  { id: 'Investment Book', label: '投资书' }, { id: 'Ramen', label: '拉面' }, { id: 'Sake', label: '清酒' }, { id: 'Wealth Gold Bar', label: '招财金条' },
-]
-export const BACKGROUNDS = ['Blue Gradient', 'Green Gradient', 'Green To Blue Gradient', 'Orange Gradient', 'Pink To Orange Gradient', 'Purple Gradient', 'Red To Pink Gradient', 'Yellow To Green Gradient']
-export const SPECIALS = [
-  { id: 'Fitness Guru', label: '健身搭档', fullScene: false }, { id: 'Galactic Voyage', label: '星际漫游', fullScene: true },
-  { id: 'Golden General', label: '黄金守护', fullScene: true }, { id: 'Onsen journey', label: '温泉假日', fullScene: false },
-  { id: 'Realm of Mt.Fuji', label: '富士幻境', fullScene: false }, { id: 'Thunderous Might', label: '雷霆能量', fullScene: false }, { id: 'Time Traveler', label: '时空旅人', fullScene: false },
-]
+export const FUR_PRESETS = FUR_TRAITS
+export { EYE_STYLES, FACE_EXPRESSIONS, PRESET_CATS }
+export const GEAR_LIST = GEAR_TRAITS
+export const BACKGROUNDS = BACKGROUND_TRAITS
+export const SPECIALS = SPECIAL_TRAITS
+
 const WEATHERS = ['sunny', 'cloudy', 'thunder', 'rain']
-export const PRESET_CATS = [
-  { tokenId: 2, eyes: 'Relaxed', face: 'Smile', fur: '#3f3d48', gear: 'Wealth Gold Bar', background: 'Green To Blue Gradient' },
-  { tokenId: 3, eyes: 'Alert', face: 'Wow', fur: '#f4bd84', gear: 'Investment Book', background: 'Blue Gradient' },
-  { tokenId: 4, eyes: 'Original', face: 'Yum', fur: '#97979f', gear: 'Gold Round Glasses', background: 'Yellow To Green Gradient' },
-  { tokenId: 6, eyes: 'Original', face: 'Whistling', fur: '#57627d', gear: 'Good Luck Gold Bar', background: 'Pink To Orange Gradient' },
-  { tokenId: 8, eyes: 'Blue Ring', face: 'Excited', fur: '#41413d', gear: 'Hot Coffee', background: 'Red To Pink Gradient' },
-  { tokenId: 10, eyes: 'Alert', face: 'Excited', fur: '#d8ae60', gear: 'Investment Book', background: 'Green Gradient' },
-  { tokenId: 11, eyes: 'Sunglasses', face: 'Excited', fur: '#41413d', gear: 'Camera', special: 'Thunderous Might', weather: 'thunder' },
-  { tokenId: 26, eyes: 'Alert', face: 'Yum', fur: '#f4bd84', gear: 'Baseball Cap', background: 'Purple Gradient' },
-  { tokenId: 32, eyes: 'Sunglasses', face: 'Excited', fur: '#3f3d48', gear: 'Sake', background: 'Orange Gradient' },
-  { tokenId: 414, eyes: 'Blue Ring', face: 'Wow', fur: '#dfb26c', gear: 'Ramen', special: 'Realm of Mt.Fuji' },
-  { tokenId: 3000, special: 'Galactic Voyage' },
-  { tokenId: 3001, eyes: 'Original', face: 'Smile', fur: '#97979f', special: 'Onsen journey' },
-  { tokenId: 9033, special: 'Golden General' },
-  { tokenId: 9038, eyes: 'Relaxed', face: 'Smile', fur: '#41413d', gear: 'Hiking Backpack', special: 'Time Traveler' },
-  { tokenId: 9066, eyes: 'Original', face: 'Smile', fur: '#f4d260', special: 'Fitness Guru' },
-]
 
 export const useCatStore = defineStore('cat', () => {
-  const furColor = ref('#f4c430'), eyeStyle = ref('Original'), gearType = ref(null), faceExpression = ref('Excited'), background = ref('Blue Gradient'), special = ref(null), tokenId = ref(1), seed = ref(Date.now()), activePreset = ref(null)
-  const weather = ref('sunny'), lightIntensity = ref(1), rainAmount = ref(.5), cloudAmount = ref(.5), fishAmount = ref(0), musicOn = ref(false), language = ref('zh')
-  const loading = ref(true), loadingProgress = ref(0), panelExpanded = ref(true), showHints = ref(true)
+  const defaultFur = getFurTrait(DEFAULT_TRAITS.fur)
+  const furStyle = ref(defaultFur.id)
+  const furColor = ref(defaultFur.color)
+  const eyeStyle = ref(DEFAULT_TRAITS.eyes)
+  const gearType = ref(DEFAULT_TRAITS.gear)
+  const faceExpression = ref(DEFAULT_TRAITS.face)
+  const background = ref(DEFAULT_TRAITS.background)
+  const special = ref(DEFAULT_TRAITS.special)
+  const tokenId = ref(1)
+  const seed = ref(Date.now())
+  const activePreset = ref(null)
+
+  const weather = ref('sunny')
+  const lightIntensity = ref(1)
+  const rainAmount = ref(.5)
+  const cloudAmount = ref(.5)
+  const fishAmount = ref(0)
+  const musicOn = ref(false)
+  const language = ref('zh')
+  const loading = ref(true)
+  const loadingProgress = ref(0)
+  const panelExpanded = ref(true)
+  const showHints = ref(true)
+
   const isSpecialFullScene = computed(() => SPECIALS.find(item => item.id === special.value)?.fullScene ?? false)
-  function randomize() {
-    const pick = list => list[Math.floor(Math.random() * list.length)]
-    activePreset.value = null; seed.value = Math.floor(Math.random() * 0xffffffff); furColor.value = pick(FUR_PRESETS).color; eyeStyle.value = pick(EYE_STYLES); faceExpression.value = pick(FACE_EXPRESSIONS); background.value = pick(BACKGROUNDS); gearType.value = Math.random() < .2 ? null : pick(GEAR_LIST).id; special.value = Math.random() < .08 ? pick(SPECIALS).id : null; weather.value = pick(WEATHERS); tokenId.value = Math.floor(Math.random() * 9999) + 1
+
+  function setFurStyle(id) {
+    const trait = getFurTrait(id)
+    furStyle.value = trait.id
+    furColor.value = trait.color
+    activePreset.value = null
   }
-  function setFromSeed(value) { seed.value = value; let hash = value; const rnd = () => { hash = (hash * 1103515245 + 12345) & 0x7fffffff; return hash / 0x7fffffff }; const pick = list => list[Math.floor(rnd() * list.length)]; furColor.value = pick(FUR_PRESETS).color; eyeStyle.value = pick(EYE_STYLES); faceExpression.value = pick(FACE_EXPRESSIONS); background.value = pick(BACKGROUNDS); gearType.value = rnd() < .2 ? null : pick(GEAR_LIST).id; special.value = rnd() < .08 ? pick(SPECIALS).id : null; weather.value = pick(WEATHERS); tokenId.value = value }
+
+  function setCustomFurColor(color) {
+    furStyle.value = 'Custom'
+    furColor.value = color
+    activePreset.value = null
+  }
+
+  function applyGeneratedTraits(value, rng = createRng(value)) {
+    const pick = list => list[Math.floor(rng() * list.length)]
+    const fur = pick(FUR_PRESETS)
+    furStyle.value = fur.id
+    furColor.value = fur.color
+    eyeStyle.value = pick(EYE_STYLES)
+    faceExpression.value = pick(FACE_EXPRESSIONS)
+    background.value = pick(BACKGROUNDS)
+    gearType.value = rng() < .2 ? null : pick(GEAR_LIST).id
+    special.value = rng() < .08 ? pick(SPECIALS).id : null
+    weather.value = pick(WEATHERS)
+  }
+
+  function randomize() {
+    activePreset.value = null
+    seed.value = Math.floor(Math.random() * 0xffffffff)
+    applyGeneratedTraits(seed.value)
+    tokenId.value = Math.floor(Math.random() * 9999) + 1
+  }
+
+  function setFromSeed(value) {
+    const normalized = Number(value) >>> 0
+    seed.value = normalized
+    activePreset.value = null
+    applyGeneratedTraits(normalized)
+    tokenId.value = normalized || 1
+  }
+
   const cycleWeather = () => { weather.value = WEATHERS[(WEATHERS.indexOf(weather.value) + 1) % WEATHERS.length] }
   const togglePanel = () => { panelExpanded.value = !panelExpanded.value }
   const setLanguage = lang => { language.value = lang }
-  function applyPreset(preset) { activePreset.value = preset.tokenId; tokenId.value = preset.tokenId; if (preset.eyes) eyeStyle.value = preset.eyes; if (preset.face) faceExpression.value = preset.face; if (preset.fur) furColor.value = preset.fur; gearType.value = preset.gear ?? null; background.value = preset.background ?? 'Blue Gradient'; special.value = preset.special ?? null; weather.value = preset.weather ?? 'sunny' }
-  return { furColor, eyeStyle, gearType, faceExpression, background, special, tokenId, seed, activePreset, weather, lightIntensity, rainAmount, cloudAmount, fishAmount, musicOn, language, loading, loadingProgress, panelExpanded, showHints, isSpecialFullScene, randomize, setFromSeed, cycleWeather, togglePanel, setLanguage, applyPreset }
+
+  function applyPreset(preset) {
+    activePreset.value = preset.tokenId
+    tokenId.value = preset.tokenId
+    seed.value = preset.tokenId
+    const fur = getFurTrait(preset.fur || DEFAULT_TRAITS.fur)
+    furStyle.value = fur.id
+    furColor.value = fur.color
+    eyeStyle.value = preset.eyes || DEFAULT_TRAITS.eyes
+    faceExpression.value = preset.face || DEFAULT_TRAITS.face
+    gearType.value = preset.gear ?? null
+    background.value = preset.background ?? DEFAULT_TRAITS.background
+    special.value = preset.special ?? null
+    weather.value = preset.weather ?? 'sunny'
+  }
+
+  return {
+    furStyle, furColor, eyeStyle, gearType, faceExpression, background, special,
+    tokenId, seed, activePreset, weather, lightIntensity, rainAmount, cloudAmount,
+    fishAmount, musicOn, language, loading, loadingProgress, panelExpanded, showHints,
+    isSpecialFullScene, randomize, setFromSeed, cycleWeather, togglePanel, setLanguage,
+    applyPreset, setFurStyle, setCustomFurColor,
+  }
 })
