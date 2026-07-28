@@ -18,6 +18,12 @@
         <div class="param-row"><span class="param-label">背景</span><select class="select-input" :value="store.background || ''" :disabled="Boolean(store.special)" @change="store.setBackground($event.target.value)"><option value="" disabled>{{ store.special ? '场景启用中' : '选择背景' }}</option><option v-for="background in BACKGROUNDS" :key="background">{{ background }}</option></select></div>
         <div class="param-row"><span class="param-label">场景</span><div class="btn-row"><button class="btn small" :class="{ active: store.special === null }" @click="store.setSpecial(null)">默认</button><button v-for="special in SPECIALS" :key="special.id" class="btn small" :class="{ active: store.special === special.id }" @click="store.setSpecial(special.id)">{{ special.label }}</button></div></div>
         <div class="param-row"><span class="param-label">动作</span><div class="btn-row"><button v-for="action in ACTIONS" :key="action.id" class="btn small" :class="{ active: store.actionMode === action.id }" @click="store.actionMode = action.id">{{ action.label }}</button></div></div>
+        <div class="control-hints" aria-label="角色操作说明">
+          <span><kbd>WASD</kbd><b>前进 / 后退 / 左右移动</b></span>
+          <span><kbd>Shift</kbd><b>按住奔跑</b></span>
+          <span><kbd>Space</kbd><b>跳跃</b></span>
+          <span><kbd>Ctrl</kbd><b>按住潜行</b></span>
+        </div>
         <div v-if="store.weather === 'rain' || store.weather === 'thunder'" class="param-row"><span class="param-label">雨量</span><input type="range" min="0" max="2" step=".1" v-model.number="store.rainAmount" class="slider" /><span class="val-text">{{ store.rainAmount.toFixed(1) }}</span></div>
         <div v-if="store.weather !== 'sunny'" class="param-row"><span class="param-label">云量</span><input type="range" min="0" max="2" step=".1" v-model.number="store.cloudAmount" class="slider" /><span class="val-text">{{ store.cloudAmount.toFixed(1) }}</span></div>
       </div>
@@ -142,6 +148,22 @@ const ChoiceRow = defineComponent({
   flex: 1;
 }
 .btn.small { padding: 6px 8px; font-size: .71rem; border-radius: 6px; }
+
+.control-hints {
+  display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 7px;
+  margin: -12px 0 0 50px;
+}
+.control-hints span {
+  display: flex; align-items: center; gap: 7px; min-width: 0;
+  color: var(--text-dim); font-size: .67rem;
+}
+.control-hints kbd {
+  min-width: 42px; padding: 3px 6px; border-radius: 5px; text-align: center;
+  color: var(--accent); background: rgba(255,255,255,.07);
+  border: 1px solid rgba(255,255,255,.13); box-shadow: inset 0 -1px rgba(0,0,0,.25);
+  font: 600 .64rem/1.2 monospace;
+}
+.control-hints b { font-weight: 400; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 
 /* ====== 下拉选择 ====== */
 .select-input {

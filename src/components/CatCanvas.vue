@@ -25,6 +25,9 @@ const movementKeys = new Set()
 const moveDirection = new THREE.Vector3()
 const previousCatPosition = new THREE.Vector3()
 let activePortalId = null
+let jumpRequested = false
+let verticalVelocity = 0
+let grounded = true
 
 function isTypingTarget(target) {
   return target instanceof HTMLElement && ['INPUT', 'TEXTAREA', 'SELECT'].includes(target.tagName)
@@ -32,14 +35,15 @@ function isTypingTarget(target) {
 
 function onKeyDown(event) {
   if (isTypingTarget(event.target)) return
-  const key = event.key.toLowerCase()
-  if (!['w', 'a', 's', 'd'].includes(key)) return
-  movementKeys.add(key)
+  const supported = ['KeyW', 'KeyA', 'KeyS', 'KeyD', 'ShiftLeft', 'ShiftRight', 'ControlLeft', 'ControlRight', 'Space']
+  if (!supported.includes(event.code)) return
+  movementKeys.add(event.code)
+  if (event.code === 'Space' && !event.repeat) jumpRequested = true
   event.preventDefault()
 }
 
 function onKeyUp(event) {
-  movementKeys.delete(event.key.toLowerCase())
+  movementKeys.delete(event.code)
 }
 
 // ===== 装备物理系统 =====
@@ -88,7 +92,10 @@ onMounted(async () => {
   catModel.setFaceExpression(store.faceExpression)
   catModel.setGear(store.gearType)
   catModel.setAnimation(store.actionMode)
-  catModel.group.userData.movement = { controls: 'WASD', enabled: true, speed: 1.35 }
+  catModel.group.userData.movement = {
+    controls: 'WASD', enabled: true, walkSpeed: 1.1, runSpeed: 2.4,
+    sneakSpeed: 0.55, jumpVelocity: 3.4,
+  }
   scene.add(catModel.group)
   specialGroup = new THREE.Group()
   scene.add(specialGroup)
@@ -438,17 +445,41 @@ function checkPortalEntry() {
 function updateCharacterMovement(dt) {
   if (!catModel) return
   moveDirection.set(
-    (movementKeys.has('d') ? 1 : 0) - (movementKeys.has('a') ? 1 : 0),
+    (movementKeys.has('KeyD') ? 1 : 0) - (movementKeys.has('KeyA') ? 1 : 0),
     0,
-    (movementKeys.has('s') ? 1 : 0) - (movementKeys.has('w') ? 1 : 0),
+    (movementKeys.has('KeyS') ? 1 : 0) - (movementKeys.has('KeyW') ? 1 : 0),
   )
   const moving = moveDirection.lengthSq() > 0
-  catModel.setAnimation(moving ? 'run' : store.actionMode)
+  const sprinting = movementKeys.has('ShiftLeft') || movementKeys.has('ShiftRight')
+  const sneaking = movementKeys.has('ControlLeft') || movementKeys.has('ControlRight')
+  const movement = catModel.group.userData.movement
+
+  if (jumpRequested && grounded) {
+    verticalVelocity = movement.jumpVelocity
+    grounded = false
+  }
+  jumpRequested = false
+  if (!grounded) {
+    verticalVelocity -= 9.8 * dt
+    catModel.group.position.y += verticalVelocity * dt
+    if (catModel.group.position.y <= 0) {
+      catModel.group.position.y = 0
+      verticalVelocity = 0
+      grounded = true
+    }
+  }
+
+  if (!grounded) catModel.setAnimation('jump')
+  else if (sneaking) catModel.setAnimation('crouch')
+  else if (moving) {
+    catModel.setRunSpeed(sprinting ? 1.35 : 0.68)
+    catModel.setAnimation('run')
+  } else catModel.setAnimation(store.actionMode)
   if (!moving) return
 
   moveDirection.normalize()
   previousCatPosition.copy(catModel.group.position)
-  const speed = catModel.group.userData.movement?.speed || 1.35
+  const speed = sneaking ? movement.sneakSpeed : sprinting ? movement.runSpeed : movement.walkSpeed
   catModel.group.position.addScaledVector(moveDirection, speed * dt)
   catModel.group.position.x = THREE.MathUtils.clamp(catModel.group.position.x, -4.6, 4.6)
   catModel.group.position.z = THREE.MathUtils.clamp(catModel.group.position.z, -4.6, 4.6)
@@ -456,6 +487,7 @@ function updateCharacterMovement(dt) {
   catModel.group.rotation.y = THREE.MathUtils.lerp(catModel.group.rotation.y, targetYaw, 1 - Math.exp(-12 * dt))
 
   const displacement = catModel.group.position.clone().sub(previousCatPosition)
+  displacement.y = 0
   camera.position.add(displacement)
   controls.target.add(displacement)
   checkPortalEntry()
