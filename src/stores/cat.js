@@ -14,17 +14,14 @@ import {
   createRng,
   getFurTrait,
 } from '../config/traits.js'
+import { POSE_CONFIGS } from '../config/poses.js'
 
 export const FUR_PRESETS = FUR_TRAITS
 export { EYE_STYLES, FACE_EXPRESSIONS, PRESET_CATS }
 export const GEAR_LIST = GEAR_TRAITS
 export const BACKGROUNDS = BACKGROUND_TRAITS
 export const SPECIALS = SPECIAL_TRAITS
-export const ACTIONS = [
-  { id: 'idle', label: '默认' },
-  { id: 'run', label: '跑步' },
-  { id: 'flex', label: '秀肌肉' },
-]
+export const ACTIONS = POSE_CONFIGS
 
 const WEATHERS = ['sunny', 'cloudy', 'thunder', 'rain']
 
@@ -40,7 +37,7 @@ export const useCatStore = defineStore('cat', () => {
   const tokenId = ref(1)
   const seed = ref(Date.now())
   const activePreset = ref(null)
-  const actionMode = ref('idle')
+  const actionMode = ref('standing')
   const qualityMode = ref('auto')
 
   const weather = ref('sunny')

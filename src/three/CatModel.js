@@ -1,4 +1,5 @@
 import * as THREE from 'three'
+import { normalizePoseId } from '../config/poses.js'
 import { RoundedBoxGeometry } from 'three/addons/geometries/RoundedBoxGeometry.js'
 import { createGear, TEXTURE_GEAR_TYPES } from './EquipmentFactory.js'
 import { applyEquipmentAttachment } from './EquipmentAttachments.js'
@@ -509,7 +510,7 @@ export class CatModel {
     this._faceExpression = 'Excited'
     this._gearType = null
     this._eyelids = []
-    this._animationMode = 'idle'
+    this._animationMode = 'standing'
     this._runSpeed = 1
 
     // 子组引用
@@ -569,8 +570,8 @@ export class CatModel {
     this._rebuildGear()
   }
 
-  setAnimation(mode = 'idle') {
-    this._animationMode = ['run', 'flex', 'crouch', 'jump'].includes(mode) ? mode : 'idle'
+  setAnimation(mode = 'standing') {
+    this._animationMode = mode === 'flex' || mode === 'crouch' ? mode : normalizePoseId(mode)
   }
 
   setRunSpeed(speed = 1) {
@@ -672,6 +673,28 @@ export class CatModel {
     this._updateTailSurface(time, 0.035, 0.8)
   }
 
+  _updateSplaySit(time) {
+    const breathe = Math.sin(time * 1.8) * 0.008
+    this.root.scale.set(1.08, 0.84 + breathe, 1.06)
+    if (this._bodyGroup) this._bodyGroup.position.y = -0.10
+    if (this._headGroup) this._headGroup.rotation.set(0.055, 0, Math.sin(time * 0.8) * 0.018)
+    ;[[this._armLGroup, -1], [this._armRGroup, 1]].forEach(([arm, side]) => {
+      if (!arm) return
+      const { elbow, wrist } = arm.userData.joints || {}
+      arm.rotation.set(0.10, 0, side * 0.12)
+      if (elbow) elbow.rotation.set(0.28, 0, -side * 0.06)
+      if (wrist) wrist.rotation.set(-0.10, 0, side * 0.04)
+    })
+    ;[[this._footLGroup, -1], [this._footRGroup, 1]].forEach(([leg, side]) => {
+      if (!leg) return
+      const { knee, ankle } = leg.userData.joints || {}
+      leg.rotation.set(-0.48, side * 0.16, side * 0.72)
+      if (knee) knee.rotation.set(1.02, 0, -side * 0.18)
+      if (ankle) ankle.rotation.set(-0.56, 0, side * 0.14)
+    })
+    this._updateTailSurface(time, 0.028, 0.65)
+  }
+
   _updateJump(time) {
     this.root.scale.set(1.01, 1.08, 0.98)
     if (this._headGroup) this._headGroup.rotation.set(-0.08, 0, 0)
@@ -692,7 +715,85 @@ export class CatModel {
     this._updateTailSurface(time, 0.075, 2.2)
   }
 
+  _updateLieDown(time) {
+    const breathe = Math.sin(time * 1.35) * 0.007
+    this.root.scale.set(1.10, 0.64 + breathe, 1.16)
+    if (this._bodyGroup) this._bodyGroup.position.y = -0.22
+    if (this._headGroup) this._headGroup.rotation.set(0.12, 0, Math.sin(time * 0.65) * 0.012)
+    ;[[this._armLGroup, -1], [this._armRGroup, 1]].forEach(([arm, side]) => {
+      if (!arm) return
+      const { elbow, wrist } = arm.userData.joints || {}
+      arm.rotation.set(0.68, side * 0.08, side * 0.17)
+      if (elbow) elbow.rotation.set(0.72, 0, -side * 0.12)
+      if (wrist) wrist.rotation.set(-0.34, 0, side * 0.06)
+    })
+    ;[[this._footLGroup, -1], [this._footRGroup, 1]].forEach(([leg, side]) => {
+      if (!leg) return
+      const { knee, ankle } = leg.userData.joints || {}
+      leg.rotation.set(-0.92, side * 0.08, side * 0.20)
+      if (knee) knee.rotation.set(1.16, 0, -side * 0.10)
+      if (ankle) ankle.rotation.set(-0.54, 0, side * 0.08)
+    })
+    this._updateTailSurface(time, 0.022, 0.55)
+  }
+
+  _updateSleep(time) {
+    const breathe = Math.sin(time * 0.82) * 0.014
+    this.root.scale.set(1.13 + breathe * 0.25, 0.60 + breathe, 1.18)
+    if (this._bodyGroup) this._bodyGroup.position.y = -0.25
+    if (this._headGroup) this._headGroup.rotation.set(0.16, 0.16, -0.18 + Math.sin(time * 0.42) * 0.008)
+    for (const [ear, side] of [[this._earLGroup, -1], [this._earRGroup, 1]]) {
+      if (ear) ear.rotation.set(-0.12, 0, side * 0.11)
+    }
+    ;[[this._armLGroup, -1], [this._armRGroup, 1]].forEach(([arm, side]) => {
+      if (!arm) return
+      const { elbow, wrist } = arm.userData.joints || {}
+      arm.rotation.set(0.76, side * 0.10, side * 0.25)
+      if (elbow) elbow.rotation.set(0.94, 0, -side * 0.18)
+      if (wrist) wrist.rotation.set(-0.42, 0, side * 0.10)
+    })
+    ;[[this._footLGroup, -1], [this._footRGroup, 1]].forEach(([leg, side]) => {
+      if (!leg) return
+      const { knee, ankle } = leg.userData.joints || {}
+      leg.rotation.set(-1.02, side * 0.12, side * 0.32)
+      if (knee) knee.rotation.set(1.28, 0, -side * 0.16)
+      if (ankle) ankle.rotation.set(-0.64, 0, side * 0.12)
+    })
+    this._updateTailSurface(time, 0.012, 0.32)
+  }
+
+  _updateWave(time) {
+    const wave = Math.sin(time * 5.2)
+    const breathe = 1 + Math.sin(time * 1.5) * 0.009
+    this.root.scale.set(1.05 * breathe, 1.02 * breathe, breathe)
+    if (this._headGroup) this._headGroup.rotation.set(0, -0.08, -0.035 + wave * 0.012)
+    const left = this._armLGroup
+    if (left) {
+      const { elbow, wrist } = left.userData.joints || {}
+      left.rotation.set(0, 0, -0.08)
+      if (elbow) elbow.rotation.set(0, 0, 0)
+      if (wrist) wrist.rotation.set(0, 0, 0)
+    }
+    const right = this._armRGroup
+    if (right) {
+      const { elbow, wrist } = right.userData.joints || {}
+      right.rotation.set(-0.10, 0, 1.72 + wave * 0.10)
+      if (elbow) elbow.rotation.set(0.18, 0, -0.34)
+      if (wrist) wrist.rotation.set(-0.06, 0, wave * 0.34)
+    }
+    for (const leg of [this._footLGroup, this._footRGroup]) {
+      const { knee, ankle } = leg?.userData.joints || {}
+      if (leg) leg.rotation.set(0, 0, 0)
+      if (knee) knee.rotation.set(0, 0, 0)
+      if (ankle) ankle.rotation.set(0, 0, 0)
+    }
+    this._updateTailSurface(time, 0.048, 1.35)
+  }
+
   update(time) {
+    if (this._bodyGroup) this._bodyGroup.position.y = 0
+    if (this._earLGroup) this._earLGroup.rotation.set(0, 0, 0)
+    if (this._earRGroup) this._earRGroup.rotation.set(0, 0, 0)
     if (this._animationMode === 'run') {
       this._updateRun(time)
       return
@@ -707,6 +808,22 @@ export class CatModel {
     }
     if (this._animationMode === 'jump') {
       this._updateJump(time)
+      return
+    }
+    if (this._animationMode === 'sit-splay') {
+      this._updateSplaySit(time)
+      return
+    }
+    if (this._animationMode === 'lie-down') {
+      this._updateLieDown(time)
+      return
+    }
+    if (this._animationMode === 'sleep') {
+      this._updateSleep(time)
+      return
+    }
+    if (this._animationMode === 'wave') {
+      this._updateWave(time)
       return
     }
     // 呼吸动画 + Meow-Generator 风格 idle

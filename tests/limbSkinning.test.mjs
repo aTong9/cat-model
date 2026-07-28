@@ -17,9 +17,9 @@ test('arms and legs use continuous skinned surfaces with three-bone chains', () 
   model.dispose()
 })
 
-test('continuous limbs remain finite through run, crouch and jump poses', () => {
+test('continuous limbs remain finite through every configured pose', () => {
   const model = new CatModel()
-  for (const animation of ['run', 'crouch', 'jump']) {
+  for (const animation of ['standing', 'sit-splay', 'run', 'jump', 'lie-down', 'sleep', 'wave']) {
     model.setAnimation(animation)
     model.update(0.75)
     model.group.updateMatrixWorld(true)
@@ -28,6 +28,33 @@ test('continuous limbs remain finite through run, crouch and jump poses', () => 
       assert.ok(object.matrixWorld.elements.every(Number.isFinite), `${animation}:${object.name}`)
     })
   }
+  model.dispose()
+})
+
+test('lie down and sleep keep the body low while wave raises the right arm', () => {
+  const model = new CatModel()
+  for (const pose of ['lie-down', 'sleep']) {
+    model.setAnimation(pose)
+    model.update(0.8)
+    assert.ok(model._bodyGroup.position.y <= -0.2, pose)
+    assert.ok(model.group.scale.y < 0.7, pose)
+  }
+  model.setAnimation('wave')
+  model.update(0.3)
+  assert.ok(model.group.getObjectByName('ArmRight').rotation.z > 1.5)
+  assert.ok(model.group.getObjectByName('ArmLeft').rotation.z < 0)
+  model.dispose()
+})
+
+test('splay sit lowers the body and opens both legs', () => {
+  const model = new CatModel()
+  model.setAnimation('sit-splay')
+  model.update(0.5)
+  const left = model.group.getObjectByName('LegLeft')
+  const right = model.group.getObjectByName('LegRight')
+  assert.ok(model._bodyGroup.position.y < 0)
+  assert.ok(left.rotation.z < -0.5)
+  assert.ok(right.rotation.z > 0.5)
   model.dispose()
 })
 

@@ -16,6 +16,7 @@ import { createRenderLifecycleController } from '../three/RenderLifecycleControl
 import { createRenderQualityController } from '../three/RenderQualityController.js'
 import { createEquipmentScatterController } from '../three/EquipmentScatterController.js'
 import * as THREE from 'three'
+import { getNextPoseId } from '../config/poses.js'
 
 const store = useCatStore()
 const canvasRef = ref(null)
@@ -36,6 +37,9 @@ let activePortalId = null
 let verticalVelocity = 0
 let grounded = true
 let cameraTransition = null
+let componentDisposed = false
+const catRaycaster = new THREE.Raycaster()
+const catPointer = new THREE.Vector2()
 
 const CAMERA_VIEWS = Object.freeze({
   front: new THREE.Vector3(0, 0.45, 4.6),
@@ -63,10 +67,13 @@ function onVirtualInput(event) {
 }
 
 onMounted(async () => {
+  componentDisposed = false
+  const canvas = canvasRef.value
+  if (!canvas) return
   // 预加载装备贴图
   await preloadGearTextures()
+  if (componentDisposed) return
 
-  const canvas = canvasRef.value
   const setup = createScene(canvas)
   renderer = setup.renderer
   scene = setup.scene
@@ -137,6 +144,7 @@ onMounted(async () => {
 })
 
 onUnmounted(() => {
+  componentDisposed = true
   specialSceneLoadGuard.invalidate()
   lifecycleController?.dispose()
   stopAnimation()
@@ -154,12 +162,29 @@ onUnmounted(() => {
 })
 
 function onClick(e) {
-  equipmentScatterController?.cast(e.clientX, e.clientY)
+  if (equipmentScatterController?.cast(e.clientX, e.clientY)) return
+  cyclePoseWhenCatHit(e.clientX, e.clientY)
 }
 
 function onTouch(e) {
   const touch = e.changedTouches[0]
-  if (touch) equipmentScatterController?.cast(touch.clientX, touch.clientY)
+  if (!touch || equipmentScatterController?.cast(touch.clientX, touch.clientY)) return
+  cyclePoseWhenCatHit(touch.clientX, touch.clientY)
+}
+
+function cyclePoseWhenCatHit(clientX, clientY) {
+  const canvas = canvasRef.value
+  const rect = canvas?.getBoundingClientRect()
+  if (!rect?.width || !rect?.height || !camera || !catModel) return false
+  catPointer.set(
+    ((clientX - rect.left) / rect.width) * 2 - 1,
+    -((clientY - rect.top) / rect.height) * 2 + 1,
+  )
+  catRaycaster.setFromCamera(catPointer, camera)
+  const hit = catRaycaster.intersectObject(catModel.group, true).some(({ object }) => object.isMesh)
+  if (!hit) return false
+  store.actionMode = getNextPoseId(store.actionMode)
+  return true
 }
 
 // === 监听 Store 变化 → 更新 3D 模型 ===
