@@ -33,6 +33,21 @@ export function createCatEar(headRadius, side, gradientMap) {
     bevelSize: headRadius * 0.055, bevelThickness: headRadius * 0.045,
   })
   geometry.center()
+  // Taper the rear cross-section so the ear reads as a triangular wedge in
+  // profile instead of an equal-depth extruded card.
+  geometry.computeBoundingBox()
+  const positions = geometry.getAttribute('position')
+  const minZ = geometry.boundingBox.min.z
+  const depth = Math.max(0.001, geometry.boundingBox.max.z - minZ)
+  for (let index = 0; index < positions.count; index++) {
+    const frontWeight = (positions.getZ(index) - minZ) / depth
+    const sectionScale = THREE.MathUtils.lerp(0.24, 1, frontWeight)
+    positions.setXY(index, positions.getX(index) * sectionScale, positions.getY(index) * sectionScale)
+  }
+  positions.needsUpdate = true
+  geometry.computeVertexNormals()
+  geometry.computeBoundingBox()
+  geometry.computeBoundingSphere()
   const outer = new THREE.Mesh(geometry, new THREE.MeshToonMaterial({ color: '#f4c430', gradientMap }))
   outer.name = side < 0 ? 'EarLeftOuter' : 'EarRightOuter'
   outer.position.y = headRadius * 0.22

@@ -85,13 +85,24 @@ function createSkinnedLimb({ name, upperVector, lowerVector, radii, material, ra
 export function createRaisedArm(side, { gradientMap, createHeart }) {
   const shoulder = new THREE.Group()
   shoulder.name = side < 0 ? 'ArmLeft' : 'ArmRight'
-  shoulder.position.set(side * 0.34, 0.64, 0.10)
+  shoulder.position.set(side * 0.32, 0.64, 0.12)
   const fur = new THREE.MeshToonMaterial({
     color: '#f4c430',
     gradientMap: gradientMap,
   })
   const pawFur = new THREE.MeshToonMaterial({ color: '#f5f1e6', gradientMap: gradientMap })
   const pad = new THREE.MeshStandardMaterial({ color: '#f06f78', roughness: 0.42 })
+  // Sink a soft shoulder cap into the chest. The body and limbs are separate
+  // meshes, so the cap hides the body-outline seam and keeps the joint reading
+  // as one continuous silhouette while the arm pivots.
+  const shoulderBlend = createFurJointCover(
+    0.168,
+    fur,
+    `${shoulder.name}ShoulderBlend`,
+    [1.08, 1.16, 0.96],
+  )
+  shoulderBlend.position.set(-side * 0.028, -0.012, -0.018)
+  shoulder.add(shoulderBlend)
   // The reference arm is a single tapered silhouette. Its bind pose points
   // downward so idle never needs the old 180° elbow fold that pinched the mesh.
   const upperVector = new THREE.Vector3(side * 0.045, -0.27, 0.055)
@@ -114,13 +125,11 @@ export function createRaisedArm(side, { gradientMap, createHeart }) {
   palm.castShadow = true
   wrist.add(palm)
 
-  // Five individually modelled digits: four upper fingers and one lower thumb.
+  // Three shallow knuckles match the neutral mitten-like reference hand.
   const digits = [
-    { x: -0.068, y: 0.052, s: 0.92 },
-    { x: -0.036, y: 0.098, s: 1.00 },
-    { x: 0, y: 0.128, s: 1.04 },
-    { x: 0.036, y: 0.098, s: 1.00 },
-    { x: 0.068, y: 0.052, s: 0.92 },
+    { x: -0.045, y: 0.070, s: 0.94 },
+    { x: 0, y: 0.096, s: 1.00 },
+    { x: 0.045, y: 0.070, s: 0.94 },
   ]
   digits.forEach((finger, index) => {
     const digit = new THREE.Mesh(new THREE.SphereGeometry(0.050 * finger.s, 16, 12), pawFur)
@@ -134,6 +143,7 @@ export function createRaisedArm(side, { gradientMap, createHeart }) {
     fingerPad.scale.set(0.90, 1.08, 0.34)
     fingerPad.position.set(digit.position.x, digit.position.y - 0.004, 0.118)
     fingerPad.name = `${shoulder.name}FingerPad${index + 1}`
+    fingerPad.visible = false
     wrist.add(fingerPad)
   })
 
@@ -141,8 +151,21 @@ export function createRaisedArm(side, { gradientMap, createHeart }) {
   pawPad.scale.set(1.06, 0.94, 0.58)
   pawPad.position.set(0, -0.018, 0.140)
   pawPad.name = `${shoulder.name}Pad`
+  pawPad.visible = false
   wrist.add(pawPad)
   shoulder.userData.joints = { elbow, wrist }
+  shoulder.userData.attachment = {
+    parentId: 'body',
+    parentSocket: side < 0 ? 'shoulder-left' : 'shoulder-right',
+    localStart: shoulder.position.toArray(),
+    localEnd: shoulder.position.clone().add(upperVector).add(foreVector).toArray(),
+    baseRadius: 0.168,
+    endRadius: 0.102,
+    embedDepth: 0.105,
+    contactType: 'embedded',
+    gapTolerance: 0.01,
+    evidenceRefs: ['pixel_cat_3d/sdf/1.png', 'pixel_cat_3d/sdf/2.png'],
+  }
   return shoulder
 }
 
@@ -156,9 +179,9 @@ export function createFoot(side, { gradientMap, createHeart }) {
   })
   const pawFur = new THREE.MeshToonMaterial({ color: '#f5f1e6', gradientMap: gradientMap })
   const pad = new THREE.MeshStandardMaterial({ color: '#f06f78', roughness: 0.42 })
-  const thighVector = new THREE.Vector3(side * 0.01, -0.22, 0.045)
+  const thighVector = new THREE.Vector3(side * 0.01, -0.20, 0.035)
   hip.add(createFurJointCover(0.148, fur, `${hip.name}HipBlend`, [1.08, 1.14, 1.08]))
-  const shinVector = new THREE.Vector3(-side * 0.01, -0.17, 0.075)
+  const shinVector = new THREE.Vector3(-side * 0.01, -0.15, 0.060)
   const limb = createSkinnedLimb({
     name: hip.name,
     upperVector: thighVector,
@@ -195,17 +218,16 @@ export function createFoot(side, { gradientMap, createHeart }) {
 
     const toePad = new THREE.Mesh(new THREE.SphereGeometry(0.016 * edgeScale, 10, 8), pad)
     toePad.scale.set(0.92, 1.04, 0.34)
-    toePad.position.set(toe.position.x, toe.position.y, toe.position.z + 0.039)
+    toePad.position.set(toe.position.x, toe.position.y, -0.075)
     toePad.name = `${hip.name}ToePad${index + 1}`
     ankle.add(toePad)
   })
 
   const solePad = createHeart(0.067, pad)
   solePad.scale.set(1.12, 1.02, 0.72)
-  solePad.position.set(center.x, center.y - 0.040, center.z + 0.225)
+  solePad.position.set(center.x, center.y + 0.015, -0.105)
   solePad.name = `${hip.name}MainPad`
   ankle.add(solePad)
   hip.userData.joints = { knee, ankle }
   return hip
 }
-

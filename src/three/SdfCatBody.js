@@ -58,18 +58,20 @@ export function createSdfCatBody(furColor = '#f4c430', opts = {}) {
     //  头部
     // ================================================================
     sphere({
-      c: { x: 0, y: 1.02, z: 0.02 },
-      r: hRad,
-      s: [1.22 * hr, 1.02, 1.08],
+      c: { x: 0, y: 1.00, z: 0.01 },
+      r: hRad * 1.08,
+      // The reference is broad and nearly vertical from the front, but notably
+      // shallower in profile than the old loaf-shaped body.
+      s: [1.13 * hr, 0.92, 0.92],
       k: 0.22,
       tag: 'head',
     }),
 
     // 吻部
     sphere({
-      c: { x: 0, y: 0.91, z: 0.37 },
+      c: { x: 0, y: 0.89, z: 0.31 },
       r: hRad * 0.32,
-      s: [1.30, 0.76, 0.82],
+      s: [1.32, 0.76, 0.76],
       k: 0.10,
       tag: 'snout',
     }),
@@ -96,24 +98,24 @@ export function createSdfCatBody(furColor = '#f4c430', opts = {}) {
     // 上胸 —— 略宽，模拟锁骨/肩膀区域
     sphere({
       c: { x: 0, y: 0.68, z: 0 },
-      r: 0.38,
-      s: [1.20 * wid, 1.18, 1.02],
+      r: 0.39,
+      s: [1.16 * wid, 1.15, 0.92],
       k: 0.22, tag: 'body',
     }),
 
     // 中腹 —— 收腰感
     sphere({
-      c: { x: 0, y: 0.34, z: 0.02 },
-      r: 0.39,
-      s: [1.16 * wid, 1.15, 1.08],
+      c: { x: 0, y: 0.32, z: 0.01 },
+      r: 0.40,
+      s: [1.10 * wid, 1.18, 0.95],
       k: 0.22, tag: 'body',
     }),
 
     // 臀部 —— 略宽
     sphere({
-      c: { x: 0, y: -0.02, z: 0.04 },
+      c: { x: 0, y: -0.03, z: 0.02 },
       r: 0.38,
-      s: [1.10 * wid, 0.88, 1.12],
+      s: [1.08 * wid, 0.92, 1.00],
       k: 0.22, tag: 'body',
     }),
 
@@ -186,7 +188,7 @@ export function createSdfCatBody(furColor = '#f4c430', opts = {}) {
   mesh.name = 'SdfCatBody'
 
   // 头部中心（供面特征定位）
-  const headCenter = new THREE.Vector3(0, 1.02, 0.02)
+  const headCenter = new THREE.Vector3(0, 1.00, 0.01)
 
   return { mesh, headCenter, headRadius: hRad, prims: bodyPrims }
 }

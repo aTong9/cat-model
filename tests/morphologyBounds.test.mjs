@@ -88,3 +88,25 @@ test('non-tail morphology drags reuse geometry and materials', () => {
     assembly.dispose()
   }
 })
+
+test('body-scale extremes keep arm and tail roots embedded with the body', () => {
+  const assembly = createCatAssembly({ morphology: { bodyScale: 1 } })
+  try {
+    const leftArm = assembly.parts['arm-left']
+    const rightArm = assembly.parts['arm-right']
+    const tail = assembly.parts.tail
+    assert.ok(tail.getObjectByName('TailRootBlend')?.isMesh)
+    assert.equal(tail.userData.attachment.parentSocket, 'tail-base')
+    assert.equal(tail.userData.attachment.contactType, 'embedded')
+
+    for (const bodyScale of [MORPHOLOGY_DEFINITIONS.bodyScale.min, 1, MORPHOLOGY_DEFINITIONS.bodyScale.max]) {
+      assembly.apply({ morphology: { ...assembly.traits.morphology, bodyScale } })
+      assert.equal(leftArm.position.x, -0.32 * bodyScale)
+      assert.equal(rightArm.position.x, 0.32 * bodyScale)
+      assert.equal(tail.position.x, 0.04 * bodyScale)
+      assert.equal(tail.position.z, -0.31 * bodyScale)
+    }
+  } finally {
+    assembly.dispose()
+  }
+})

@@ -17,6 +17,24 @@ test('arms and legs use continuous skinned surfaces with three-bone chains', () 
   model.dispose()
 })
 
+test('default arms expose embedded shoulder blends and attachment contracts', () => {
+  const model = new CatModel()
+  try {
+    for (const [name, socket] of [['ArmLeft', 'shoulder-left'], ['ArmRight', 'shoulder-right']]) {
+      const arm = model.group.getObjectByName(name)
+      const blend = model.group.getObjectByName(`${name}ShoulderBlend`)
+      assert.ok(blend?.isMesh, name)
+      assert.equal(arm.userData.attachment.parentId, 'body')
+      assert.equal(arm.userData.attachment.parentSocket, socket)
+      assert.equal(arm.userData.attachment.contactType, 'embedded')
+      assert.ok(arm.userData.attachment.embedDepth >= 0.1)
+      assert.ok(arm.userData.attachment.gapTolerance <= 0.01)
+    }
+  } finally {
+    model.dispose()
+  }
+})
+
 test('continuous limbs remain finite through every configured pose', () => {
   const model = new CatModel()
   for (const animation of ['standing', 'sit-splay', 'run', 'jump', 'lie-down', 'sleep', 'wave']) {
@@ -117,8 +135,8 @@ test('idle and run embed shoulders while hands flare slightly outward', () => {
 
   model.setAnimation('idle')
   model.update(0.7)
-  assert.equal(Math.abs(left.position.x), 0.34)
-  assert.equal(Math.abs(right.position.x), 0.34)
+  assert.equal(Math.abs(left.position.x), 0.32)
+  assert.equal(Math.abs(right.position.x), 0.32)
   assert.ok(left.rotation.z < -0.06)
   assert.ok(right.rotation.z > 0.06)
 

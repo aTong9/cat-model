@@ -261,7 +261,7 @@ export class CatModel {
     const trait = style === 'Custom' ? { color: hex } : getFurTrait(style)
     this.root.traverse(part => {
       if (!part.isMesh || !part.material?.color) return
-      if (/Arm(Left|Right)(Upper|Fore|Socket|ElbowBlend|WristCover|ContinuousSurface)|Leg(Left|Right)(Upper|Lower|HipBlend|KneeBlend|AnkleCover|ContinuousSurface)|Tail(Segment|Blend|Surface)|Ear(Left|Right)Outer/.test(part.name)) part.material.color.set(trait.color)
+      if (/Arm(Left|Right)(Upper|Fore|Socket|ShoulderBlend|ElbowBlend|WristCover|ContinuousSurface)|Leg(Left|Right)(Upper|Lower|HipBlend|KneeBlend|AnkleCover|ContinuousSurface)|Tail(Segment|RootBlend|Blend|Surface)|Ear(Left|Right)Outer/.test(part.name)) part.material.color.set(trait.color)
       if (/Paw$|Digit\d|Leg(Left|Right)Sole|Toe\d/.test(part.name)) part.material.color.set('#f5f1e6')
     })
   }
@@ -303,6 +303,7 @@ export class CatModel {
     this.root.userData.morphology = applyMorphology({
       body: this.registry.getPart('body'), head: this.registry.getPart('head'),
       earLeft: this.registry.getPart('ear-left'), earRight: this.registry.getPart('ear-right'),
+      armLeft: this.registry.getPart('arm-left'), armRight: this.registry.getPart('arm-right'),
       legLeft: this.registry.getPart('leg-left'), legRight: this.registry.getPart('leg-right'), tail: this.registry.getPart('tail'),
     }, { bodyScale, headScale, earScale, legLength, tailLength, tailCurl })
   }
@@ -420,7 +421,7 @@ export class CatModel {
     // Keep the expression root on the muzzle surface. Small line/tube expressions were
     // previously buried inside the deeper SDF head while only the large Excited mouth escaped.
     this._mouthGroup.position.set(0, -headRadius * 0.50, headRadius * 1.18)
-    this._mouthGroup.scale.setScalar(1.32)
+    this._mouthGroup.scale.setScalar(1.05)
     headGroup.add(this._mouthGroup)
     this._rebuildMouth()
 
@@ -478,7 +479,7 @@ export class CatModel {
     const expr = this._faceExpression
     const g = this._mouthGroup
     const profile = getFaceAppearanceProfile(expr)
-    g.scale.setScalar(1.32 * profile.scale)
+    g.scale.setScalar(1.05 * profile.scale)
     g.userData.faceExpression = expr
     g.userData.faceFamily = profile.family
     g.userData.faceBounds = { width: profile.mouthWidth, height: profile.mouthHeight }
