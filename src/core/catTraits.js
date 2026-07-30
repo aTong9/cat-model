@@ -3,7 +3,13 @@ import {
   FUR_TRAITS, GEAR_TRAITS, SPECIAL_TRAITS, getFurTrait,
 } from '../config/traits.js'
 
-export const CAT_TRAITS_SCHEMA_VERSION = 1
+export const CAT_TRAITS_SCHEMA_VERSION = 2
+export const MORPHOLOGY_DEFINITIONS = Object.freeze({
+  bodyScale: Object.freeze({ min: 0.8, max: 1.25, default: 1 }),
+  headScale: Object.freeze({ min: 0.8, max: 1.25, default: 1 }),
+  earScale: Object.freeze({ min: 0.7, max: 1.35, default: 1 }),
+  tailLength: Object.freeze({ min: 0.7, max: 1.4, default: 1 }),
+})
 export const EXCLUDED_TOKEN_IDS = new Set([
   '4768',
   '4188087532617125273825521422781690267136463389660746064323733694581280079873',
@@ -35,6 +41,15 @@ function normalizeValue(key, value) {
   return aliases.get(`${key}:${String(value).trim().toLowerCase()}`) ?? null
 }
 
+function normalizeMorphology(input = {}) {
+  const source = input.morphology ?? input
+  return Object.fromEntries(Object.entries(MORPHOLOGY_DEFINITIONS).map(([key, definition]) => {
+    const value = Number(source?.[key])
+    const normalized = Number.isFinite(value) ? Math.min(definition.max, Math.max(definition.min, value)) : definition.default
+    return [key, Math.round(normalized * 1000) / 1000]
+  }))
+}
+
 export function isExcludedTokenId(value) {
   const tokenId = normalizeTokenId(value)
   return tokenId == null || EXCLUDED_TOKEN_IDS.has(tokenId)
@@ -52,6 +67,7 @@ export function createCatTraits(input = {}) {
     gear: normalizeValue('gear', input.gear ?? input.gearType),
     background: normalizeValue('background', input.background),
     special: normalizeValue('special', input.special),
+    morphology: normalizeMorphology(input),
   }
 }
 
@@ -86,7 +102,15 @@ export function validateCatTraits(traits) {
     if (value != null && !definitions[key].includes(value)) errors.push(`invalid-${key}:${value}`)
   }
   if (traits?.tokenId != null && isExcludedTokenId(traits.tokenId)) errors.push(`excluded-token:${traits.tokenId}`)
+  for (const [key, definition] of Object.entries(MORPHOLOGY_DEFINITIONS)) {
+    const value = traits?.morphology?.[key]
+    if (!Number.isFinite(value) || value < definition.min || value > definition.max) errors.push(`invalid-morphology:${key}`)
+  }
   return { valid: errors.length === 0, errors }
+}
+
+export function migrateCatTraits(input = {}) {
+  return createCatTraits(input)
 }
 
 export function toMetadataAttributes(traits) {

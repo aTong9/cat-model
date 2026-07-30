@@ -1,6 +1,7 @@
 import { createCatTraits } from './catTraits.js'
 
 const PARAMS = Object.freeze({ eyes: 'eyes', face: 'face', fur: 'fur', furColor: 'color', gear: 'gear', background: 'bg', special: 'special' })
+const MORPHOLOGY_PARAMS = Object.freeze({ bodyScale: 'body', headScale: 'head', earScale: 'ears', tailLength: 'tail' })
 
 export function createShareQuery(input) {
   const traits = createCatTraits(input)
@@ -10,6 +11,7 @@ export function createShareQuery(input) {
     const value = traits[key]
     if (value != null && value !== '') params.set(param, value)
   }
+  for (const [key, param] of Object.entries(MORPHOLOGY_PARAMS)) params.set(param, String(traits.morphology[key]))
   return params.toString()
 }
 
@@ -18,6 +20,10 @@ export function parseShareQuery(query) {
   const input = { tokenId: params.get('tokenId') }
   for (const [key, param] of Object.entries(PARAMS)) {
     if (params.has(param)) input[key] = params.get(param) || null
+  }
+  input.morphology = {}
+  for (const [key, param] of Object.entries(MORPHOLOGY_PARAMS)) {
+    if (params.has(param)) input.morphology[key] = params.get(param)
   }
   return createCatTraits(input)
 }

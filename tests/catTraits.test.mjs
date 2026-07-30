@@ -1,6 +1,6 @@
 import test from 'node:test'
 import assert from 'node:assert/strict'
-import { createCatTraits, isExcludedTokenId, normalizeMetadataRecord, toMetadataAttributes, validateCatTraits } from '../src/core/catTraits.js'
+import { createCatTraits, isExcludedTokenId, migrateCatTraits, normalizeMetadataRecord, toMetadataAttributes, validateCatTraits } from '../src/core/catTraits.js'
 import { createCatAssembly } from '../src/core/createCatAssembly.js'
 
 test('normalizes a Liberty Cats metadata record', () => {
@@ -38,5 +38,19 @@ test('builds and updates a character without Vue or the DOM', () => {
   assembly.apply({ fur: 'Tuxedo', eyes: 'VR' })
   assert.equal(assembly.traits.fur, 'Tuxedo')
   assert.equal(assembly.traits.eyes, 'VR')
+  assembly.dispose()
+})
+
+test('migrates v1 traits and clamps v2 morphology deterministically', () => {
+  const traits = migrateCatTraits({ schemaVersion: 1, fur: 'Golden', bodyScale: 99, morphology: { headScale: 0.1, earScale: 1.2 } })
+  assert.equal(traits.schemaVersion, 2)
+  assert.deepEqual(traits.morphology, { bodyScale: 1, headScale: 0.8, earScale: 1.2, tailLength: 1 })
+  assert.equal(validateCatTraits(traits).valid, true)
+})
+
+test('assembly applies morphology without rebuilding its public root', () => {
+  const assembly = createCatAssembly({ morphology: { bodyScale: 1.2, headScale: 0.9, earScale: 1.1, tailLength: 1.3 } })
+  assert.deepEqual(assembly.root.userData.morphology, { bodyScale: 1.2, headScale: 0.9, earScale: 1.1, tailLength: 1.3 })
+  assert.equal(assembly.traits.morphology.tailLength, 1.3)
   assembly.dispose()
 })

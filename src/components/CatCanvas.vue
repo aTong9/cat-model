@@ -106,6 +106,7 @@ onMounted(async () => {
     gear: store.gearType,
     background: store.background,
     special: store.special,
+    morphology: store.morphology,
   }, { animation: store.actionMode })
   catModel = catAssembly.model
   canvas.__character = catAssembly.root
@@ -197,6 +198,7 @@ watch(() => store.gearType, (v) => {
 })
 watch(() => store.faceExpression, (face) => catAssembly?.apply({ face }))
 watch(() => store.tokenId, (tokenId) => catAssembly?.apply({ tokenId }))
+watch(() => ({ ...store.morphology }), morphology => catAssembly?.apply({ morphology }), { deep: true })
 watch(() => store.actionMode, (v) => {
   if (!inputController?.isMoving) catModel?.setAnimation(v)
 })

@@ -673,6 +673,15 @@ export class CatModel {
     this._updateTailSurface(time, 0.035, 0.8)
   }
 
+  setMorphology({ bodyScale = 1, headScale = 1, earScale = 1, tailLength = 1 } = {}) {
+    if (this._bodyGroup) this._bodyGroup.scale.set(bodyScale, 1, bodyScale)
+    if (this._headGroup) this._headGroup.scale.setScalar(headScale)
+    if (this._earLGroup) this._earLGroup.scale.setScalar(earScale)
+    if (this._earRGroup) this._earRGroup.scale.setScalar(earScale)
+    if (this._tailGroup) this._tailGroup.scale.set(1, tailLength, 1)
+    this.root.userData.morphology = { bodyScale, headScale, earScale, tailLength }
+  }
+
   _updateSplaySit(time) {
     const breathe = Math.sin(time * 1.8) * 0.008
     this.root.scale.set(1.08, 0.84 + breathe, 1.06)

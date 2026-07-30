@@ -19,6 +19,7 @@ export function createCatAssembly(input, options = {}) {
     if (!traits || traits.eyes !== nextTraits.eyes) model.setEyeStyle(nextTraits.eyes)
     if (!traits || traits.face !== nextTraits.face) model.setFaceExpression(nextTraits.face)
     if (!traits || traits.gear !== nextTraits.gear) model.setGear(nextTraits.gear)
+    if (!traits || Object.keys(nextTraits.morphology).some(key => traits.morphology[key] !== nextTraits.morphology[key])) model.setMorphology(nextTraits.morphology)
     traits = nextTraits
     root.userData.catTraits = { ...traits }
     return { ...traits }

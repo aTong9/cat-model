@@ -2,7 +2,7 @@ import test from 'node:test'
 import assert from 'node:assert/strict'
 import { createShareQuery, createShareUrl, parseShareQuery, serializeCatConfig } from '../src/core/shareCatConfig.js'
 
-const traits = { tokenId: '42', fur: 'Tuxedo', furColor: '#53515b', eyes: 'VR', face: 'Smile', gear: 'Camera', background: 'Purple Gradient', special: null }
+const traits = { tokenId: '42', fur: 'Tuxedo', furColor: '#53515b', eyes: 'VR', face: 'Smile', gear: 'Camera', background: 'Purple Gradient', special: null, morphology: { bodyScale: 1.2, headScale: 0.9, earScale: 1.1, tailLength: 1.3 } }
 
 test('share query round-trips normalized cat traits', () => {
   const restored = parseShareQuery(createShareQuery(traits))
@@ -10,6 +10,7 @@ test('share query round-trips normalized cat traits', () => {
   assert.equal(restored.fur, 'Tuxedo')
   assert.equal(restored.gear, 'Camera')
   assert.equal(restored.special, null)
+  assert.deepEqual(restored.morphology, traits.morphology)
 })
 
 test('share URL replaces old search and removes hash', () => {
@@ -21,6 +22,6 @@ test('share URL replaces old search and removes hash', () => {
 
 test('serialized config contains schema and normalized values', () => {
   const payload = JSON.parse(serializeCatConfig(traits))
-  assert.equal(payload.schemaVersion, 1)
+  assert.equal(payload.schemaVersion, 2)
   assert.equal(payload.eyes, 'VR')
 })

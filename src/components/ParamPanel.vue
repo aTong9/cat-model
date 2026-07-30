@@ -43,7 +43,17 @@
           <button v-for="tab in tabs" :key="tab.id" :class="{ active: activeTab === tab.id }" @click="activeTab = tab.id">{{ tab.label }}</button>
         </nav>
 
-        <section v-if="activeTab === 'look'" class="settings-section">
+        <section v-if="activeTab === 'body'" class="settings-section">
+          <SettingBlock v-for="control in MORPHOLOGY_CONTROLS" :key="control.key" :title="control.label">
+            <div class="range-control">
+              <input type="range" :min="control.min" :max="control.max" step="0.01" :value="store.morphology[control.key]" @input="store.setMorphology(control.key, $event.target.value)" />
+              <output>{{ store.morphology[control.key].toFixed(2) }}</output>
+            </div>
+          </SettingBlock>
+          <button class="btn reset-morphology" @click="store.resetMorphology">恢复默认体型</button>
+        </section>
+
+        <section v-else-if="activeTab === 'look'" class="settings-section">
           <SettingBlock title="毛色">
             <div class="color-control"><input type="color" :value="store.furColor" @input="store.setCustomFurColor($event.target.value)" /><span>{{ store.furStyle === 'Custom' ? store.furColor : store.furStyle }}</span></div>
             <div class="swatches"><button v-for="preset in FUR_PRESETS" :key="preset.id" class="swatch" :class="{ active: store.furStyle === preset.id }" :style="furDotStyle(preset)" :title="preset.label" @click="store.setFurStyle(preset.id)" /></div>
@@ -76,7 +86,7 @@
 
 <script setup>
 import { computed, defineComponent, h, ref } from 'vue'
-import { useCatStore, FUR_PRESETS, EYE_STYLES, FACE_EXPRESSIONS, GEAR_LIST, BACKGROUNDS, SPECIALS, ACTIONS } from '../stores/cat.js'
+import { useCatStore, FUR_PRESETS, EYE_STYLES, FACE_EXPRESSIONS, GEAR_LIST, BACKGROUNDS, SPECIALS, ACTIONS, MORPHOLOGY_CONTROLS } from '../stores/cat.js'
 import { summarizeTraitStatuses } from '../core/traitStatus.js'
 import TraitMatrix from './TraitMatrix.vue'
 import { QUALITY_MODES } from '../three/RenderQualityController.js'
@@ -85,7 +95,7 @@ const tokenQuery = ref(String(store.tokenId))
 const activeTab = ref('look')
 const traitSummary = computed(() => summarizeTraitStatuses(store.currentTraits))
 const traitNames = { fur: '毛色', eyes: '眼睛', face: '表情', gear: '装备', background: '背景', special: 'Special' }
-const tabs = [{ id: 'look', label: '外观' }, { id: 'gear', label: '装备' }, { id: 'scene', label: '场景' }, { id: 'motion', label: '动作' }]
+const tabs = [{ id: 'body', label: '体型' }, { id: 'look', label: '外观' }, { id: 'gear', label: '装备' }, { id: 'scene', label: '场景' }, { id: 'motion', label: '动作' }]
 const weathers = [{ id: 'sunny', icon: '☀', label: '晴天' }, { id: 'cloudy', icon: '☁', label: '多云' }, { id: 'rain', icon: '☂', label: '降雨' }, { id: 'thunder', icon: 'ϟ', label: '雷雨' }]
 const searchToken = async () => { if (await store.loadToken(tokenQuery.value)) tokenQuery.value = String(store.tokenId) }
 const navigateToken = async direction => { if (await store.loadAdjacent(direction)) tokenQuery.value = String(store.tokenId) }
@@ -107,4 +117,6 @@ const SettingBlock = defineComponent({
 .token-nav{display:grid;grid-template-columns:1fr 1fr;gap:7px;margin-top:8px}.token-nav .btn{min-height:32px;color:#b6bed0;font-size:.68rem}
 .pose-choice{display:grid;gap:3px;text-align:left}.pose-choice b{font-size:.68rem}.pose-choice small{color:#7f899f;font-size:.56rem;line-height:1.3}.pose-choice.active small{color:rgba(26,26,46,.72)}.pose-hint{margin-left:58px;color:#7f899f;font-size:.62rem}
 .trait-audit{margin-top:11px;border:1px solid var(--border);border-radius:9px;background:rgba(255,255,255,.025)}.trait-audit summary{display:flex;justify-content:space-between;padding:9px 10px;cursor:pointer;color:#aeb5c8;font-size:.65rem}.trait-audit summary b{color:#8590a6;font-weight:500}.trait-audit ul{display:grid;gap:7px;padding:2px 10px 10px;list-style:none}.trait-audit li{display:grid;grid-template-columns:8px 1fr auto;align-items:center;gap:7px;color:#c8ccda;font-size:.62rem}.trait-audit li i{width:7px;height:7px;border-radius:50%}.trait-audit li i.implemented{background:#68d391}.trait-audit li i.partial{background:#f5d33d}.trait-audit li span b{margin-right:6px;color:#7f899f;font-weight:500}.trait-audit li em{color:#8c96aa;font-style:normal}.trait-audit li small{grid-column:2/4;color:#687288;line-height:1.35}
+.section-tabs{grid-template-columns:repeat(5,1fr)}
+.range-control{display:grid;grid-template-columns:1fr 42px;align-items:center;gap:9px}.range-control input{width:100%;accent-color:var(--accent)}.range-control output{color:var(--accent);font:700 .68rem monospace;text-align:right}.reset-morphology{margin-left:58px}
 </style>

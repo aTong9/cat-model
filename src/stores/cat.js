@@ -1,7 +1,7 @@
 import { defineStore } from 'pinia'
 import { computed, ref } from 'vue'
 import { getAdjacentToken, getTokenById } from '../data/tokenCatalog.js'
-import { createCatTraits } from '../core/catTraits.js'
+import { createCatTraits, MORPHOLOGY_DEFINITIONS } from '../core/catTraits.js'
 import {
   BACKGROUND_TRAITS,
   DEFAULT_TRAITS,
@@ -22,6 +22,12 @@ export const GEAR_LIST = GEAR_TRAITS
 export const BACKGROUNDS = BACKGROUND_TRAITS
 export const SPECIALS = SPECIAL_TRAITS
 export const ACTIONS = POSE_CONFIGS
+export const MORPHOLOGY_CONTROLS = Object.freeze([
+  { key: 'bodyScale', label: '身体胖瘦', ...MORPHOLOGY_DEFINITIONS.bodyScale },
+  { key: 'headScale', label: '头部比例', ...MORPHOLOGY_DEFINITIONS.headScale },
+  { key: 'earScale', label: '耳朵大小', ...MORPHOLOGY_DEFINITIONS.earScale },
+  { key: 'tailLength', label: '尾巴长度', ...MORPHOLOGY_DEFINITIONS.tailLength },
+])
 
 const WEATHERS = ['sunny', 'cloudy', 'thunder', 'rain']
 
@@ -39,6 +45,7 @@ export const useCatStore = defineStore('cat', () => {
   const activePreset = ref(null)
   const actionMode = ref('standing')
   const qualityMode = ref('auto')
+  const morphology = ref(Object.fromEntries(Object.entries(MORPHOLOGY_DEFINITIONS).map(([key, value]) => [key, value.default])))
 
   const weather = ref('sunny')
   const lightIntensity = ref(1)
@@ -62,8 +69,20 @@ export const useCatStore = defineStore('cat', () => {
   const currentTraits = computed(() => createCatTraits({
     tokenId: tokenId.value, fur: furStyle.value, furColor: furColor.value,
     eyes: eyeStyle.value, face: faceExpression.value, gear: gearType.value,
-    background: background.value, special: special.value,
+    background: background.value, special: special.value, morphology: morphology.value,
   }))
+
+  function setMorphology(key, value) {
+    const definition = MORPHOLOGY_DEFINITIONS[key]
+    if (!definition) return
+    const numeric = Number(value)
+    morphology.value[key] = Number.isFinite(numeric) ? Math.min(definition.max, Math.max(definition.min, numeric)) : definition.default
+    activePreset.value = null
+  }
+
+  function resetMorphology() {
+    for (const [key, definition] of Object.entries(MORPHOLOGY_DEFINITIONS)) morphology.value[key] = definition.default
+  }
 
   function setFurStyle(id) {
     const trait = getFurTrait(id)
@@ -104,6 +123,7 @@ export const useCatStore = defineStore('cat', () => {
     special.value = rng() < .08 ? pick(SPECIALS).id : null
     background.value = special.value ? null : pick(BACKGROUNDS)
     weather.value = pick(WEATHERS)
+    for (const [key, definition] of Object.entries(MORPHOLOGY_DEFINITIONS)) setMorphology(key, definition.min + rng() * (definition.max - definition.min))
   }
 
   function randomize() {
@@ -154,6 +174,7 @@ export const useCatStore = defineStore('cat', () => {
       referenceImage.value = token.imageUrl
       referenceImageFallback.value = token.fallbackImageUrl
       referenceImageSource.value = token.imageSource
+      resetMorphology()
       return true
     } catch (error) {
       console.warn(error)
@@ -188,14 +209,15 @@ export const useCatStore = defineStore('cat', () => {
     weather.value = preset.weather ?? 'sunny'
     referenceImage.value = null
     referenceImageFallback.value = null
+    resetMorphology()
   }
 
   return {
-    furStyle, furColor, eyeStyle, gearType, faceExpression, background, special, actionMode, qualityMode,
+    furStyle, furColor, eyeStyle, gearType, faceExpression, background, special, actionMode, qualityMode, morphology,
     tokenId, seed, activePreset, weather, lightIntensity, rainAmount, cloudAmount,
     fishAmount, musicOn, language, loading, loadingProgress, panelExpanded, showHints,
     tokenLoading, tokenError, referenceImage, referenceImageFallback, referenceImageSource, comparisonOpen,
     isSpecialFullScene, currentTraits, randomize, setFromSeed, cycleWeather, togglePanel, setLanguage,
-    applyPreset, setFurStyle, setCustomFurColor, setBackground, setSpecial, loadToken, loadAdjacent,
+    applyPreset, setFurStyle, setCustomFurColor, setBackground, setSpecial, setMorphology, resetMorphology, loadToken, loadAdjacent,
   }
 })
