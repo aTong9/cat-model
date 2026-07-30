@@ -406,6 +406,7 @@ export class CatModel {
     this._eyeStyle = 'Original'
     this._faceExpression = 'Excited'
     this._gearType = null
+    this._equippedGear = null
     this._eyelids = []
     this._animationMode = 'standing'
     this._runSpeed = 1
@@ -921,11 +922,11 @@ export class CatModel {
     this._gearRoot = new THREE.Group()
     this.root.add(this._gearRoot)
     this.registry.registerPart('gear-root', this._gearRoot)
-    this.registry.registerSocket('head-top', headGroup)
-    this.registry.registerSocket('face-eyes', headGroup)
-    this.registry.registerSocket('chest-front', bodyGroup)
-    this.registry.registerSocket('back', bodyGroup)
-    this.registry.registerSocket('paw-left', this._armLGroup)
+    this.registry.createSocket('head-top', headGroup, [-headCenter.x, 1.30 - headCenter.y, -headCenter.z])
+    this.registry.createSocket('face-eyes', headGroup, [-headCenter.x, 0.955 - headCenter.y, 0.395 - headCenter.z])
+    this.registry.createSocket('chest-front', bodyGroup, [0, 0.57, 0.405])
+    this.registry.createSocket('back', bodyGroup, [0, 0.47, -0.37])
+    this.registry.createSocket('paw-left', this._armLGroup, [-0.14, -0.46, 0.20])
 
     // 初始构建
     this._rebuildEyes()
@@ -1250,14 +1251,30 @@ export class CatModel {
   // ========== Private: 装备 ==========
 
   _rebuildGear() {
-    while (this._gearRoot.children.length) this._gearRoot.remove(this._gearRoot.children[0])
+    if (this._equippedGear) {
+      this._equippedGear.removeFromParent()
+      this._equippedGear.traverse(object => {
+        object.geometry?.dispose?.()
+        const materials = Array.isArray(object.material) ? object.material : [object.material]
+        for (const material of materials) {
+          if (!material) continue
+          for (const value of Object.values(material)) value?.isTexture && value.dispose()
+          material.dispose?.()
+        }
+      })
+      this._equippedGear = null
+    }
     if (!this._gearType) return
 
     if (TEXTURE_GEAR_TYPES.has(this._gearType)) {
       const gear = createGear(this._gearType)
       if (gear) {
         applyEquipmentAttachment(gear, this._gearType)
-        this._gearRoot.add(gear)
+        const socketName = gear.userData.attachment?.socket
+        const socket = this.registry.getSocket(socketName)
+        if (!socket) throw new Error(`Missing equipment socket: ${socketName}`)
+        socket.add(gear)
+        this._equippedGear = gear
       }
     }
   }

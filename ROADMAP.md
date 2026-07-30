@@ -88,7 +88,8 @@ src/character/
 - [x] morphology transform 迁移至 `src/character/morphology/`。
 - [x] 增加 morphology 极值、包围盒和 geometry 释放测试。
 - [x] 拆分耳朵模块，并建立可复用角色 parts/socket 注册表。
-- [ ] 将装备装配从世界坐标迁移为 registry socket 的局部变换。
+- [x] 将装备装配从世界坐标迁移为 registry socket 的局部变换。
+- [x] 增加 headScale/bodyScale 极值下的装备挂点跟随测试。
 
 验收：调用方无需直接依赖子模块；现有动画、装备、导出测试不回退。
 
@@ -129,4 +130,4 @@ src/character/
 
 ## 6. 当前下一任务
 
-将装备装配从世界坐标迁移为 registry socket 局部变换，并加入不同 headScale/bodyScale 下的挂点回归测试。
+把装备 registry/socket 装配从 `CatModel` 提取为独立 equipment assembler，并补充动态切换装备的资源释放与 GLB socket metadata 回读测试。

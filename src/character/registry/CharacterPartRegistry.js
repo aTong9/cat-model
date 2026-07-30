@@ -1,3 +1,5 @@
+import * as THREE from 'three'
+
 export class CharacterPartRegistry {
   constructor(root) {
     this.root = root
@@ -16,6 +18,15 @@ export class CharacterPartRegistry {
     this._sockets.set(name, object)
     this.root.userData.socketNames = [...this._sockets.keys()]
     return object
+  }
+
+  createSocket(name, parent, position = [0, 0, 0]) {
+    if (!parent?.isObject3D) throw new Error(`Invalid socket parent: ${name}`)
+    const socket = new THREE.Group()
+    socket.name = `Socket:${name}`
+    socket.position.set(...position)
+    parent.add(socket)
+    return this.registerSocket(name, socket)
   }
 
   getPart(name) { return this._parts.get(name) ?? null }
