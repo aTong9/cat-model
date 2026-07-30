@@ -37,7 +37,7 @@ test('default arms expose embedded shoulder blends and attachment contracts', ()
 
 test('continuous limbs remain finite through every configured pose', () => {
   const model = new CatModel()
-  for (const animation of ['standing', 'sit-splay', 'run', 'jump', 'lie-down', 'sleep', 'wave']) {
+  for (const animation of ['standing', 'sit', 'run', 'jump', 'curious', 'stretch', 'wave']) {
     model.setAnimation(animation)
     model.update(0.75)
     model.group.updateMatrixWorld(true)
@@ -77,7 +77,7 @@ test('pose switching resets transforms through the explicit animation rig', () =
   const model = new CatModel()
   assert.notEqual(model.animationRig, model)
   assert.equal(model.animationRig.parts.armRight, model.registry.getPart('arm-right'))
-  model.setAnimation('sleep')
+  model.setAnimation('curious')
   model.update(0.8)
   assert.notEqual(model.animationRig.parts.head.rotation.y, 0)
   model.animator.registerStrategy('reset-probe', () => {})
@@ -89,13 +89,13 @@ test('pose switching resets transforms through the explicit animation rig', () =
   model.dispose()
 })
 
-test('lie down and sleep keep the body low while wave raises the right arm', () => {
+test('safe static poses preserve body proportions while changing joints', () => {
   const model = new CatModel()
-  for (const pose of ['lie-down', 'sleep']) {
+  for (const pose of ['sit', 'curious', 'stretch']) {
     model.setAnimation(pose)
     model.update(0.8)
-    assert.ok(model._bodyGroup.position.y <= -0.2, pose)
-    assert.ok(model.group.scale.y < 0.7, pose)
+    assert.deepEqual(model.group.scale.toArray(), [1, 1, 1], pose)
+    assert.equal(model._bodyGroup.position.y, 0, pose)
   }
   model.setAnimation('wave')
   model.update(0.3)
@@ -104,15 +104,17 @@ test('lie down and sleep keep the body low while wave raises the right arm', () 
   model.dispose()
 })
 
-test('splay sit lowers the body and opens both legs', () => {
+test('sit bends both knees without splaying or scaling the body', () => {
   const model = new CatModel()
-  model.setAnimation('sit-splay')
+  model.setAnimation('sit')
   model.update(0.5)
   const left = model.group.getObjectByName('LegLeft')
   const right = model.group.getObjectByName('LegRight')
-  assert.ok(model._bodyGroup.position.y < 0)
-  assert.ok(left.rotation.z < -0.5)
-  assert.ok(right.rotation.z > 0.5)
+  assert.equal(model._bodyGroup.position.y, 0)
+  assert.ok(left.rotation.z > -0.25)
+  assert.ok(right.rotation.z < 0.25)
+  assert.ok(model.registry.getJoints('leg-left').knee.rotation.x > 0.7)
+  assert.ok(model.registry.getJoints('leg-right').knee.rotation.x > 0.7)
   model.dispose()
 })
 

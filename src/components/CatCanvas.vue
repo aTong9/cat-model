@@ -1,5 +1,5 @@
 <template>
-  <canvas ref="canvasRef" class="cat-canvas" @click="onClick" @touchend.prevent="onTouch"></canvas>
+  <canvas ref="canvasRef" class="cat-canvas" @pointerdown="onPointerDown" @pointermove="onPointerMove" @pointerup="onPointerUp" @pointercancel="onPointerUp" @click="onClick"></canvas>
 </template>
 
 <script setup>
@@ -124,8 +124,12 @@ onMounted(async () => {
     canvas,
     gearIds: GEAR_LIST.map(gear => gear.id),
     createGear,
+    setControlsEnabled: enabled => { if (controls) controls.enabled = enabled },
+    dropTarget: catModel.group,
+    onEquip: id => { store.gearType = id },
   })
   equipmentScatterController.createAll()
+  equipmentScatterController.setEquippedId(store.gearType)
 
   clock = new THREE.Clock()
   window.addEventListener('cat:set-camera-view', onCameraView)
@@ -186,14 +190,17 @@ function beginCharacterCapture({ transparent = false } = {}) {
 }
 
 function onClick(e) {
+  if (equipmentScatterController?.consumeSuppressedClick()) return
   if (equipmentScatterController?.cast(e.clientX, e.clientY)) return
   cyclePoseWhenCatHit(e.clientX, e.clientY)
 }
 
-function onTouch(e) {
-  const touch = e.changedTouches[0]
-  if (!touch || equipmentScatterController?.cast(touch.clientX, touch.clientY)) return
-  cyclePoseWhenCatHit(touch.clientX, touch.clientY)
+function onPointerDown(e) {
+  if (equipmentScatterController?.startDrag(e.clientX, e.clientY)) e.currentTarget.setPointerCapture?.(e.pointerId)
+}
+function onPointerMove(e) { equipmentScatterController?.moveDrag(e.clientX, e.clientY) }
+function onPointerUp(e) {
+  if (equipmentScatterController?.endDrag(e.clientX, e.clientY)) e.currentTarget.releasePointerCapture?.(e.pointerId)
 }
 
 function cyclePoseWhenCatHit(clientX, clientY) {
@@ -216,8 +223,7 @@ watch([() => store.furStyle, () => store.furColor], ([fur, furColor]) => catAsse
 watch(() => store.eyeStyle, (eyes) => catAssembly?.apply({ eyes }))
 watch(() => store.gearType, (v) => {
   catAssembly?.apply({ gear: v })
-  if (!v) return
-  equipmentScatterController?.kickById(v)
+  equipmentScatterController?.setEquippedId(v)
 })
 watch(() => store.faceExpression, (face) => catAssembly?.apply({ face }))
 watch(() => store.tokenId, (tokenId) => catAssembly?.apply({ tokenId }))

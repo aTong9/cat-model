@@ -33,6 +33,16 @@ export const MORPHOLOGY_CONTROLS = Object.freeze([
   { key: 'tailLength', label: '尾巴长度', ...MORPHOLOGY_DEFINITIONS.tailLength },
   { key: 'tailCurl', label: '尾巴卷曲', ...MORPHOLOGY_DEFINITIONS.tailCurl },
 ])
+export const MORPHOLOGY_PRESETS = Object.freeze([
+  { id: 'classic', label: '经典', values: { bodyScale: 1, headScale: 1, earScale: 1, legLength: 1, tailLength: 1, tailCurl: 0 } },
+  { id: 'kitten', label: '幼猫', values: { bodyScale: .86, headScale: 1.2, earScale: 1.12, legLength: .88, tailLength: .9, tailCurl: .12 } },
+  { id: 'chubby', label: '圆滚滚', values: { bodyScale: 1.24, headScale: 1.08, earScale: .9, legLength: .84, tailLength: .92, tailCurl: .2 } },
+  { id: 'tall', label: '高挑', values: { bodyScale: .92, headScale: .9, earScale: 1.08, legLength: 1.24, tailLength: 1.18, tailCurl: -.05 } },
+  { id: 'big-head', label: '大头萌', values: { bodyScale: .94, headScale: 1.25, earScale: 1.04, legLength: .92, tailLength: .9, tailCurl: .18 } },
+  { id: 'wild', label: '野性', values: { bodyScale: 1.08, headScale: .94, earScale: 1.32, legLength: 1.14, tailLength: 1.38, tailCurl: -.35 } },
+  { id: 'compact', label: '短腿', values: { bodyScale: 1.12, headScale: 1.08, earScale: .92, legLength: .8, tailLength: 1.04, tailCurl: .35 } },
+  { id: 'elegant', label: '优雅', values: { bodyScale: .88, headScale: .92, earScale: 1.14, legLength: 1.18, tailLength: 1.32, tailCurl: .62 } },
+].map(preset => Object.freeze({ ...preset, values: Object.freeze(preset.values) })))
 
 const WEATHERS = ['sunny', 'cloudy', 'thunder', 'rain']
 
@@ -64,6 +74,7 @@ export const useCatStore = defineStore('cat', () => {
   const loading = ref(true)
   const loadingProgress = ref(0)
   const panelExpanded = ref(true)
+  const workspaceMode = ref('create')
   const showHints = ref(true)
   const tokenLoading = ref(false)
   const tokenError = ref('')
@@ -125,6 +136,14 @@ export const useCatStore = defineStore('cat', () => {
 
   function resetMorphology() {
     for (const [key, definition] of Object.entries(MORPHOLOGY_DEFINITIONS)) morphology.value[key] = definition.default
+  }
+  function applyMorphologyPreset(values) {
+    for (const [key, value] of Object.entries(values ?? {})) {
+      const definition = MORPHOLOGY_DEFINITIONS[key]
+      if (definition) morphology.value[key] = Math.min(definition.max, Math.max(definition.min, Number(value)))
+    }
+    activePreset.value = null
+    recordEditorState()
   }
 
   function toggleMorphologyLock(key) {
@@ -242,6 +261,10 @@ export const useCatStore = defineStore('cat', () => {
 
   const cycleWeather = () => { weather.value = WEATHERS[(WEATHERS.indexOf(weather.value) + 1) % WEATHERS.length] }
   const togglePanel = () => { panelExpanded.value = !panelExpanded.value }
+  function setWorkspaceMode(mode) {
+    workspaceMode.value = mode === 'verify' ? 'verify' : 'create'
+    if (workspaceMode.value === 'verify' && referenceImage.value) comparisonOpen.value = true
+  }
   const setLanguage = lang => { language.value = lang }
 
   function applyPreset(preset) {
@@ -265,9 +288,9 @@ export const useCatStore = defineStore('cat', () => {
   return {
     furStyle, furColor, eyeStyle, gearType, faceExpression, background, special, actionMode, qualityMode, morphology, morphologyLocks, identity,
     tokenId, seed, activePreset, weather, lightIntensity, rainAmount, cloudAmount,
-    fishAmount, musicOn, language, loading, loadingProgress, panelExpanded, showHints,
+    fishAmount, musicOn, language, loading, loadingProgress, panelExpanded, workspaceMode, showHints,
     tokenLoading, tokenError, referenceImage, referenceImageFallback, referenceImageSource, comparisonOpen,
-    isSpecialFullScene, currentTraits, canUndo, canRedo, undo, redo, setIdentity, generateIdentity, applyTraits, randomize, setFromSeed, cycleWeather, togglePanel, setLanguage,
-    applyPreset, setFurStyle, setCustomFurColor, setBackground, setSpecial, setMorphology, resetMorphology, toggleMorphologyLock, loadToken, loadAdjacent,
+    isSpecialFullScene, currentTraits, canUndo, canRedo, undo, redo, setIdentity, generateIdentity, applyTraits, randomize, setFromSeed, cycleWeather, togglePanel, setWorkspaceMode, setLanguage,
+    applyPreset, setFurStyle, setCustomFurColor, setBackground, setSpecial, setMorphology, resetMorphology, applyMorphologyPreset, toggleMorphologyLock, loadToken, loadAdjacent,
   }
 })

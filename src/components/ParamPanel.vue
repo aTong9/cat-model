@@ -5,22 +5,22 @@
       <button v-for="item in weathers" :key="item.id" class="icon-btn" :class="{ active: store.weather === item.id }" :title="item.label" @click="store.weather = item.id">{{ item.icon }}</button>
     </div>
 
-    <button class="panel-toggle glass" @click="store.togglePanel">
+    <button class="panel-toggle glass" aria-controls="character-panel" :aria-expanded="store.panelExpanded" @click="store.togglePanel">
       <span><small>CHARACTER STUDIO</small><b>{{ store.panelExpanded ? '收起配置' : '打开角色配置' }}</b></span>
       <i>{{ store.panelExpanded ? '›' : '‹' }}</i>
     </button>
 
     <Transition name="panel">
-      <div v-if="store.panelExpanded" class="panel-body glass">
+      <div v-if="store.panelExpanded" id="character-panel" class="panel-body glass">
         <header class="panel-title">
           <div><span>LIBERTY CAT GENERATOR</span><h1>角色配置器</h1></div>
           <b>#{{ String(store.tokenId).padStart(4, '0') }}</b>
         </header>
         <nav class="workspace-modes" aria-label="工作模式">
-          <button type="button" :class="{ active: workspaceMode === 'create' }" @click="workspaceMode = 'create'">创作</button>
-          <button type="button" :class="{ active: workspaceMode === 'verify' }" @click="workspaceMode = 'verify'">验证</button>
+          <button type="button" :aria-pressed="store.workspaceMode === 'create'" :class="{ active: store.workspaceMode === 'create' }" @click="store.setWorkspaceMode('create')">创作</button>
+          <button type="button" :aria-pressed="store.workspaceMode === 'verify'" :class="{ active: store.workspaceMode === 'verify' }" @click="store.setWorkspaceMode('verify')">2D/3D 核对</button>
         </nav>
-        <p class="mode-description">{{ workspaceMode === 'create' ? '塑造角色外观、装备、场景和动作。' : '核对原始 Token、Trait 实现状态与 2D / 3D 一致性。' }}</p>
+        <p class="mode-description">{{ store.workspaceMode === 'create' ? '塑造角色外观、装备、场景和动作。' : '核对原始 Token、Trait 实现状态与 2D / 3D 一致性。' }}</p>
         <div class="editor-tools" aria-label="编辑历史">
           <button class="btn" :disabled="!store.canUndo" @click="store.undo">撤销</button>
           <button class="btn" :disabled="!store.canRedo" @click="store.redo">重做</button>
@@ -41,7 +41,7 @@
           <button class="btn" :disabled="store.tokenLoading" @click="navigateToken(1)">下一只 →</button>
         </div>
 
-        <details v-if="workspaceMode === 'verify'" class="trait-audit" open>
+        <details v-if="store.workspaceMode === 'verify'" class="trait-audit" open>
           <summary><span>当前 Trait 状态</span><b>{{ traitSummary.implemented }} 已实现<span v-if="traitSummary.partial"> · {{ traitSummary.partial }} 部分实现</span></b></summary>
           <ul>
             <li v-for="item in traitSummary.items" :key="`${item.type}:${item.value}`">
@@ -51,13 +51,14 @@
           </ul>
         </details>
 
-        <TraitMatrix v-if="workspaceMode === 'verify'" />
+        <TraitMatrix v-if="store.workspaceMode === 'verify'" />
 
         <nav class="section-tabs" aria-label="配置分类">
           <button v-for="tab in tabs" :key="tab.id" :class="{ active: activeTab === tab.id }" @click="activeTab = tab.id">{{ tab.label }}</button>
         </nav>
 
         <section v-if="activeTab === 'body'" class="settings-section">
+          <SettingBlock title="基础体型"><div class="choice-grid two morphology-presets"><button v-for="preset in MORPHOLOGY_PRESETS" :key="preset.id" class="choice" :class="{ active: matchesMorphologyPreset(preset) }" type="button" @click="store.applyMorphologyPreset(preset.values)">{{ preset.label }}</button></div></SettingBlock>
           <SettingBlock v-for="control in MORPHOLOGY_CONTROLS" :key="control.key" :title="control.label">
             <div class="range-control">
               <input type="range" :min="control.min" :max="control.max" step="0.01" :value="store.morphology[control.key]" @input="store.setMorphology(control.key, $event.target.value)" />
@@ -85,7 +86,7 @@
 
         <section v-else-if="activeTab === 'scene'" class="settings-section">
           <SettingBlock title="画质"><select v-model="store.qualityMode"><option v-for="item in QUALITY_MODES" :key="item.id" :value="item.id">{{ item.label }}</option></select></SettingBlock>
-          <SettingBlock title="背景"><select :value="store.background || ''" :disabled="Boolean(store.special)" @change="store.setBackground($event.target.value)"><option value="" disabled>{{ store.special ? '特殊场景已启用' : '选择背景' }}</option><option v-for="background in BACKGROUNDS" :key="background">{{ background }}</option></select></SettingBlock>
+          <SettingBlock title="背景"><select :value="store.background || ''" :disabled="Boolean(store.special)" @change="store.setBackground($event.target.value)"><option value="" disabled>{{ store.special ? '特殊场景已启用' : '选择背景' }}</option><option v-for="background in BACKGROUNDS" :key="background">{{ background }}</option></select><p v-if="store.special" class="override-note">背景由 Special「{{ store.special }}」接管。<button type="button" @click="store.setSpecial(null)">恢复普通背景</button></p></SettingBlock>
           <SettingBlock title="特殊场景"><div class="choice-grid two"><button class="choice" :class="{ active: store.special === null }" @click="store.setSpecial(null)">默认场景</button><button v-for="item in SPECIALS" :key="item.id" class="choice" :class="{ active: store.special === item.id }" @click="store.setSpecial(item.id)">{{ item.label }}</button></div></SettingBlock>
         </section>
 
@@ -112,14 +113,13 @@
 
 <script setup>
 import { computed, defineComponent, h, ref } from 'vue'
-import { useCatStore, FUR_PRESETS, EYE_STYLES, FACE_EXPRESSIONS, GEAR_LIST, BACKGROUNDS, SPECIALS, ACTIONS, MORPHOLOGY_CONTROLS } from '../stores/cat.js'
+import { useCatStore, FUR_PRESETS, EYE_STYLES, FACE_EXPRESSIONS, GEAR_LIST, BACKGROUNDS, SPECIALS, ACTIONS, MORPHOLOGY_CONTROLS, MORPHOLOGY_PRESETS } from '../stores/cat.js'
 import { summarizeTraitStatuses } from '../core/traitStatus.js'
 import TraitMatrix from './TraitMatrix.vue'
 import { QUALITY_MODES } from '../three/RenderQualityController.js'
 const store = useCatStore()
 const tokenQuery = ref(String(store.tokenId))
 const activeTab = ref('look')
-const workspaceMode = ref('create')
 const traitQuery = ref('')
 const searchIndex = [
   { id: 'body', tab: 'body', label: '体型与比例' }, { id: 'fur', tab: 'look', label: '毛色外观' },
@@ -136,6 +136,7 @@ const searchToken = async () => { if (await store.loadToken(tokenQuery.value)) t
 tabs.splice(4, 0, { id: 'ip', label: 'IP' })
 const navigateToken = async direction => { if (await store.loadAdjacent(direction)) tokenQuery.value = String(store.tokenId) }
 const furDotStyle = preset => ({ background: preset.pattern === 'solid' ? preset.color : `linear-gradient(135deg,${preset.color} 0 46%,${preset.accent} 47% 65%,#f4f0e4 66%)` })
+const matchesMorphologyPreset = preset => Object.entries(preset.values).every(([key, value]) => Math.abs(store.morphology[key] - value) < 0.001)
 const SettingBlock = defineComponent({
   props: { title: String },
   setup(props, { slots }) { return () => h('div', { class: 'setting-block' }, [h('h2', props.title), h('div', { class: 'setting-content' }, slots.default?.())]) },
@@ -149,7 +150,7 @@ const SettingBlock = defineComponent({
 .token-search{display:grid;gap:7px;margin-top:15px}.token-search label{color:#aeb5c8;font-size:.67rem}.token-search>div{display:flex;gap:7px}.token-search input{min-width:0;flex:1;padding:9px 10px;border:1px solid var(--border);border-radius:8px;outline:none;background:rgba(255,255,255,.055);color:var(--text)}.token-search input:focus{border-color:var(--accent);box-shadow:0 0 0 2px var(--accent-glow)}.token-search small{color:#ff9b9b;font-size:.67rem}
 .reference-card{position:relative;overflow:hidden;margin-top:12px;border:1px solid var(--border);border-radius:11px;background:#171725}.reference-card img{display:block;width:100%;max-height:188px;object-fit:contain;image-rendering:pixelated}.reference-card figcaption{position:absolute;right:7px;bottom:7px;display:flex;gap:8px;padding:5px 7px;border-radius:6px;background:rgba(12,12,20,.8);font-size:.62rem}.reference-card figcaption span{color:#aeb5c8}.reference-card figcaption b{color:var(--accent)}
 .section-tabs{display:grid;grid-template-columns:repeat(4,1fr);gap:4px;margin:15px 0;padding:4px;border-radius:10px;background:rgba(255,255,255,.04)}.section-tabs button{padding:7px 3px;border:0;border-radius:7px;background:transparent;color:#8e97ad;font-size:.69rem;cursor:pointer}.section-tabs button.active{background:rgba(255,255,255,.09);color:#fff;box-shadow:0 3px 10px rgba(0,0,0,.12)}.settings-section{display:grid;gap:15px}.setting-block{display:grid;grid-template-columns:48px minmax(0,1fr);gap:10px}.setting-block h2{padding-top:7px;color:#7f899f;font-size:.7rem;font-weight:500}.setting-content{min-width:0}.color-control{display:flex;align-items:center;gap:9px;margin-bottom:8px}.color-control span{overflow:hidden;color:#aeb5c8;font:600 .69rem monospace;text-overflow:ellipsis;white-space:nowrap}.swatches{display:flex;flex-wrap:wrap;gap:7px}.swatch{width:25px;height:25px;border:2px solid transparent;border-radius:50%;cursor:pointer}.swatch.active{border-color:#fff;box-shadow:0 0 0 2px var(--accent),0 0 12px var(--accent-glow)}.choice-grid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:6px}.choice-grid.two{grid-template-columns:repeat(2,minmax(0,1fr))}.choice{min-height:34px;padding:6px;border:1px solid var(--border);border-radius:7px;background:rgba(255,255,255,.045);color:#c9ccda;font-size:.68rem;cursor:pointer}.choice:hover{background:rgba(255,255,255,.09)}.choice.active{border-color:var(--accent);background:var(--accent);color:#1a1a2e;font-weight:700}.setting-content select{width:100%;padding:9px;border:1px solid var(--border);border-radius:8px;background:#242438;color:var(--text)}.keyboard-help{display:grid;grid-template-columns:repeat(2,1fr);gap:7px;margin-left:58px;color:#929bb0;font-size:.66rem}.keyboard-help span{display:flex;align-items:center;gap:6px}.keyboard-help kbd{min-width:42px;padding:4px;border:1px solid var(--border);border-radius:5px;background:rgba(255,255,255,.055);color:var(--accent);text-align:center;font:600 .62rem monospace}
-.panel-enter-active,.panel-leave-active{transition:opacity .22s,transform .28s}.panel-enter-from,.panel-leave-to{opacity:0;transform:translateX(28px)}@media(max-width:700px){.right-panel{top:58px;right:8px;bottom:64px}.quick-tools{display:none}.panel-body{max-height:calc(100vh - 164px);padding:14px}.panel-toggle{width:154px}.setting-block{grid-template-columns:42px 1fr}.choice-grid{grid-template-columns:repeat(2,minmax(0,1fr))}.keyboard-help{margin-left:52px}.reference-card img{max-height:145px}}
+.panel-enter-active,.panel-leave-active{transition:opacity .22s,transform .28s}.panel-enter-from,.panel-leave-to{opacity:0;transform:translateX(28px)}@media(max-width:700px){.right-panel{top:auto;right:8px;bottom:68px;left:8px;align-items:stretch}.quick-tools{display:none}.panel-body{width:100%;max-height:min(68vh,620px);padding:14px;border-radius:18px 18px 12px 12px}.panel-toggle{align-self:flex-end;width:154px}.setting-block{grid-template-columns:42px 1fr}.choice-grid{grid-template-columns:repeat(2,minmax(0,1fr))}.keyboard-help{margin-left:52px}.reference-card img{max-height:145px}.panel-enter-from,.panel-leave-to{transform:translateY(28px)}}
 .token-nav{display:grid;grid-template-columns:1fr 1fr;gap:7px;margin-top:8px}.token-nav .btn{min-height:32px;color:#b6bed0;font-size:.68rem}
 .pose-choice{display:grid;gap:3px;text-align:left}.pose-choice b{font-size:.68rem}.pose-choice small{color:#7f899f;font-size:.56rem;line-height:1.3}.pose-choice.active small{color:rgba(26,26,46,.72)}.pose-hint{margin-left:58px;color:#7f899f;font-size:.62rem}
 .trait-audit{margin-top:11px;border:1px solid var(--border);border-radius:9px;background:rgba(255,255,255,.025)}.trait-audit summary{display:flex;justify-content:space-between;padding:9px 10px;cursor:pointer;color:#aeb5c8;font-size:.65rem}.trait-audit summary b{color:#8590a6;font-weight:500}.trait-audit ul{display:grid;gap:7px;padding:2px 10px 10px;list-style:none}.trait-audit li{display:grid;grid-template-columns:8px 1fr auto;align-items:center;gap:7px;color:#c8ccda;font-size:.62rem}.trait-audit li i{width:7px;height:7px;border-radius:50%}.trait-audit li i.implemented{background:#68d391}.trait-audit li i.partial{background:#f5d33d}.trait-audit li span b{margin-right:6px;color:#7f899f;font-weight:500}.trait-audit li em{color:#8c96aa;font-style:normal}.trait-audit li small{grid-column:2/4;color:#687288;line-height:1.35}
@@ -157,4 +158,5 @@ const SettingBlock = defineComponent({
 .section-tabs{grid-template-columns:repeat(6,1fr)}.editor-tools{display:flex;gap:6px;margin-top:10px}.identity-editor input,.identity-editor textarea{width:100%;padding:8px;border:1px solid var(--border);border-radius:7px;background:rgba(255,255,255,.055);color:var(--text)}.identity-editor label{display:grid;gap:5px;color:#9ba4b8;font-size:.68rem}.conflict-note{padding:8px;border:1px solid rgba(245,211,61,.3);border-radius:7px;color:#e7d878;font-size:.65rem}
 .range-control{display:grid;grid-template-columns:1fr 42px 38px;align-items:center;gap:7px}.range-control input{width:100%;accent-color:var(--accent)}.range-control output{color:var(--accent);font:700 .68rem monospace;text-align:right}.lock-control{padding:4px 2px;border:1px solid var(--border);border-radius:5px;background:transparent;color:#7f899f;font-size:.58rem;cursor:pointer}.lock-control.active{border-color:var(--accent);color:var(--accent)}.reset-morphology{margin-left:58px}
 .workspace-modes{display:grid;grid-template-columns:1fr 1fr;gap:4px;margin-top:12px;padding:4px;border-radius:10px;background:rgba(255,255,255,.04)}.workspace-modes button{min-height:34px;border:0;border-radius:7px;background:transparent;color:var(--text-dim);cursor:pointer}.workspace-modes button.active{background:var(--accent);color:#201d14;font-weight:800}.mode-description{margin-top:7px;color:var(--text-dim);font-size:.68rem;line-height:1.5}
+.override-note{margin-top:7px;color:var(--text-dim);font-size:.62rem;line-height:1.45}.override-note button{margin-left:3px;border:0;background:transparent;color:var(--accent);font-size:inherit;cursor:pointer;text-decoration:underline;text-underline-offset:2px}
 </style>

@@ -365,7 +365,7 @@ export class CatModel {
     this._mouthGroup.name = 'FaceMouth'
     // Keep the expression root on the muzzle surface. Small line/tube expressions were
     // previously buried inside the deeper SDF head while only the large Excited mouth escaped.
-    this._mouthGroup.position.set(0, -headRadius * 0.50, headRadius * 1.18)
+    this._mouthGroup.position.set(0, -headRadius * 0.50, headRadius * 1.38)
     this._mouthGroup.scale.setScalar(1.05)
     headGroup.add(this._mouthGroup)
     this._rebuildMouth()
@@ -389,12 +389,12 @@ export class CatModel {
     // -- 眼睛占位 --
     this._eyeGroupL = new THREE.Group()
     this._eyeGroupL.name = 'FaceEyeLeft'
-    this._eyeGroupL.position.set(-headRadius * 0.43, headRadius * 0.10, headRadius * 0.84)
+    this._eyeGroupL.position.set(-headRadius * 0.43, headRadius * 0.10, headRadius * 1.02)
     headGroup.add(this._eyeGroupL)
 
     this._eyeGroupR = new THREE.Group()
     this._eyeGroupR.name = 'FaceEyeRight'
-    this._eyeGroupR.position.set(headRadius * 0.43, headRadius * 0.10, headRadius * 0.84)
+    this._eyeGroupR.position.set(headRadius * 0.43, headRadius * 0.10, headRadius * 1.02)
     headGroup.add(this._eyeGroupR)
 
     // -- VR 头显根 --

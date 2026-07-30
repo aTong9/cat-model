@@ -20,7 +20,7 @@ export async function loadTokenCatalog() {
         return response.json()
       })
       .then(payload => {
-        if (payload.schemaVersion !== 1 || !Array.isArray(payload.tokens)) throw new Error('Unsupported token catalog schema')
+        if (![1, 2].includes(payload.schemaVersion) || !Array.isArray(payload.tokens)) throw new Error('Unsupported token catalog schema')
         const tokens = payload.tokens.map(decodeToken)
         return { count: payload.count, tokens, byId: new Map(tokens.map(token => [token.tokenId, token])) }
       })
@@ -47,4 +47,15 @@ export function filterTokenCatalog(tokens, filters = {}, limit = 60) {
   const activeFilters = Object.entries(filters).filter(([, value]) => value != null && value !== '')
   const matches = tokens.filter(token => activeFilters.every(([key, value]) => token[key] === value))
   return { total: matches.length, tokens: matches.slice(0, Math.max(0, limit)) }
+}
+
+export function countTokenFilterOptions(tokens, filters = {}, key) {
+  const otherFilters = Object.fromEntries(Object.entries(filters).filter(([filterKey, value]) => filterKey !== key && value != null && value !== ''))
+  const counts = new Map()
+  for (const token of tokens) {
+    if (!Object.entries(otherFilters).every(([filterKey, value]) => token[filterKey] === value)) continue
+    const value = token[key]
+    if (value != null) counts.set(value, (counts.get(value) ?? 0) + 1)
+  }
+  return counts
 }

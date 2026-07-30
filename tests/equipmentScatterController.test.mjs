@@ -51,3 +51,19 @@ test('equipment controller exposes reusable impulses, physics and cleanup', () =
   assert.equal(harness.controller.entries.length, 0)
   assert.equal(harness.scene.children.length, 0)
 })
+
+test('dragged equipment stays where the user leaves it and effects are transient', () => {
+  const harness = createHarness()
+  const camera = harness.controller.entries[0].group.parent
+  const ramen = harness.controller.entries.find(entry => entry.id === 'Ramen')
+  const destination = new THREE.Vector3(1.4, ramen.group.position.y, -0.8)
+  ramen.group.position.copy(destination)
+  harness.controller.update(2)
+  assert.deepEqual(ramen.group.position.toArray(), destination.toArray())
+
+  assert.equal(harness.controller.triggerEffect(ramen), true)
+  assert.ok(ramen.group.getObjectByName('EquipmentEffect:Ramen'))
+  for (let frame = 0; frame < 180; frame++) harness.controller.update(1 / 60)
+  assert.equal(ramen.group.getObjectByName('EquipmentEffect:Ramen'), undefined)
+  harness.controller.dispose()
+})

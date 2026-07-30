@@ -3,10 +3,10 @@ export function createCatPoseStrategies(rig) {
     'run': time => updateRun(rig, time),
     'flex': time => updateFlex(rig, time),
     'crouch': time => updateCrouch(rig, time),
-    'sit-splay': time => updateSplaySit(rig, time),
+    'sit': time => updateSit(rig, time),
     'jump': time => updateJump(rig, time),
-    'lie-down': time => updateLieDown(rig, time),
-    'sleep': time => updateSleep(rig, time),
+    'curious': time => updateCurious(rig, time),
+    'stretch': time => updateStretch(rig, time),
     'wave': time => updateWave(rig, time),
   }
 }
@@ -88,24 +88,22 @@ function updateCrouch(rig, time) {
     rig.updateTail(time, 0.035, 0.8)
   }
 
-function updateSplaySit(rig, time) {
-    const breathe = Math.sin(time * 1.8) * 0.008
-    rig.root.scale.set(1.08, 0.84 + breathe, 1.06)
-    if (rig.parts.body) rig.parts.body.position.y = -0.10
+function updateSit(rig, time) {
+    rig.root.scale.set(1, 1, 1)
     if (rig.parts.head) rig.parts.head.rotation.set(0.055, 0, Math.sin(time * 0.8) * 0.018)
     ;[[rig.parts.armLeft, -1], [rig.parts.armRight, 1]].forEach(([arm, side]) => {
       if (!arm) return
       const { elbow, wrist } = rig.getJointsFor(arm)
-      arm.rotation.set(0.10, 0, side * 0.12)
-      if (elbow) elbow.rotation.set(0.28, 0, -side * 0.06)
+      arm.rotation.set(0.08, 0, side * 0.10)
+      if (elbow) elbow.rotation.set(0.22, 0, -side * 0.05)
       if (wrist) wrist.rotation.set(-0.10, 0, side * 0.04)
     })
     ;[[rig.parts.legLeft, -1], [rig.parts.legRight, 1]].forEach(([leg, side]) => {
       if (!leg) return
       const { knee, ankle } = rig.getJointsFor(leg)
-      leg.rotation.set(-0.48, side * 0.16, side * 0.72)
-      if (knee) knee.rotation.set(1.02, 0, -side * 0.18)
-      if (ankle) ankle.rotation.set(-0.56, 0, side * 0.14)
+      leg.rotation.set(-0.34, side * 0.05, side * 0.18)
+      if (knee) knee.rotation.set(0.82, 0, -side * 0.06)
+      if (ankle) ankle.rotation.set(-0.42, 0, side * 0.04)
     })
     rig.updateTail(time, 0.028, 0.65)
   }
@@ -130,51 +128,53 @@ function updateJump(rig, time) {
     rig.updateTail(time, 0.075, 2.2)
   }
 
-function updateLieDown(rig, time) {
-    const breathe = Math.sin(time * 1.35) * 0.007
-    rig.root.scale.set(1.10, 0.64 + breathe, 1.16)
-    if (rig.parts.body) rig.parts.body.position.y = -0.22
-    if (rig.parts.head) rig.parts.head.rotation.set(0.12, 0, Math.sin(time * 0.65) * 0.012)
-    ;[[rig.parts.armLeft, -1], [rig.parts.armRight, 1]].forEach(([arm, side]) => {
-      if (!arm) return
-      const { elbow, wrist } = rig.getJointsFor(arm)
-      arm.rotation.set(0.68, side * 0.08, side * 0.17)
-      if (elbow) elbow.rotation.set(0.72, 0, -side * 0.12)
-      if (wrist) wrist.rotation.set(-0.34, 0, side * 0.06)
-    })
-    ;[[rig.parts.legLeft, -1], [rig.parts.legRight, 1]].forEach(([leg, side]) => {
-      if (!leg) return
-      const { knee, ankle } = rig.getJointsFor(leg)
-      leg.rotation.set(-0.92, side * 0.08, side * 0.20)
-      if (knee) knee.rotation.set(1.16, 0, -side * 0.10)
-      if (ankle) ankle.rotation.set(-0.54, 0, side * 0.08)
-    })
-    rig.updateTail(time, 0.022, 0.55)
-  }
-
-function updateSleep(rig, time) {
-    const breathe = Math.sin(time * 0.82) * 0.014
-    rig.root.scale.set(1.13 + breathe * 0.25, 0.60 + breathe, 1.18)
-    if (rig.parts.body) rig.parts.body.position.y = -0.25
-    if (rig.parts.head) rig.parts.head.rotation.set(0.16, 0.16, -0.18 + Math.sin(time * 0.42) * 0.008)
+function updateCurious(rig, time) {
+    rig.root.scale.set(1, 1, 1)
+    const glance = Math.sin(time * 0.9) * 0.035
+    if (rig.parts.head) rig.parts.head.rotation.set(-0.03, -0.12 + glance, -0.20)
     for (const [ear, side] of [[rig.parts.earLeft, -1], [rig.parts.earRight, 1]]) {
-      if (ear) ear.rotation.set(-0.12, 0, side * 0.11)
+      if (ear) ear.rotation.set(side < 0 ? -0.08 : 0.04, 0, side * 0.08)
     }
     ;[[rig.parts.armLeft, -1], [rig.parts.armRight, 1]].forEach(([arm, side]) => {
       if (!arm) return
       const { elbow, wrist } = rig.getJointsFor(arm)
-      arm.rotation.set(0.76, side * 0.10, side * 0.25)
-      if (elbow) elbow.rotation.set(0.94, 0, -side * 0.18)
-      if (wrist) wrist.rotation.set(-0.42, 0, side * 0.10)
+      const raised = side > 0
+      arm.rotation.set(raised ? -0.18 : 0.04, 0, side * (raised ? 0.58 : 0.08))
+      if (elbow) elbow.rotation.set(raised ? 0.48 : 0.10, 0, raised ? -0.16 : 0)
+      if (wrist) wrist.rotation.set(raised ? -0.22 : 0, 0, raised ? Math.sin(time * 2.1) * 0.06 : 0)
     })
     ;[[rig.parts.legLeft, -1], [rig.parts.legRight, 1]].forEach(([leg, side]) => {
       if (!leg) return
       const { knee, ankle } = rig.getJointsFor(leg)
-      leg.rotation.set(-1.02, side * 0.12, side * 0.32)
-      if (knee) knee.rotation.set(1.28, 0, -side * 0.16)
-      if (ankle) ankle.rotation.set(-0.64, 0, side * 0.12)
+      leg.rotation.set(0, 0, side * 0.02)
+      if (knee) knee.rotation.set(0.05, 0, 0)
+      if (ankle) ankle.rotation.set(-0.04, 0, 0)
     })
-    rig.updateTail(time, 0.012, 0.32)
+    rig.updateTail(time, 0.055, 1.1)
+  }
+
+function updateStretch(rig, time) {
+    rig.root.scale.set(1, 1, 1)
+    const sway = Math.sin(time * 1.1) * 0.025
+    if (rig.parts.head) rig.parts.head.rotation.set(0.10, sway, 0)
+    for (const [ear, side] of [[rig.parts.earLeft, -1], [rig.parts.earRight, 1]]) {
+      if (ear) ear.rotation.set(-0.06, 0, side * 0.05)
+    }
+    ;[[rig.parts.armLeft, -1], [rig.parts.armRight, 1]].forEach(([arm, side]) => {
+      if (!arm) return
+      const { elbow, wrist } = rig.getJointsFor(arm)
+      arm.rotation.set(-0.62, side * 0.04, side * 0.34)
+      if (elbow) elbow.rotation.set(0.18, 0, -side * 0.05)
+      if (wrist) wrist.rotation.set(-0.18, 0, side * 0.04)
+    })
+    ;[[rig.parts.legLeft, -1], [rig.parts.legRight, 1]].forEach(([leg, side]) => {
+      if (!leg) return
+      const { knee, ankle } = rig.getJointsFor(leg)
+      leg.rotation.set(0.16, 0, side * 0.05)
+      if (knee) knee.rotation.set(0.22, 0, 0)
+      if (ankle) ankle.rotation.set(-0.16, 0, side * 0.03)
+    })
+    rig.updateTail(time, 0.04, 0.75)
   }
 
 function updateWave(rig, time) {

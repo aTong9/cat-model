@@ -1,10 +1,10 @@
 export const POSE_CONFIGS = Object.freeze([
   Object.freeze({ id: 'standing', label: '站立', description: '自然下垂，轻微呼吸' }),
-  Object.freeze({ id: 'sit-splay', label: '岔腿坐', description: '身体下沉，双腿向两侧展开' }),
+  Object.freeze({ id: 'sit', label: '端坐', description: '屈膝坐稳，双爪自然垂下' }),
   Object.freeze({ id: 'run', label: '跑步', description: '四肢交替摆动' }),
   Object.freeze({ id: 'jump', label: '跳跃', description: '收腿并抬起双臂' }),
-  Object.freeze({ id: 'lie-down', label: '趴下', description: '身体贴地，四肢自然收拢' }),
-  Object.freeze({ id: 'sleep', label: '睡觉', description: '蜷卧休息，缓慢呼吸' }),
+  Object.freeze({ id: 'curious', label: '好奇', description: '歪头观察，轻轻抬起一只爪' }),
+  Object.freeze({ id: 'stretch', label: '伸懒腰', description: '双爪前伸，舒展四肢' }),
   Object.freeze({ id: 'wave', label: '招手', description: '站立并挥动右手' }),
 ])
 

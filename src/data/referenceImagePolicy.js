@@ -23,6 +23,6 @@ export function createReferenceImagePolicy({ mode = 'remote', localBaseUrl } = {
 
 const env = import.meta.env || {}
 export const referenceImagePolicy = createReferenceImagePolicy({
-  mode: env.VITE_REFERENCE_IMAGE_MODE || (env.DEV ? 'hybrid' : 'remote'),
+  mode: env.VITE_REFERENCE_IMAGE_MODE || (env.DEV ? 'local' : 'remote'),
   localBaseUrl: env.VITE_REFERENCE_IMAGE_BASE_URL,
 })
