@@ -87,7 +87,8 @@ src/character/
 - [x] 尾巴节点、曲线几何、动态更新与资源置换迁移至 `src/character/tail/`。
 - [x] morphology transform 迁移至 `src/character/morphology/`。
 - [x] 增加 morphology 极值、包围盒和 geometry 释放测试。
-- [ ] 拆分耳朵模块，并建立可复用角色 parts/socket 注册表。
+- [x] 拆分耳朵模块，并建立可复用角色 parts/socket 注册表。
+- [ ] 将装备装配从世界坐标迁移为 registry socket 的局部变换。
 
 验收：调用方无需直接依赖子模块；现有动画、装备、导出测试不回退。
 
@@ -128,4 +129,4 @@ src/character/
 
 ## 6. 当前下一任务
 
-为参数锁定补充 Pinia 单测；随后拆分耳朵模块，并建立角色 parts/socket 注册表，减少 `CatModel` 对私有字段的直接编排。
+将装备装配从世界坐标迁移为 registry socket 局部变换，并加入不同 headScale/bodyScale 下的挂点回归测试。

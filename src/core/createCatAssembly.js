@@ -29,6 +29,9 @@ export function createCatAssembly(input, options = {}) {
   model.setAnimation(options.animation ?? 'idle')
   return {
     root, model,
+    registry: model.registry,
+    get parts() { return Object.fromEntries(model.registry.partNames.map(name => [name, model.registry.getPart(name)])) },
+    get sockets() { return Object.fromEntries(model.registry.socketNames.map(name => [name, model.registry.getSocket(name)])) },
     get traits() { return { ...traits } },
     apply,
     update: time => model.update(time),

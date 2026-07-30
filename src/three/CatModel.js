@@ -9,6 +9,8 @@ import { getEyeAppearanceProfile, getFurAppearanceProfile } from './AppearancePr
 import { getFaceAppearanceProfile } from './FaceProfiles.js'
 import { createCatTail, updateCatTail } from '../character/tail/createCatTail.js'
 import { applyMorphology } from '../character/morphology/applyMorphology.js'
+import { createCatEar } from '../character/ears/createCatEar.js'
+import { CharacterPartRegistry } from '../character/registry/CharacterPartRegistry.js'
 
 // ===== Toon 渐变贴图（参考 Meow-Generator MeshToonMaterial） =====
 let _sharedToonMap = null
@@ -123,13 +125,6 @@ function applyFurVertexColors(geometry, style, customColor) {
   geometry.setAttribute('color', new THREE.BufferAttribute(colors, 3))
   geometry.attributes.color.needsUpdate = true
 }
-function innerEarMat() {
-  return new THREE.MeshStandardMaterial({
-    color: '#e85a50',
-    roughness: 0.42,
-    metalness: 0.02,
-  })
-}
 function eyeWhite() {
   return new THREE.MeshStandardMaterial({ color: '#ffffff', roughness: 0.22 })
 }
@@ -190,58 +185,6 @@ function createOutlineGeometry(sourceGeo, thickness = 0.020) {
   outlineGeo.setAttribute('normal', new THREE.Float32BufferAttribute(nrmOut, 3))
   if (idxSrc) outlineGeo.setIndex(Array.from(idxSrc))
   return outlineGeo
-}
-
-// ===== 内耳贴花（参考 Meow-Generator makeInnerEarDecal） =====
-function createInnerEarDecal(headRadius, earSide) {
-  const shape = new THREE.Shape()
-  shape.moveTo(-headRadius * 0.20, -headRadius * 0.20)
-  shape.lineTo(headRadius * 0.20, -headRadius * 0.20)
-  shape.lineTo(0, headRadius * 0.34)
-  shape.closePath()
-  const innerGeo = new THREE.ExtrudeGeometry(shape, { depth: 0.012, bevelEnabled: true, bevelSize: 0.008, bevelThickness: 0.005, bevelSegments: 2 })
-  innerGeo.center()
-  const innerMesh = new THREE.Mesh(innerGeo, innerEarMat())
-  // Local to the head: recessed onto the front face of the outer ear, not floating above it.
-  innerMesh.position.set(earSide * headRadius * 0.76, headRadius * 0.91, headRadius * 0.15)
-  innerMesh.scale.set(0.82, 1.08, 1)
-  innerMesh.rotation.z = -earSide * 0.16
-  innerMesh.castShadow = true
-  innerMesh.name = earSide < 0 ? 'InnerEarLeft' : 'InnerEarRight'
-  return innerMesh
-}
-
-function createArticulatedEar(headRadius, side) {
-  const root = new THREE.Group()
-  root.name = side < 0 ? 'EarLeft' : 'EarRight'
-  root.position.set(side * headRadius * 0.67, headRadius * 0.61, -headRadius * 0.12)
-
-  const outerShape = new THREE.Shape()
-  outerShape.moveTo(-headRadius * 0.25, -headRadius * 0.13)
-  outerShape.bezierCurveTo(-headRadius * 0.20, headRadius * 0.08, -headRadius * 0.10, headRadius * 0.54, 0, headRadius * 0.62)
-  outerShape.bezierCurveTo(headRadius * 0.10, headRadius * 0.54, headRadius * 0.20, headRadius * 0.08, headRadius * 0.25, -headRadius * 0.13)
-  outerShape.quadraticCurveTo(0, -headRadius * 0.22, -headRadius * 0.25, -headRadius * 0.13)
-  const outerGeo = new THREE.ExtrudeGeometry(outerShape, {
-    depth: headRadius * 0.20, bevelEnabled: true, bevelSegments: 4,
-    bevelSize: headRadius * 0.055, bevelThickness: headRadius * 0.045,
-  })
-  outerGeo.center()
-  const outer = new THREE.Mesh(outerGeo, new THREE.MeshToonMaterial({
-    color: '#f4c430', gradientMap: getToonGradientMap(),
-  }))
-  outer.name = side < 0 ? 'EarLeftOuter' : 'EarRightOuter'
-  outer.position.y = headRadius * 0.22
-  outer.rotation.z = -side * 0.13
-  outer.castShadow = true
-  root.add(outer)
-
-  const inner = createInnerEarDecal(headRadius * 0.72, side)
-  inner.position.set(0, headRadius * 0.23, headRadius * 0.135)
-  inner.rotation.z = -side * 0.13
-  inner.scale.set(0.68, 0.78, 1)
-  outer.add(inner)
-  root.scale.set(1.24, 1.24, 1.12)
-  return root
 }
 
 function createFurJointCover(radius, material, name, scale = [1, 1, 1]) {
@@ -456,6 +399,7 @@ function createFoot(side) {
 export class CatModel {
   constructor() {
     this.root = new THREE.Group()
+    this.registry = new CharacterPartRegistry(this.root)
     this._furMaterials = []
     this._furColor = '#f4c430'
     this._furStyle = 'Golden'
@@ -614,9 +558,9 @@ export class CatModel {
 
   setMorphology({ bodyScale = 1, headScale = 1, earScale = 1, legLength = 1, tailLength = 1, tailCurl = 0 } = {}) {
     this.root.userData.morphology = applyMorphology({
-      body: this._bodyGroup, head: this._headGroup,
-      earLeft: this._earLGroup, earRight: this._earRGroup,
-      legLeft: this._footLGroup, legRight: this._footRGroup, tail: this._tailGroup,
+      body: this.registry.getPart('body'), head: this.registry.getPart('head'),
+      earLeft: this.registry.getPart('ear-left'), earRight: this.registry.getPart('ear-right'),
+      legLeft: this.registry.getPart('leg-left'), legRight: this.registry.getPart('leg-right'), tail: this.registry.getPart('tail'),
     }, { bodyScale, headScale, earScale, legLength, tailLength, tailCurl })
   }
 
@@ -888,34 +832,43 @@ export class CatModel {
     }
     this.root.add(bodyGroup)
     this._bodyGroup = bodyGroup
+    this.registry.registerPart('body', bodyGroup)
 
     // Arms are separate, thick 3D assemblies so they stay visible and animation-ready.
     this._armLGroup = createRaisedArm(-1)
     this._armRGroup = createRaisedArm(1)
     this.root.add(this._armLGroup, this._armRGroup)
+    this.registry.registerPart('arm-left', this._armLGroup)
+    this.registry.registerPart('arm-right', this._armRGroup)
 
     // Match the reference stance: one planted foot and one lifted sole, both with five toes.
     this._footLGroup = createFoot(-1)
     this._footRGroup = createFoot(1)
     this.root.add(this._footLGroup, this._footRGroup)
+    this.registry.registerPart('leg-left', this._footLGroup)
+    this.registry.registerPart('leg-right', this._footRGroup)
 
     this._tailGroup = createCatTail(getToonGradientMap())
     this.root.add(this._tailGroup)
+    this.registry.registerPart('tail', this._tailGroup)
 
     // -- 头部组（面特征容器） --
     const headGroup = new THREE.Group()
     headGroup.position.copy(headCenter)
     this.root.add(headGroup)
     this._headGroup = headGroup
+    this.registry.registerPart('head', headGroup)
 
     // -- 内耳贴花（粉红耳内） --
-    this._earLGroup = createArticulatedEar(headRadius, -1)
+    this._earLGroup = createCatEar(headRadius, -1, getToonGradientMap())
     this._earLGroup.position.add(headCenter)
     this.root.add(this._earLGroup)
+    this.registry.registerPart('ear-left', this._earLGroup)
 
-    this._earRGroup = createArticulatedEar(headRadius, 1)
+    this._earRGroup = createCatEar(headRadius, 1, getToonGradientMap())
     this._earRGroup.position.add(headCenter)
     this.root.add(this._earRGroup)
+    this.registry.registerPart('ear-right', this._earRGroup)
 
     // -- 鼻子 --
     const n = createHeartNose(headRadius * 0.105)
@@ -967,6 +920,12 @@ export class CatModel {
     // -- 装备根 --
     this._gearRoot = new THREE.Group()
     this.root.add(this._gearRoot)
+    this.registry.registerPart('gear-root', this._gearRoot)
+    this.registry.registerSocket('head-top', headGroup)
+    this.registry.registerSocket('face-eyes', headGroup)
+    this.registry.registerSocket('chest-front', bodyGroup)
+    this.registry.registerSocket('back', bodyGroup)
+    this.registry.registerSocket('paw-left', this._armLGroup)
 
     // 初始构建
     this._rebuildEyes()
