@@ -60,6 +60,10 @@ export const useCatStore = defineStore('cat', () => {
   const activePreset = ref(null)
   const actionMode = ref('standing')
   const qualityMode = ref('auto')
+  const stageStyle = ref('minimal')
+  const stageScale = ref(1)
+  const stageHeight = ref(0)
+  const stageTextureUrl = ref(null)
   const morphology = ref(Object.fromEntries(Object.entries(MORPHOLOGY_DEFINITIONS).map(([key, value]) => [key, value.default])))
   const morphologyLocks = ref(Object.fromEntries(Object.keys(MORPHOLOGY_DEFINITIONS).map(key => [key, false])))
   const identity = ref({ name: '', personality: [], occupation: '', theme: '', story: '', catchphrase: '' })
@@ -266,6 +270,10 @@ export const useCatStore = defineStore('cat', () => {
     if (workspaceMode.value === 'verify' && referenceImage.value) comparisonOpen.value = true
   }
   const setLanguage = lang => { language.value = lang }
+  function setStageTexture(file) {
+    if (stageTextureUrl.value?.startsWith?.('blob:')) URL.revokeObjectURL(stageTextureUrl.value)
+    stageTextureUrl.value = file ? URL.createObjectURL(file) : null
+  }
 
   function applyPreset(preset) {
     activePreset.value = preset.tokenId
@@ -286,11 +294,11 @@ export const useCatStore = defineStore('cat', () => {
   }
 
   return {
-    furStyle, furColor, eyeStyle, gearType, faceExpression, background, special, actionMode, qualityMode, morphology, morphologyLocks, identity,
+    furStyle, furColor, eyeStyle, gearType, faceExpression, background, special, actionMode, qualityMode, stageStyle, stageScale, stageHeight, stageTextureUrl, morphology, morphologyLocks, identity,
     tokenId, seed, activePreset, weather, lightIntensity, rainAmount, cloudAmount,
     fishAmount, musicOn, language, loading, loadingProgress, panelExpanded, workspaceMode, showHints,
     tokenLoading, tokenError, referenceImage, referenceImageFallback, referenceImageSource, comparisonOpen,
     isSpecialFullScene, currentTraits, canUndo, canRedo, undo, redo, setIdentity, generateIdentity, applyTraits, randomize, setFromSeed, cycleWeather, togglePanel, setWorkspaceMode, setLanguage,
-    applyPreset, setFurStyle, setCustomFurColor, setBackground, setSpecial, setMorphology, resetMorphology, applyMorphologyPreset, toggleMorphologyLock, loadToken, loadAdjacent,
+    applyPreset, setFurStyle, setCustomFurColor, setBackground, setSpecial, setStageTexture, setMorphology, resetMorphology, applyMorphologyPreset, toggleMorphologyLock, loadToken, loadAdjacent,
   }
 })

@@ -21,7 +21,7 @@ import { getNextPoseId } from '../config/poses.js'
 const store = useCatStore()
 const canvasRef = ref(null)
 
-let renderer, scene, camera, controls, envGroup, updateSize, weatherController, inputController, environmentController
+let renderer, scene, camera, controls, envGroup, updateSize, setStage, weatherController, inputController, environmentController
 let lifecycleController
 let qualityController
 let equipmentScatterController
@@ -81,6 +81,8 @@ onMounted(async () => {
   controls = setup.controls
   envGroup = setup.envGroup
   updateSize = setup.updateSize
+  setStage = setup.setStage
+  setStage({ style: store.stageStyle, scale: store.stageScale, height: store.stageHeight, textureUrl: store.stageTextureUrl })
   weatherController = createWeatherController({ scene, root: envGroup })
   weatherController.setWeather(store.weather)
   inputController = createCharacterInputController(window)
@@ -246,6 +248,7 @@ watch(() => store.qualityMode, (value) => {
   qualityController?.setMode(value)
   updateSize?.()
 })
+watch(() => [store.stageStyle, store.stageScale, store.stageHeight, store.stageTextureUrl], ([style, scale, height, textureUrl]) => setStage?.({ style, scale, height, textureUrl }))
 
 function applyBackground(name) {
   environmentController?.setBackground(name)

@@ -844,15 +844,15 @@ function createEmbossedGlyph(character, width, height, depth, material, name) {
 
 function createGoldPlaque({ characters, width, height, depth, faceInset, ridgeCount }) {
   const root = new THREE.Group()
-  const shellMat = new THREE.MeshPhysicalMaterial({ color: '#d8a817', metalness: .96, roughness: .16, clearcoat: .62, clearcoatRoughness: .14 })
-  const rimMat = new THREE.MeshPhysicalMaterial({ color: '#ffe05a', metalness: .98, roughness: .10, clearcoat: .78, clearcoatRoughness: .09 })
-  const recessMat = new THREE.MeshStandardMaterial({ color: '#9f6d08', metalness: .94, roughness: .21 })
-  const faceMat = new THREE.MeshPhysicalMaterial({ color: '#c78b09', metalness: .92, roughness: .22, clearcoat: .42, clearcoatRoughness: .16 })
-  const glyphShadowMat = new THREE.MeshStandardMaterial({ color: '#4d2702', metalness: .70, roughness: .34 })
+  const shellMat = new THREE.MeshPhysicalMaterial({ color: '#e7b91f', metalness: .96, roughness: .16, clearcoat: .62, clearcoatRoughness: .14 })
+  const rimMat = new THREE.MeshPhysicalMaterial({ color: '#fff06a', metalness: .98, roughness: .10, clearcoat: .78, clearcoatRoughness: .09 })
+  const recessMat = new THREE.MeshStandardMaterial({ color: '#a96a00', metalness: .94, roughness: .21 })
+  const faceMat = new THREE.MeshPhysicalMaterial({ color: '#e2b51f', metalness: .92, roughness: .20, clearcoat: .52, clearcoatRoughness: .13 })
+  const glyphShadowMat = new THREE.MeshStandardMaterial({ color: '#714000', metalness: .76, roughness: .30 })
   const glyphMat = new THREE.MeshPhysicalMaterial({
-    color: '#fff0a0',
-    emissive: '#9a5b08',
-    emissiveIntensity: .32,
+    color: '#ffe45a',
+    emissive: '#a86b00',
+    emissiveIntensity: .24,
     metalness: .88,
     roughness: .12,
     clearcoat: .76,

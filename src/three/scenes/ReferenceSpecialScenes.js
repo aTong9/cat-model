@@ -9,8 +9,24 @@ const mesh = (geometry, material, x, y, z, name) => {
   return item
 }
 
+function addAnimeBackdrop(root, { sky, horizon, sun, cloud }) {
+  const backdrop = new THREE.Group()
+  backdrop.name = 'AnimeBackdrop'
+  const skyPlane = mesh(new THREE.PlaneGeometry(11, 6.5), glow(sky), 0, 1.7, -4.8, 'AnimeSky')
+  const horizonPlane = mesh(new THREE.PlaneGeometry(11, 2.2), glow(horizon), 0, -.35, -4.72, 'AnimeHorizon')
+  const sunDisc = mesh(new THREE.CircleGeometry(.72, 32), glow(sun, { transparent: true, opacity: .82 }), -2.8, 2.65, -4.6, 'AnimeSun')
+  backdrop.add(skyPlane, horizonPlane, sunDisc)
+  for (let index = 0; index < 9; index++) {
+    const puff = mesh(new THREE.CircleGeometry(.28 + index % 3 * .09, 18), glow(cloud, { transparent: true, opacity: .42 }), -4 + index, 1.55 + index % 2 * .28, -4.5, `AnimeCloud${index}`)
+    puff.scale.x = 1.8
+    backdrop.add(puff)
+  }
+  root.add(backdrop)
+}
+
 function galactic() {
   const root = new THREE.Group(); root.name = 'GalacticVoyageScene'
+  addAnimeBackdrop(root, { sky: '#15143b', horizon: '#342760', sun: '#d78cff', cloud: '#7b69b6' })
   const moving = []
   const stars = new Float32Array(360)
   for (let i = 0; i < stars.length; i += 3) {
@@ -51,6 +67,7 @@ function galactic() {
 
 function thunder() {
   const root = new THREE.Group(); root.name = 'ThunderousMightScene'
+  addAnimeBackdrop(root, { sky: '#253041', horizon: '#485466', sun: '#bcefff', cloud: '#7c8794' })
   const clouds = [], bolts = [], rain = []
   for (let i = 0; i < 13; i++) {
     const cloud = mesh(new THREE.SphereGeometry(.48 + i % 3 * .12, 14, 9), mat('#66717a'), -4 + i * .68, 3.1 + i % 2 * .18, -2.1 - i % 3 * .25, `StormCloud${i}`)
@@ -82,6 +99,7 @@ function thunder() {
 
 function onsen() {
   const root = new THREE.Group(); root.name = 'OnsenJourneyScene'
+  addAnimeBackdrop(root, { sky: '#f49bb4', horizon: '#755b91', sun: '#fff0bd', cloud: '#ffe5ed' })
   const water = mesh(new THREE.CircleGeometry(3.0, 64), mat('#6bdce8', { transparent: true, opacity: .76, metalness: .05, roughness: .18 }), 0, -.49, -.25, 'HotSpringWater')
   water.rotation.x = -Math.PI/2; root.add(water)
   const ripples = [], petals = [], steam = []
@@ -113,6 +131,7 @@ function onsen() {
 
 function fitness() {
   const root=new THREE.Group();root.name='FitnessGuruScene'
+  addAnimeBackdrop(root, { sky: '#70b9d8', horizon: '#ef9d6d', sun: '#fff0a8', cloud: '#f7f4e8' })
   const bag=new THREE.Group();bag.name='PunchingBag';bag.position.set(-2.3,.55,-.7)
   bag.add(mesh(new THREE.CapsuleGeometry(.36,1.45,10,22),mat('#ec5860'),0,0,0,'Bag'))
   const stripe=mesh(new THREE.TorusGeometry(.34,.03,8,32),glow('#fff'),0,.58,.34,'Stripe');bag.add(stripe);root.add(bag)

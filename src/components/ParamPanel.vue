@@ -16,11 +16,6 @@
           <div><span>LIBERTY CAT GENERATOR</span><h1>角色配置器</h1></div>
           <b>#{{ String(store.tokenId).padStart(4, '0') }}</b>
         </header>
-        <nav class="workspace-modes" aria-label="工作模式">
-          <button type="button" :aria-pressed="store.workspaceMode === 'create'" :class="{ active: store.workspaceMode === 'create' }" @click="store.setWorkspaceMode('create')">创作</button>
-          <button type="button" :aria-pressed="store.workspaceMode === 'verify'" :class="{ active: store.workspaceMode === 'verify' }" @click="store.setWorkspaceMode('verify')">2D/3D 核对</button>
-        </nav>
-        <p class="mode-description">{{ store.workspaceMode === 'create' ? '塑造角色外观、装备、场景和动作。' : '核对原始 Token、Trait 实现状态与 2D / 3D 一致性。' }}</p>
         <div class="editor-tools" aria-label="编辑历史">
           <button class="btn" :disabled="!store.canUndo" @click="store.undo">撤销</button>
           <button class="btn" :disabled="!store.canRedo" @click="store.redo">重做</button>
@@ -39,19 +34,9 @@
         <div class="token-nav" aria-label="切换 Token">
           <button class="btn" :disabled="store.tokenLoading" @click="navigateToken(-1)">← 上一只</button>
           <button class="btn" :disabled="store.tokenLoading" @click="navigateToken(1)">下一只 →</button>
+          <button class="btn compare-inline" :class="{ active: store.comparisonOpen }" :disabled="!store.referenceImage" @click="store.comparisonOpen = !store.comparisonOpen">2D/3D 核对</button>
         </div>
-
-        <details v-if="store.workspaceMode === 'verify'" class="trait-audit" open>
-          <summary><span>当前 Trait 状态</span><b>{{ traitSummary.implemented }} 已实现<span v-if="traitSummary.partial"> · {{ traitSummary.partial }} 部分实现</span></b></summary>
-          <ul>
-            <li v-for="item in traitSummary.items" :key="`${item.type}:${item.value}`">
-              <i :class="item.status"></i><span><b>{{ traitNames[item.type] }}</b>{{ item.value }}</span><em>{{ item.label }}</em>
-              <small>{{ item.note }}</small>
-            </li>
-          </ul>
-        </details>
-
-        <TraitMatrix v-if="store.workspaceMode === 'verify'" />
+        <ComparisonPanel v-if="store.comparisonOpen" embedded />
 
         <nav class="section-tabs" aria-label="配置分类">
           <button v-for="tab in tabs" :key="tab.id" :class="{ active: activeTab === tab.id }" @click="activeTab = tab.id">{{ tab.label }}</button>
@@ -86,6 +71,10 @@
 
         <section v-else-if="activeTab === 'scene'" class="settings-section">
           <SettingBlock title="画质"><select v-model="store.qualityMode"><option v-for="item in QUALITY_MODES" :key="item.id" :value="item.id">{{ item.label }}</option></select></SettingBlock>
+          <SettingBlock title="舞台"><select v-model="store.stageStyle"><option value="minimal">简约舞台</option><option value="wood">木纹舞台</option><option value="grid">网格舞台</option><option value="hidden">隐藏舞台</option></select></SettingBlock>
+          <SettingBlock title="舞台尺寸"><div class="range-control"><input v-model.number="store.stageScale" type="range" min="0.75" max="1.6" step="0.05" /><output>{{ store.stageScale.toFixed(2) }}</output></div></SettingBlock>
+          <SettingBlock title="舞台高度"><div class="range-control"><input v-model.number="store.stageHeight" type="range" min="-0.04" max="0.12" step="0.01" /><output>{{ store.stageHeight.toFixed(2) }}</output></div></SettingBlock>
+          <SettingBlock title="地板图片"><label class="texture-upload"><input type="file" accept="image/*" @change="onStageTexture"><span class="upload-icon">＋</span><span><b>{{ stageTextureName || '选择本地图片' }}</b><small>{{ stageTextureName ? '已应用为平铺纹理' : 'PNG、JPG 或 WebP' }}</small></span></label></SettingBlock>
           <SettingBlock title="背景"><select :value="store.background || ''" :disabled="Boolean(store.special)" @change="store.setBackground($event.target.value)"><option value="" disabled>{{ store.special ? '特殊场景已启用' : '选择背景' }}</option><option v-for="background in BACKGROUNDS" :key="background">{{ background }}</option></select><p v-if="store.special" class="override-note">背景由 Special「{{ store.special }}」接管。<button type="button" @click="store.setSpecial(null)">恢复普通背景</button></p></SettingBlock>
           <SettingBlock title="特殊场景"><div class="choice-grid two"><button class="choice" :class="{ active: store.special === null }" @click="store.setSpecial(null)">默认场景</button><button v-for="item in SPECIALS" :key="item.id" class="choice" :class="{ active: store.special === item.id }" @click="store.setSpecial(item.id)">{{ item.label }}</button></div></SettingBlock>
         </section>
@@ -114,13 +103,13 @@
 <script setup>
 import { computed, defineComponent, h, ref } from 'vue'
 import { useCatStore, FUR_PRESETS, EYE_STYLES, FACE_EXPRESSIONS, GEAR_LIST, BACKGROUNDS, SPECIALS, ACTIONS, MORPHOLOGY_CONTROLS, MORPHOLOGY_PRESETS } from '../stores/cat.js'
-import { summarizeTraitStatuses } from '../core/traitStatus.js'
-import TraitMatrix from './TraitMatrix.vue'
+import ComparisonPanel from './ComparisonPanel.vue'
 import { QUALITY_MODES } from '../three/RenderQualityController.js'
 const store = useCatStore()
 const tokenQuery = ref(String(store.tokenId))
 const activeTab = ref('look')
 const traitQuery = ref('')
+const stageTextureName = ref('')
 const searchIndex = [
   { id: 'body', tab: 'body', label: '体型与比例' }, { id: 'fur', tab: 'look', label: '毛色外观' },
   { id: 'eyes', tab: 'look', label: '眼睛表情' }, { id: 'gear', tab: 'gear', label: '装备饰品' },
@@ -128,13 +117,12 @@ const searchIndex = [
   { id: 'motion', tab: 'motion', label: '动作姿势' },
 ]
 const searchResults = computed(() => searchIndex.filter(item => item.label.toLowerCase().includes(traitQuery.value.toLowerCase())))
-const traitSummary = computed(() => summarizeTraitStatuses(store.currentTraits))
-const traitNames = { fur: '毛色', eyes: '眼睛', face: '表情', gear: '装备', background: '背景', special: 'Special' }
 const tabs = [{ id: 'body', label: '体型' }, { id: 'look', label: '外观' }, { id: 'gear', label: '装备' }, { id: 'scene', label: '场景' }, { id: 'motion', label: '动作' }]
 const weathers = [{ id: 'sunny', icon: '☀', label: '晴天' }, { id: 'cloudy', icon: '☁', label: '多云' }, { id: 'rain', icon: '☂', label: '降雨' }, { id: 'thunder', icon: 'ϟ', label: '雷雨' }]
 const searchToken = async () => { if (await store.loadToken(tokenQuery.value)) tokenQuery.value = String(store.tokenId) }
 tabs.splice(4, 0, { id: 'ip', label: 'IP' })
 const navigateToken = async direction => { if (await store.loadAdjacent(direction)) tokenQuery.value = String(store.tokenId) }
+const onStageTexture = event => { const file = event.target.files?.[0]; if (!file) return; stageTextureName.value = file.name; store.setStageTexture(file) }
 const furDotStyle = preset => ({ background: preset.pattern === 'solid' ? preset.color : `linear-gradient(135deg,${preset.color} 0 46%,${preset.accent} 47% 65%,#f4f0e4 66%)` })
 const matchesMorphologyPreset = preset => Object.entries(preset.values).every(([key, value]) => Math.abs(store.morphology[key] - value) < 0.001)
 const SettingBlock = defineComponent({
@@ -159,4 +147,6 @@ const SettingBlock = defineComponent({
 .range-control{display:grid;grid-template-columns:1fr 42px 38px;align-items:center;gap:7px}.range-control input{width:100%;accent-color:var(--accent)}.range-control output{color:var(--accent);font:700 .68rem monospace;text-align:right}.lock-control{padding:4px 2px;border:1px solid var(--border);border-radius:5px;background:transparent;color:#7f899f;font-size:.58rem;cursor:pointer}.lock-control.active{border-color:var(--accent);color:var(--accent)}.reset-morphology{margin-left:58px}
 .workspace-modes{display:grid;grid-template-columns:1fr 1fr;gap:4px;margin-top:12px;padding:4px;border-radius:10px;background:rgba(255,255,255,.04)}.workspace-modes button{min-height:34px;border:0;border-radius:7px;background:transparent;color:var(--text-dim);cursor:pointer}.workspace-modes button.active{background:var(--accent);color:#201d14;font-weight:800}.mode-description{margin-top:7px;color:var(--text-dim);font-size:.68rem;line-height:1.5}
 .override-note{margin-top:7px;color:var(--text-dim);font-size:.62rem;line-height:1.45}.override-note button{margin-left:3px;border:0;background:transparent;color:var(--accent);font-size:inherit;cursor:pointer;text-decoration:underline;text-underline-offset:2px}
+.setting-block h2{font-size:.59rem;line-height:1.35}.editor-tools input::placeholder,.token-search input::placeholder{font-size:.58rem}.texture-upload{display:flex;align-items:center;gap:10px;padding:9px;border:1px dashed rgba(245,211,61,.45);border-radius:9px;background:rgba(245,211,61,.055);color:#aeb5c8;cursor:pointer;transition:.18s}.texture-upload:hover{border-color:var(--accent);background:rgba(245,211,61,.1)}.texture-upload input{position:absolute;width:1px;height:1px;overflow:hidden;opacity:0}.texture-upload>span:last-child{display:grid;gap:2px;min-width:0}.texture-upload b{overflow:hidden;color:var(--text);font-size:.62rem;text-overflow:ellipsis;white-space:nowrap}.texture-upload small{color:#7f899f;font-size:.54rem}.upload-icon{display:grid;place-items:center;flex:0 0 28px;height:28px;border-radius:8px;background:var(--accent);color:#211d13;font-size:1rem;font-weight:800}
+.token-nav{grid-template-columns:1fr 1fr 1fr}.compare-inline.active{border-color:var(--accent);color:var(--accent)}
 </style>

@@ -6,6 +6,8 @@ const GRAVITY = -9.8
 const DAMPING = 0.92
 const ANGULAR_DAMPING = 0.88
 const BOUNCE = 0.35
+const CAT_CLEARANCE = 0.9
+const SCATTER_SCALES = Object.freeze({ Camera: 0.58, 'Hiking Backpack': 1.08, 'Baseball Cap': 1.12 })
 
 function hashSeed(seed) {
   let hash = 2166136261
@@ -69,11 +71,11 @@ export function createEquipmentScatterController({
       const group = createGear(id)
       if (!group) return
       const angle = (index / gearIds.length) * Math.PI * 2 + (layoutRandom() - 0.5) * 0.4
-      const radius = 2.2 + layoutRandom()
+      const radius = 1.45 + layoutRandom() * 0.75
       const position = new THREE.Vector3(Math.cos(angle) * radius, GROUND_Y, Math.sin(angle) * radius)
       group.position.copy(position)
       group.rotation.set(layoutRandom() * 0.2 - 0.1, layoutRandom() * Math.PI * 2, layoutRandom() * 0.1 - 0.05)
-      group.scale.setScalar(0.68 + layoutRandom() * 0.16)
+      group.scale.setScalar((SCATTER_SCALES[id] ?? 1.22) * (0.94 + layoutRandom() * 0.12))
       group.userData._scatterAngle = angle
       group.userData._scatterRadius = radius
       group.userData._gearId = id
@@ -84,9 +86,15 @@ export function createEquipmentScatterController({
         object.userData.__scatterEntryIndex = entries.length
       })
       scene.add(group)
+      group.updateMatrixWorld(true)
+      const bounds = new THREE.Box3().setFromObject(group)
+      const groundOffset = Number.isFinite(bounds.min.y) ? GROUND_Y - bounds.min.y : 0
+      group.position.y += groundOffset
+      position.y = group.position.y
       entries.push({
         group,
         id,
+        groundY: group.position.y,
         restPos: position,
         velocity: new THREE.Vector3(),
         angularVel: new THREE.Vector3(),
@@ -157,7 +165,18 @@ export function createEquipmentScatterController({
   function moveDrag(clientX, clientY) {
     if (!draggedEntry || !updatePointer(clientX, clientY) || !raycaster.ray.intersectPlane(groundPlane, dragPoint)) return false
     draggedEntry.group.position.copy(dragPoint).add(dragOffset)
-    draggedEntry.group.position.y = GROUND_Y
+    draggedEntry.group.position.y = draggedEntry.groundY
+    if (dropTarget) {
+      const catPosition = dropTarget.getWorldPosition(new THREE.Vector3())
+      const dx = draggedEntry.group.position.x - catPosition.x
+      const dz = draggedEntry.group.position.z - catPosition.z
+      const distance = Math.hypot(dx, dz)
+      if (distance < CAT_CLEARANCE) {
+        const safeDistance = Math.max(distance, 0.0001)
+        draggedEntry.group.position.x = catPosition.x + dx / safeDistance * CAT_CLEARANCE
+        draggedEntry.group.position.z = catPosition.z + dz / safeDistance * CAT_CLEARANCE
+      }
+    }
     if (pointerDownAt && Math.hypot(clientX - pointerDownAt.x, clientY - pointerDownAt.y) > 5) suppressClick = true
     return true
   }
@@ -205,7 +224,7 @@ export function createEquipmentScatterController({
       if (entry === draggedEntry) return
       if (entry.effect?.update(dt)) { entry.effect.dispose(); entry.effect = null }
       const speed = entry.velocity.length()
-      const resting = speed < 0.15 && entry.group.position.y <= GROUND_Y + 0.05
+      const resting = speed < 0.15 && entry.group.position.y <= entry.groundY + 0.05
       if (resting) {
         entry.velocity.set(0, 0, 0)
         entry.angularVel.set(0, 0, 0)
@@ -213,8 +232,8 @@ export function createEquipmentScatterController({
       }
       entry.velocity.y += GRAVITY * dt
       entry.group.position.addScaledVector(entry.velocity, dt)
-      if (entry.group.position.y <= GROUND_Y) {
-        entry.group.position.y = GROUND_Y
+      if (entry.group.position.y <= entry.groundY) {
+        entry.group.position.y = entry.groundY
         if (entry.velocity.y < 0) entry.velocity.y = Math.abs(entry.velocity.y) * BOUNCE
         entry.velocity.x *= 0.85
         entry.velocity.z *= 0.85

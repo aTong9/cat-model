@@ -64,12 +64,12 @@ export function createScene(canvas) {
   const ground = new THREE.Mesh(groundGeo, groundMat)
   ground.name = 'PreviewGround'
   ground.rotation.x = -Math.PI / 2
-  ground.position.y = -1.0
+  ground.position.y = -0.62
   ground.receiveShadow = true
   scene.add(ground)
 
   // --- Podium ---
-  const podiumGeo = new THREE.CylinderGeometry(0.65, 0.7, 0.08, 48)
+  const podiumGeo = new THREE.CylinderGeometry(0.78, 0.82, 0.06, 48)
   const podiumMat = new THREE.MeshStandardMaterial({ color: '#302b42', roughness: 0.48, metalness: 0.28 })
   const podium = new THREE.Mesh(podiumGeo, podiumMat)
   podium.name = 'PreviewPodium'
@@ -96,5 +96,30 @@ export function createScene(canvas) {
     }
   }
 
-  return { renderer, scene, camera, controls, envGroup, updateSize }
+  let podiumTexture = null
+  function setStage({ style = 'minimal', scale = 1, height = 0, textureUrl = null } = {}) {
+    podium.visible = style !== 'hidden'
+    podium.scale.setScalar(THREE.MathUtils.clamp(Number(scale) || 1, .75, 1.6))
+    podium.position.y = -.55 + THREE.MathUtils.clamp(Number(height) || 0, -.04, .12)
+    podiumTexture?.dispose?.()
+    podiumTexture = null
+    podiumMat.map = null
+    podiumMat.color.set(style === 'wood' ? '#8b5a35' : style === 'grid' ? '#293654' : '#302b42')
+    podiumMat.roughness = style === 'wood' ? .72 : .48
+    if (textureUrl) {
+      new THREE.TextureLoader().load(textureUrl, texture => {
+        podiumTexture?.dispose?.()
+        podiumTexture = texture
+        texture.colorSpace = THREE.SRGBColorSpace
+        texture.wrapS = texture.wrapT = THREE.RepeatWrapping
+        texture.repeat.set(4, 4)
+        podiumMat.map = texture
+        podiumMat.color.set('#ffffff')
+        podiumMat.needsUpdate = true
+      })
+    }
+    podiumMat.needsUpdate = true
+  }
+
+  return { renderer, scene, camera, controls, envGroup, updateSize, setStage }
 }
