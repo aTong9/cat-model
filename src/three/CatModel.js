@@ -1,5 +1,4 @@
 import * as THREE from 'three'
-import { normalizePoseId } from '../config/poses.js'
 import { RoundedBoxGeometry } from 'three/addons/geometries/RoundedBoxGeometry.js'
 import { createSdfCatBody } from './SdfCatBody.js'
 import { getFurTrait } from '../config/traits.js'
@@ -14,6 +13,7 @@ import { disposeObject3DResources } from '../character/resources/disposeObject3D
 import { assembleBodyShell } from '../character/body/assembleBodyShell.js'
 import { createLimbSet } from '../character/limbs/createLimbSet.js'
 import { createRaisedArm, createFoot } from '../character/limbs/createCatLimbs.js'
+import { CatAnimator } from '../character/animation/CatAnimator.js'
 
 // ===== Toon 渐变贴图（参考 Meow-Generator MeshToonMaterial） =====
 let _sharedToonMap = null
@@ -203,8 +203,6 @@ export class CatModel {
     this._gearType = null
     this._equippedGear = null
     this._eyelids = []
-    this._animationMode = 'standing'
-    this._runSpeed = 1
 
     // 子组引用
     this._headGroup = null
@@ -226,6 +224,23 @@ export class CatModel {
 
     this._buildBody()
     this.equipmentAssembler = new EquipmentAssembler(this.registry)
+    this.animator = new CatAnimator({
+      root: this.root,
+      registry: this.registry,
+      parts: {
+        body: this._bodyGroup, head: this._headGroup,
+        earLeft: this._earLGroup, earRight: this._earRGroup,
+        armLeft: this._armLGroup, armRight: this._armRGroup,
+        legLeft: this._footLGroup, legRight: this._footRGroup,
+      },
+      updateTail: (...args) => this._updateTailSurface(...args),
+      strategies: {
+        run: time => this._updateRun(time), flex: time => this._updateFlex(time),
+        crouch: time => this._updateCrouch(time), jump: time => this._updateJump(time),
+        'sit-splay': time => this._updateSplaySit(time), 'lie-down': time => this._updateLieDown(time),
+        sleep: time => this._updateSleep(time), wave: time => this._updateWave(time),
+      },
+    })
   }
 
   // ========== Public API ==========
@@ -265,19 +280,23 @@ export class CatModel {
   }
 
   setAnimation(mode = 'standing') {
-    this._animationMode = mode === 'flex' || mode === 'crouch' ? mode : normalizePoseId(mode)
+    this.animator.setAnimation(mode)
   }
 
   setRunSpeed(speed = 1) {
-    this._runSpeed = THREE.MathUtils.clamp(Number(speed) || 1, 0.25, 2.5)
+    this.animator.setRunSpeed(speed)
   }
 
   _updateTailSurface(time, intensity = 0.06, speed = 1) {
     updateCatTail(this._tailGroup, time, intensity, speed)
   }
 
+  _getJoints(part) {
+    return this.registry.getJoints(this.registry.getPartId(part))
+  }
+
   _updateRun(time) {
-    const cycle = time * 10 * this._runSpeed
+    const cycle = time * 10 * this.animator.runSpeed
     const pulse = Math.abs(Math.sin(cycle)) * 0.026
     this.root.scale.set(1.05 - pulse * 0.25, 1.02 + pulse, 1 - pulse * 0.18)
     if (this._headGroup) {
@@ -291,7 +310,7 @@ export class CatModel {
     ;[[this._armLGroup, -1, 0], [this._armRGroup, 1, Math.PI]].forEach(([arm, side, offset]) => {
       if (!arm) return
       const swing = Math.sin(cycle + offset)
-      const { elbow, wrist } = this.registry.getJoints(arm)
+      const { elbow, wrist } = this._getJoints(arm)
       arm.rotation.set(-swing * 0.30, 0, side * 0.08 + swing * 0.025)
       if (elbow) elbow.rotation.set(0.12 + Math.max(0, swing) * 0.24, 0, side * 0.035)
       if (wrist) wrist.rotation.set(-0.06 - swing * 0.04, 0, 0)
@@ -300,12 +319,12 @@ export class CatModel {
       if (!leg) return
       const stride = Math.sin(cycle + offset)
       const lift = Math.max(0, -stride)
-      const { knee, ankle } = this.registry.getJoints(leg)
+      const { knee, ankle } = this._getJoints(leg)
       leg.rotation.set(stride * 0.62, 0, 0)
       if (knee) knee.rotation.x = 0.08 + lift * 0.78
       if (ankle) ankle.rotation.x = -0.12 - lift * 0.38 + Math.max(0, stride) * 0.12
     })
-    this._updateTailSurface(time, 0.095, 5.4 * this._runSpeed)
+    this._updateTailSurface(time, 0.095, 5.4 * this.animator.runSpeed)
   }
 
   _updateFlex(time) {
@@ -314,7 +333,7 @@ export class CatModel {
     if (this._headGroup) this._headGroup.rotation.set(-0.025, 0, Math.sin(time * 1.4) * 0.018)
     ;[[this._armLGroup, -1], [this._armRGroup, 1]].forEach(([arm, side]) => {
       if (!arm) return
-      const { elbow, wrist } = this.registry.getJoints(arm)
+      const { elbow, wrist } = this._getJoints(arm)
       arm.rotation.set(-0.08, 0, side * (1.28 + pulse * 0.08))
       if (elbow) elbow.rotation.set(0.08, 0, side * (0.18 + pulse * 0.05))
       if (wrist) wrist.rotation.set(-0.08, 0, -side * 0.08)
@@ -322,7 +341,7 @@ export class CatModel {
     ;[this._footLGroup, this._footRGroup].forEach((leg) => {
       if (!leg) return
       leg.rotation.set(0, 0, 0)
-      const { knee, ankle } = this.registry.getJoints(leg)
+      const { knee, ankle } = this._getJoints(leg)
       if (knee) knee.rotation.set(0.06, 0, 0)
       if (ankle) ankle.rotation.set(-0.06, 0, 0)
     })
@@ -338,14 +357,14 @@ export class CatModel {
     if (this._headGroup) this._headGroup.rotation.set(0.07, 0, Math.sin(time * 1.2) * 0.012)
     ;[[this._armLGroup, -1], [this._armRGroup, 1]].forEach(([arm, side]) => {
       if (!arm) return
-      const { elbow, wrist } = this.registry.getJoints(arm)
+      const { elbow, wrist } = this._getJoints(arm)
       arm.rotation.set(0.16, 0, side * 0.12)
       if (elbow) elbow.rotation.set(0.42, 0, -side * 0.18)
       if (wrist) wrist.rotation.set(-0.18, 0, 0)
     })
     ;[this._footLGroup, this._footRGroup].forEach((leg) => {
       if (!leg) return
-      const { knee, ankle } = this.registry.getJoints(leg)
+      const { knee, ankle } = this._getJoints(leg)
       leg.rotation.set(-0.28, 0, 0)
       if (knee) knee.rotation.set(0.72, 0, 0)
       if (ankle) ankle.rotation.set(-0.38, 0, 0)
@@ -368,14 +387,14 @@ export class CatModel {
     if (this._headGroup) this._headGroup.rotation.set(0.055, 0, Math.sin(time * 0.8) * 0.018)
     ;[[this._armLGroup, -1], [this._armRGroup, 1]].forEach(([arm, side]) => {
       if (!arm) return
-      const { elbow, wrist } = this.registry.getJoints(arm)
+      const { elbow, wrist } = this._getJoints(arm)
       arm.rotation.set(0.10, 0, side * 0.12)
       if (elbow) elbow.rotation.set(0.28, 0, -side * 0.06)
       if (wrist) wrist.rotation.set(-0.10, 0, side * 0.04)
     })
     ;[[this._footLGroup, -1], [this._footRGroup, 1]].forEach(([leg, side]) => {
       if (!leg) return
-      const { knee, ankle } = this.registry.getJoints(leg)
+      const { knee, ankle } = this._getJoints(leg)
       leg.rotation.set(-0.48, side * 0.16, side * 0.72)
       if (knee) knee.rotation.set(1.02, 0, -side * 0.18)
       if (ankle) ankle.rotation.set(-0.56, 0, side * 0.14)
@@ -388,14 +407,14 @@ export class CatModel {
     if (this._headGroup) this._headGroup.rotation.set(-0.08, 0, 0)
     ;[[this._armLGroup, -1], [this._armRGroup, 1]].forEach(([arm, side]) => {
       if (!arm) return
-      const { elbow, wrist } = this.registry.getJoints(arm)
+      const { elbow, wrist } = this._getJoints(arm)
       arm.rotation.set(-0.18, 0, side * 0.82)
       if (elbow) elbow.rotation.set(0.24, 0, side * 0.14)
       if (wrist) wrist.rotation.set(-0.12, 0, 0)
     })
     ;[this._footLGroup, this._footRGroup].forEach((leg) => {
       if (!leg) return
-      const { knee, ankle } = this.registry.getJoints(leg)
+      const { knee, ankle } = this._getJoints(leg)
       leg.rotation.set(-0.34, 0, 0)
       if (knee) knee.rotation.set(0.88, 0, 0)
       if (ankle) ankle.rotation.set(-0.44, 0, 0)
@@ -410,14 +429,14 @@ export class CatModel {
     if (this._headGroup) this._headGroup.rotation.set(0.12, 0, Math.sin(time * 0.65) * 0.012)
     ;[[this._armLGroup, -1], [this._armRGroup, 1]].forEach(([arm, side]) => {
       if (!arm) return
-      const { elbow, wrist } = this.registry.getJoints(arm)
+      const { elbow, wrist } = this._getJoints(arm)
       arm.rotation.set(0.68, side * 0.08, side * 0.17)
       if (elbow) elbow.rotation.set(0.72, 0, -side * 0.12)
       if (wrist) wrist.rotation.set(-0.34, 0, side * 0.06)
     })
     ;[[this._footLGroup, -1], [this._footRGroup, 1]].forEach(([leg, side]) => {
       if (!leg) return
-      const { knee, ankle } = this.registry.getJoints(leg)
+      const { knee, ankle } = this._getJoints(leg)
       leg.rotation.set(-0.92, side * 0.08, side * 0.20)
       if (knee) knee.rotation.set(1.16, 0, -side * 0.10)
       if (ankle) ankle.rotation.set(-0.54, 0, side * 0.08)
@@ -435,14 +454,14 @@ export class CatModel {
     }
     ;[[this._armLGroup, -1], [this._armRGroup, 1]].forEach(([arm, side]) => {
       if (!arm) return
-      const { elbow, wrist } = this.registry.getJoints(arm)
+      const { elbow, wrist } = this._getJoints(arm)
       arm.rotation.set(0.76, side * 0.10, side * 0.25)
       if (elbow) elbow.rotation.set(0.94, 0, -side * 0.18)
       if (wrist) wrist.rotation.set(-0.42, 0, side * 0.10)
     })
     ;[[this._footLGroup, -1], [this._footRGroup, 1]].forEach(([leg, side]) => {
       if (!leg) return
-      const { knee, ankle } = this.registry.getJoints(leg)
+      const { knee, ankle } = this._getJoints(leg)
       leg.rotation.set(-1.02, side * 0.12, side * 0.32)
       if (knee) knee.rotation.set(1.28, 0, -side * 0.16)
       if (ankle) ankle.rotation.set(-0.64, 0, side * 0.12)
@@ -457,20 +476,20 @@ export class CatModel {
     if (this._headGroup) this._headGroup.rotation.set(0, -0.08, -0.035 + wave * 0.012)
     const left = this._armLGroup
     if (left) {
-      const { elbow, wrist } = this.registry.getJoints(left)
+      const { elbow, wrist } = this._getJoints(left)
       left.rotation.set(0, 0, -0.08)
       if (elbow) elbow.rotation.set(0, 0, 0)
       if (wrist) wrist.rotation.set(0, 0, 0)
     }
     const right = this._armRGroup
     if (right) {
-      const { elbow, wrist } = this.registry.getJoints(right)
+      const { elbow, wrist } = this._getJoints(right)
       right.rotation.set(-0.10, 0, 1.72 + wave * 0.10)
       if (elbow) elbow.rotation.set(0.18, 0, -0.34)
       if (wrist) wrist.rotation.set(-0.06, 0, wave * 0.34)
     }
     for (const leg of [this._footLGroup, this._footRGroup]) {
-      const { knee, ankle } = this.registry.getJoints(leg)
+      const { knee, ankle } = this._getJoints(leg)
       if (leg) leg.rotation.set(0, 0, 0)
       if (knee) knee.rotation.set(0, 0, 0)
       if (ankle) ankle.rotation.set(0, 0, 0)
@@ -478,7 +497,7 @@ export class CatModel {
     this._updateTailSurface(time, 0.048, 1.35)
   }
 
-  update(time) {
+  _updateLegacyStanding(time) {
     if (this._bodyGroup) this._bodyGroup.position.y = 0
     if (this._earLGroup) this._earLGroup.rotation.set(0, 0, 0)
     if (this._earRGroup) this._earRGroup.rotation.set(0, 0, 0)
@@ -568,6 +587,10 @@ export class CatModel {
     this._updateTailSurface(time, 0.045, 1.25)
   }
 
+  update(time) {
+    this.animator.update(time)
+  }
+
   dispose() {
     this.equipmentAssembler.dispose()
     this._equippedGear = null
@@ -620,8 +643,8 @@ export class CatModel {
     this.root.add(this._armLGroup, this._armRGroup)
     this.registry.registerPart('arm-left', this._armLGroup)
     this.registry.registerPart('arm-right', this._armRGroup)
-    this.registry.registerJoints(this._armLGroup, this._armLGroup.userData.joints)
-    this.registry.registerJoints(this._armRGroup, this._armRGroup.userData.joints)
+    this.registry.registerJoints('arm-left', this._armLGroup.userData.joints)
+    this.registry.registerJoints('arm-right', this._armRGroup.userData.joints)
     delete this._armLGroup.userData.joints
     delete this._armRGroup.userData.joints
 
@@ -631,8 +654,8 @@ export class CatModel {
     this.root.add(this._footLGroup, this._footRGroup)
     this.registry.registerPart('leg-left', this._footLGroup)
     this.registry.registerPart('leg-right', this._footRGroup)
-    this.registry.registerJoints(this._footLGroup, this._footLGroup.userData.joints)
-    this.registry.registerJoints(this._footRGroup, this._footRGroup.userData.joints)
+    this.registry.registerJoints('leg-left', this._footLGroup.userData.joints)
+    this.registry.registerJoints('leg-right', this._footRGroup.userData.joints)
     delete this._footLGroup.userData.joints
     delete this._footRGroup.userData.joints
 

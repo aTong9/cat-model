@@ -31,6 +31,17 @@ test('continuous limbs remain finite through every configured pose', () => {
   model.dispose()
 })
 
+test('animator owns normalized pose and bounded run-speed state', () => {
+  const model = new CatModel()
+  model.setAnimation('idle')
+  model.setRunSpeed(99)
+  assert.equal(model.animator.mode, 'standing')
+  assert.equal(model.animator.runSpeed, 2.5)
+  model.setRunSpeed(0)
+  assert.equal(model.animator.runSpeed, 1)
+  model.dispose()
+})
+
 test('lie down and sleep keep the body low while wave raises the right arm', () => {
   const model = new CatModel()
   for (const pose of ['lie-down', 'sleep']) {

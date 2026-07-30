@@ -17,8 +17,9 @@ test('character assembly exposes registered parts and semantic sockets', () => {
     assert.equal(assembly.parts['ear-right'].name, 'EarRight')
     assert.ok(assembly.parts['ear-left'].getObjectByName('InnerEarLeft'))
     assert.ok(assembly.parts['ear-right'].getObjectByName('InnerEarRight'))
-    assert.equal(assembly.registry.getJoints(assembly.parts['arm-left']).elbow?.isBone, true)
-    assert.equal(assembly.registry.getJoints(assembly.parts['leg-right']).ankle?.isBone, true)
+    assert.equal(assembly.registry.getJoints('arm-left').elbow?.isBone, true)
+    assert.equal(assembly.registry.getJoints('leg-right').ankle?.isBone, true)
+    assert.deepEqual(assembly.registry.getJoints(assembly.parts['arm-left']), {})
     assert.equal(assembly.parts['arm-left'].userData.joints, undefined)
   } finally {
     assembly.dispose()

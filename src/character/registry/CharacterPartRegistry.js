@@ -1,5 +1,7 @@
 import * as THREE from 'three'
 
+const EMPTY_JOINTS = Object.freeze({})
+
 export class CharacterPartRegistry {
   constructor(root) {
     this.root = root
@@ -32,12 +34,18 @@ export class CharacterPartRegistry {
 
   getPart(name) { return this._parts.get(name) ?? null }
   getSocket(name) { return this._sockets.get(name) ?? null }
-  registerJoints(part, joints) {
-    if (!part?.isObject3D || !joints) throw new Error('Invalid character joints')
-    this._joints.set(part, Object.freeze({ ...joints }))
-    return this._joints.get(part)
+  getPartId(object) {
+    for (const [partId, part] of this._parts) {
+      if (part === object) return partId
+    }
+    return null
   }
-  getJoints(part) { return this._joints.get(part) ?? Object.freeze({}) }
+  registerJoints(partId, joints) {
+    if (!this._parts.has(partId) || !joints) throw new Error(`Invalid character joints: ${partId}`)
+    this._joints.set(partId, Object.freeze({ ...joints }))
+    return this._joints.get(partId)
+  }
+  getJoints(partId) { return this._joints.get(partId) ?? EMPTY_JOINTS }
   hasPart(name) { return this._parts.has(name) }
   hasSocket(name) { return this._sockets.has(name) }
   get partNames() { return [...this._parts.keys()] }

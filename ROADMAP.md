@@ -96,6 +96,8 @@ src/character/
 - [x] 拆分身体 shell 与四肢集合装配边界。
 - [x] 将 skinned limb 几何、手掌和脚掌工厂完整迁入 `src/character/limbs/`。
 - [x] 动画系统仅通过 registry joints 合约访问骨骼。
+- [x] 姿势模式、速度、策略分发与站立待机动画迁入独立 `CatAnimator`。
+- [x] registry joints 改用稳定 part ID 作为键，不再使用 `Object3D` 引用作为键。
 
 验收：调用方无需直接依赖子模块；现有动画、装备、导出测试不回退。
 
@@ -136,4 +138,4 @@ src/character/
 
 ## 6. 当前下一任务
 
-将姿势动画策略从 `CatModel` 拆入独立 animator，并把 registry joints 从 Object3D 键升级为稳定 part ID 键。
+继续将各姿势的具体关节计算从 `CatModel` 迁入 animator strategy 模块，并为自定义姿势注册增加契约测试。
