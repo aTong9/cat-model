@@ -109,6 +109,8 @@ async function exportProfile(profile) {
     restore = canvas?.__beginCharacterCapture?.({ transparent: profile === 'transparent' }) ?? restore
     const { captureOutput } = await import('../export/captureCanvasOutputs.js')
     const result = await captureOutput(canvas, profile)
+    canvas.dataset.lastCaptureProfile = profile
+    canvas.dataset.lastCaptureCornerAlpha = String(result.cornerAlpha)
     downloadBlob(result.blob, `liberty-cat-${store.tokenId}-${profile}-${result.spec.width}x${result.spec.height}.png`)
     showNotice('success', profile === 'transparent' ? '透明头像已生成' : '社交头像已生成')
   } catch (error) { showNotice('error', error.message) }

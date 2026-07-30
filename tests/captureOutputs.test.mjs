@@ -11,14 +11,16 @@ test('canvas output profiles and three-view capture are deterministic', async ()
   assert.equal(views.every(item => item.blob.type === 'image/png'), true)
   canvas.width = 800; canvas.height = 600
   const calls = []
-  const output = { toBlob: callback => callback(new Blob(['png'], { type: 'image/png' })), getContext: () => ({ fillRect: (...args) => calls.push(['fill', ...args]), drawImage: (...args) => calls.push(['draw', ...args]) }) }
+  const output = { toBlob: callback => callback(new Blob(['png'], { type: 'image/png' })), getContext: () => ({ fillRect: (...args) => calls.push(['fill', ...args]), drawImage: (...args) => calls.push(['draw', ...args]), getImageData: () => ({ data: [0, 0, 0, calls.some(call => call[0] === 'fill') ? 255 : 0] }) }) }
   const social = await captureOutput(canvas, 'social', { createCanvas: () => output })
   assert.equal(social.spec.width, 1080)
+  assert.equal(social.cornerAlpha, 255)
   assert.deepEqual([output.width, output.height], [1080, 1080])
   assert.equal(calls[0][0], 'fill')
   calls.length = 0
   const transparent = await captureOutput(canvas, 'transparent', { createCanvas: () => output })
   assert.equal(transparent.spec.alpha, true)
+  assert.equal(transparent.cornerAlpha, 0)
   assert.equal(calls.some(call => call[0] === 'fill'), false)
   assert.equal(validateQualityBaseline(QUALITY_BASELINE).valid, true)
 })

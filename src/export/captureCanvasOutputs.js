@@ -27,5 +27,7 @@ export async function captureOutput(canvas, profile = 'transparent', { createCan
   const scale = Math.min(spec.width / canvas.width, spec.height / canvas.height)
   const width = canvas.width * scale; const height = canvas.height * scale
   context.drawImage(canvas, (spec.width - width) / 2, (spec.height - height) / 2, width, height)
-  return Object.freeze({ profile, spec, blob: await canvasBlob(output) })
+  let cornerAlpha = null
+  try { cornerAlpha = context.getImageData(0, 0, 1, 1).data[3] } catch { /* Canvas may be origin-tainted. */ }
+  return Object.freeze({ profile, spec, cornerAlpha, blob: await canvasBlob(output) })
 }
