@@ -7,6 +7,8 @@ import { createSdfCatBody } from './SdfCatBody.js'
 import { getFurTrait } from '../config/traits.js'
 import { getEyeAppearanceProfile, getFurAppearanceProfile } from './AppearanceProfiles.js'
 import { getFaceAppearanceProfile } from './FaceProfiles.js'
+import { createCatTail, updateCatTail } from '../character/tail/createCatTail.js'
+import { applyMorphology } from '../character/morphology/applyMorphology.js'
 
 // ===== Toon 渐变贴图（参考 Meow-Generator MeshToonMaterial） =====
 let _sharedToonMap = null
@@ -451,55 +453,6 @@ function createFoot(side) {
   return hip
 }
 
-function createJointedTail() {
-  const root = new THREE.Group()
-  root.name = 'TailRoot'
-  root.position.set(0.04, -0.10, -0.38)
-  const fur = new THREE.MeshToonMaterial({
-    color: '#f5f1e6',
-    gradientMap: getToonGradientMap(),
-  })
-  const basePoints = [
-    new THREE.Vector3(0, 0, 0),
-    new THREE.Vector3(-0.16, 0.00, -0.05),
-    new THREE.Vector3(-0.31, 0.06, -0.05),
-    new THREE.Vector3(-0.44, 0.17, -0.01),
-    new THREE.Vector3(-0.53, 0.31, 0.06),
-    new THREE.Vector3(-0.56, 0.46, 0.14),
-    new THREE.Vector3(-0.53, 0.59, 0.21),
-  ]
-  const mesh = new THREE.Mesh(createTaperedTailGeometry(basePoints), fur)
-  mesh.name = 'TailSurface'
-  mesh.castShadow = true
-  root.add(mesh)
-  root.userData.basePoints = basePoints
-  root.userData.surface = mesh
-  return root
-}
-
-function createTaperedTailGeometry(points) {
-  const tubularSegments = 48
-  const radialSegments = 12
-  const curve = new THREE.CatmullRomCurve3(points)
-  const geometry = new THREE.TubeGeometry(curve, tubularSegments, 0.078, radialSegments, false)
-  const positions = geometry.attributes.position
-  const center = new THREE.Vector3()
-  const vertex = new THREE.Vector3()
-  for (let row = 0; row <= tubularSegments; row++) {
-    curve.getPointAt(row / tubularSegments, center)
-    const taper = THREE.MathUtils.lerp(1, 0.34, Math.pow(row / tubularSegments, 0.82))
-    for (let column = 0; column <= radialSegments; column++) {
-      const index = row * (radialSegments + 1) + column
-      vertex.fromBufferAttribute(positions, index)
-      vertex.sub(center).multiplyScalar(taper).add(center)
-      positions.setXYZ(index, vertex.x, vertex.y, vertex.z)
-    }
-  }
-  positions.needsUpdate = true
-  geometry.computeVertexNormals()
-  return geometry
-}
-
 export class CatModel {
   constructor() {
     this.root = new THREE.Group()
@@ -579,22 +532,7 @@ export class CatModel {
   }
 
   _updateTailSurface(time, intensity = 0.06, speed = 1) {
-    const tail = this._tailGroup
-    const surface = tail?.userData.surface
-    const basePoints = tail?.userData.basePoints
-    if (!surface || !basePoints) return
-    const tailCurl = Number(tail.userData.tailCurl) || 0
-    const points = basePoints.map((point, index) => {
-      const weight = index / Math.max(1, basePoints.length - 1)
-      return point.clone().add(new THREE.Vector3(
-        Math.sin(time * speed - index * 0.34) * intensity * weight + tailCurl * weight * weight * 0.34,
-        Math.cos(time * speed * 0.72 - index * 0.26) * intensity * 0.28 * weight + Math.abs(tailCurl) * weight * weight * 0.16,
-        Math.sin(time * speed * 0.86 - index * 0.42) * intensity * 1.25 * weight,
-      ))
-    })
-    const nextGeometry = createTaperedTailGeometry(points)
-    surface.geometry.dispose()
-    surface.geometry = nextGeometry
+    updateCatTail(this._tailGroup, time, intensity, speed)
   }
 
   _updateRun(time) {
@@ -675,16 +613,11 @@ export class CatModel {
   }
 
   setMorphology({ bodyScale = 1, headScale = 1, earScale = 1, legLength = 1, tailLength = 1, tailCurl = 0 } = {}) {
-    if (this._bodyGroup) this._bodyGroup.scale.set(bodyScale, 1, bodyScale)
-    if (this._headGroup) this._headGroup.scale.setScalar(headScale)
-    if (this._earLGroup) this._earLGroup.scale.setScalar(earScale)
-    if (this._earRGroup) this._earRGroup.scale.setScalar(earScale)
-    if (this._footLGroup) this._footLGroup.scale.set(1, legLength, 1)
-    if (this._footRGroup) this._footRGroup.scale.set(1, legLength, 1)
-    if (this._tailGroup) this._tailGroup.scale.set(1, tailLength, 1)
-    if (this._tailGroup) this._tailGroup.userData.tailCurl = tailCurl
-    this._updateTailSurface(0, 0, 1)
-    this.root.userData.morphology = { bodyScale, headScale, earScale, legLength, tailLength, tailCurl }
+    this.root.userData.morphology = applyMorphology({
+      body: this._bodyGroup, head: this._headGroup,
+      earLeft: this._earLGroup, earRight: this._earRGroup,
+      legLeft: this._footLGroup, legRight: this._footRGroup, tail: this._tailGroup,
+    }, { bodyScale, headScale, earScale, legLength, tailLength, tailCurl })
   }
 
   _updateSplaySit(time) {
@@ -966,7 +899,7 @@ export class CatModel {
     this._footRGroup = createFoot(1)
     this.root.add(this._footLGroup, this._footRGroup)
 
-    this._tailGroup = createJointedTail()
+    this._tailGroup = createCatTail(getToonGradientMap())
     this.root.add(this._tailGroup)
 
     // -- 头部组（面特征容器） --

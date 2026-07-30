@@ -82,6 +82,13 @@ src/character/
 
 任务：逐步拆分 `CatModel.js`，保留稳定 facade；建立 socket、bounds、collider 和 dispose 合约；不得一次性重写全部模型。
 
+进度：
+
+- [x] 尾巴节点、曲线几何、动态更新与资源置换迁移至 `src/character/tail/`。
+- [x] morphology transform 迁移至 `src/character/morphology/`。
+- [x] 增加 morphology 极值、包围盒和 geometry 释放测试。
+- [ ] 拆分耳朵模块，并建立可复用角色 parts/socket 注册表。
+
 验收：调用方无需直接依赖子模块；现有动画、装备、导出测试不回退。
 
 ### Phase D — 规则化随机生成
@@ -121,4 +128,4 @@ src/character/
 
 ## 6. 当前下一任务
 
-补充 morphology 极值视觉/包围盒测试与参数锁定单测；随后开始 Phase C，将尾巴生成和造型 transform 从 `CatModel.js` 拆分为独立 character 模块。
+为参数锁定补充 Pinia 单测；随后拆分耳朵模块，并建立角色 parts/socket 注册表，减少 `CatModel` 对私有字段的直接编排。
