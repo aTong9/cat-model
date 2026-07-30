@@ -90,6 +90,8 @@ src/character/
 - [x] 拆分耳朵模块，并建立可复用角色 parts/socket 注册表。
 - [x] 将装备装配从世界坐标迁移为 registry socket 的局部变换。
 - [x] 增加 headScale/bodyScale 极值下的装备挂点跟随测试。
+- [x] 装备创建、挂载、替换与销毁迁移至独立 `EquipmentAssembler`。
+- [x] 增加动态切换资源释放与 GLB socket/attachment metadata 回读测试。
 
 验收：调用方无需直接依赖子模块；现有动画、装备、导出测试不回退。
 
@@ -130,4 +132,4 @@ src/character/
 
 ## 6. 当前下一任务
 
-把装备 registry/socket 装配从 `CatModel` 提取为独立 equipment assembler，并补充动态切换装备的资源释放与 GLB socket metadata 回读测试。
+继续拆分身体与四肢构建模块；先建立共享的角色资源销毁工具，消除 `CatModel`、`EquipmentAssembler` 和 GLB loader 中重复的 dispose 遍历。

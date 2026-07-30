@@ -1,8 +1,6 @@
 import * as THREE from 'three'
 import { normalizePoseId } from '../config/poses.js'
 import { RoundedBoxGeometry } from 'three/addons/geometries/RoundedBoxGeometry.js'
-import { createGear, TEXTURE_GEAR_TYPES } from './EquipmentFactory.js'
-import { applyEquipmentAttachment } from './EquipmentAttachments.js'
 import { createSdfCatBody } from './SdfCatBody.js'
 import { getFurTrait } from '../config/traits.js'
 import { getEyeAppearanceProfile, getFurAppearanceProfile } from './AppearanceProfiles.js'
@@ -11,6 +9,7 @@ import { createCatTail, updateCatTail } from '../character/tail/createCatTail.js
 import { applyMorphology } from '../character/morphology/applyMorphology.js'
 import { createCatEar } from '../character/ears/createCatEar.js'
 import { CharacterPartRegistry } from '../character/registry/CharacterPartRegistry.js'
+import { EquipmentAssembler } from '../character/equipment/EquipmentAssembler.js'
 
 // ===== Toon 渐变贴图（参考 Meow-Generator MeshToonMaterial） =====
 let _sharedToonMap = null
@@ -430,6 +429,7 @@ export class CatModel {
     this._tailGroup = null
 
     this._buildBody()
+    this.equipmentAssembler = new EquipmentAssembler(this.registry)
   }
 
   // ========== Public API ==========
@@ -465,7 +465,7 @@ export class CatModel {
 
   setGear(type) {
     this._gearType = type
-    this._rebuildGear()
+    this._equippedGear = this.equipmentAssembler.set(type)
   }
 
   setAnimation(mode = 'standing') {
@@ -773,6 +773,8 @@ export class CatModel {
   }
 
   dispose() {
+    this.equipmentAssembler.dispose()
+    this._equippedGear = null
     this.root.traverse(child => {
       if (child.geometry && child.geometry !== this._bodyGeoRef) {
         child.geometry.dispose()
@@ -1248,34 +1250,4 @@ export class CatModel {
     g.add(sidePodL)
   }
 
-  // ========== Private: 装备 ==========
-
-  _rebuildGear() {
-    if (this._equippedGear) {
-      this._equippedGear.removeFromParent()
-      this._equippedGear.traverse(object => {
-        object.geometry?.dispose?.()
-        const materials = Array.isArray(object.material) ? object.material : [object.material]
-        for (const material of materials) {
-          if (!material) continue
-          for (const value of Object.values(material)) value?.isTexture && value.dispose()
-          material.dispose?.()
-        }
-      })
-      this._equippedGear = null
-    }
-    if (!this._gearType) return
-
-    if (TEXTURE_GEAR_TYPES.has(this._gearType)) {
-      const gear = createGear(this._gearType)
-      if (gear) {
-        applyEquipmentAttachment(gear, this._gearType)
-        const socketName = gear.userData.attachment?.socket
-        const socket = this.registry.getSocket(socketName)
-        if (!socket) throw new Error(`Missing equipment socket: ${socketName}`)
-        socket.add(gear)
-        this._equippedGear = gear
-      }
-    }
-  }
 }

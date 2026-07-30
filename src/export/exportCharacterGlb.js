@@ -140,12 +140,19 @@ function inspectRoundTrip(gltf, expectedTraits) {
   })
   materials = materialSet.size
   const traits = gltf.scene.getObjectByName('LibertyCat')?.userData?.catTraits ?? gltf.scene.userData?.catTraits
+  const character = gltf.scene.getObjectByName('LibertyCat') ?? gltf.scene
+  const socketNames = character.userData?.socketNames ?? []
+  let equipmentAttachment = null
+  character.traverse(object => { if (!equipmentAttachment && object.userData?.attachment?.socket) equipmentAttachment = object.userData.attachment })
   const errors = []
   if (!meshes) errors.push('roundtrip-has-no-meshes')
   if (!traits) errors.push('roundtrip-missing-cat-traits')
   else if (String(traits.tokenId) !== String(expectedTraits?.tokenId)) errors.push('roundtrip-token-mismatch')
   else if (JSON.stringify(traits.morphology) !== JSON.stringify(expectedTraits?.morphology)) errors.push('roundtrip-morphology-mismatch')
-  return { valid: errors.length === 0, errors, morphology: traits?.morphology ?? null, stats: { meshes, materials, animations: gltf.animations.length } }
+  if (!Array.isArray(socketNames) || !socketNames.length) errors.push('roundtrip-missing-socket-metadata')
+  if (expectedTraits?.gear && !equipmentAttachment) errors.push('roundtrip-missing-equipment-attachment')
+  if (equipmentAttachment && !socketNames.includes(equipmentAttachment.socket)) errors.push('roundtrip-invalid-equipment-socket')
+  return { valid: errors.length === 0, errors, morphology: traits?.morphology ?? null, socketNames, equipmentAttachment, stats: { meshes, materials, animations: gltf.animations.length } }
 }
 
 function disposeGltf(gltf) {
