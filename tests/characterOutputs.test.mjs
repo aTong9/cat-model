@@ -15,7 +15,7 @@ test('character card and package manifest are deterministic and escaped', () => 
 })
 
 test('output profiles, device matrix and character performance audit form a quality gate', () => {
-  assert.deepEqual(OUTPUT_PROFILES.turnaround.views, ['front', 'side', 'back'])
+  assert.deepEqual(OUTPUT_PROFILES.turnaround.views, ['front', 'three-quarter', 'side', 'back'])
   assert.ok(DEVICE_MATRIX.some(device => device.targetFps === 30))
   const assembly = createCatAssembly({ tokenId: '5' })
   try { assert.equal(auditCharacterQuality(assembly.root).valid, true) } finally { assembly.dispose() }

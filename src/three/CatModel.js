@@ -2,7 +2,7 @@ import * as THREE from 'three'
 import { RoundedBoxGeometry } from 'three/addons/geometries/RoundedBoxGeometry.js'
 import { createSdfCatBody } from './SdfCatBody.js'
 import { getFurTrait } from '../config/traits.js'
-import { getEyeAppearanceProfile, getFurAppearanceProfile } from './AppearanceProfiles.js'
+import { getEyeAppearanceProfile } from './AppearanceProfiles.js'
 import { getFaceAppearanceProfile } from './FaceProfiles.js'
 import { createCatTail, updateCatTail } from '../character/tail/createCatTail.js'
 import { applyMorphology } from '../character/morphology/applyMorphology.js'
@@ -16,6 +16,8 @@ import { createRaisedArm, createFoot } from '../character/limbs/createCatLimbs.j
 import { CatAnimator } from '../character/animation/CatAnimator.js'
 import { createCatPoseStrategies } from '../character/animation/catPoseStrategies.js'
 import { createCatAnimationRig } from '../character/animation/createCatAnimationRig.js'
+import { applyFurRecipeToGeometry } from '../character/appearance/furRecipes.js'
+import { resolveFaceEquipmentPolicy } from '../character/appearance/faceCompositionContract.js'
 
 // ===== Toon 渐变贴图（参考 Meow-Generator MeshToonMaterial） =====
 let _sharedToonMap = null
@@ -59,77 +61,6 @@ function furMat(hex) {
   })
 }
 
-const WHITE_FUR = new THREE.Color('#f5f1e6')
-const DARK_FUR = new THREE.Color('#29272f')
-
-function cellNoise(x, y, z, seed = 0) {
-  const qx = Math.floor(x * 13)
-  const qy = Math.floor(y * 11)
-  const qz = Math.floor(z * 9)
-  const value = Math.sin(qx * 127.1 + qy * 311.7 + qz * 74.7 + seed * 19.19) * 43758.5453
-  return value - Math.floor(value)
-}
-
-function layeredNoise(x, y, z, seed = 0) {
-  return cellNoise(x, y, z, seed) * 0.58 + cellNoise(x * 2.1, y * 2.1, z * 2.1, seed + 11) * 0.42
-}
-
-function applyFurVertexColors(geometry, style, customColor) {
-  const trait = getFurAppearanceProfile(style, customColor)
-  const base = new THREE.Color(trait.base)
-  const accent = new THREE.Color(trait.accent)
-  const positions = geometry.attributes.position
-  const colors = new Float32Array(positions.count * 3)
-  const color = new THREE.Color()
-
-  for (let i = 0; i < positions.count; i++) {
-    const x = positions.getX(i)
-    const y = positions.getY(i)
-    const z = positions.getZ(i)
-    const ax = Math.abs(x)
-    const front = z > 0.08
-    const muzzle = front && y > 0.64 && y < 1.04 && ax < 0.27
-    const chestWidth = 0.13 + Math.max(0, 0.72 - y) * 0.25
-    const chest = front && y > -0.38 && y < 0.74 && ax < chestWidth
-    const paws = front && y < -0.30 && ax > 0.065
-    const whiteMask = muzzle || chest || paws
-
-    color.copy(base)
-    if (trait.pattern === 'tuxedo') {
-      const blazeWidth = 0.045 + Math.max(0, 1.25 - y) * 0.050
-      if (whiteMask || (front && y > 0.74 && ax < blazeWidth)) color.copy(WHITE_FUR)
-    } else if (trait.pattern === 'calico') {
-      color.copy(WHITE_FUR)
-      const headPatch = front && y > 0.70
-      if (!whiteMask && headPatch && x < -0.035) color.copy(accent)
-      else if (!whiteMask && headPatch && x > 0.035) color.copy(DARK_FUR)
-      else if (!whiteMask) {
-        const patch = layeredNoise(x * 1.15, y, z, 3)
-        if (patch > 0.61) color.copy(patch > 0.78 ? DARK_FUR : accent)
-      }
-    } else if (trait.pattern === 'leopard') {
-      if (whiteMask) color.copy(WHITE_FUR)
-      else {
-        const spot = layeredNoise(x * 1.65, y * 1.55, z * 1.4, 7)
-        if (spot > 0.63) color.copy(accent)
-      }
-    } else if (trait.pattern === 'lightning-tabby') {
-      if (whiteMask) color.copy(WHITE_FUR)
-      const foreheadBolt = front && y > 0.84 && ax < 0.19 && Math.abs(x - Math.sin(y * 30) * 0.055) < 0.040
-      const cheekStripe = front && y > 0.54 && y < 0.86 && ax > 0.22 && Math.sin(y * 48 + ax * 20) > 0.30
-      if ((foreheadBolt || cheekStripe) && !whiteMask) color.copy(accent)
-    } else if (whiteMask) {
-      color.copy(WHITE_FUR)
-    }
-
-    colors[i * 3] = color.r
-    colors[i * 3 + 1] = color.g
-    colors[i * 3 + 2] = color.b
-  }
-
-  geometry.setAttribute('color', new THREE.BufferAttribute(colors, 3))
-  geometry.attributes.color.needsUpdate = true
-}
 function eyeWhite() {
   return new THREE.MeshStandardMaterial({ color: '#ffffff', roughness: 0.22 })
 }
@@ -255,7 +186,10 @@ export class CatModel {
   setFurTrait(style, hex) {
     this._furStyle = style || 'Custom'
     this._furColor = hex
-    if (this._bodyGeoRef) applyFurVertexColors(this._bodyGeoRef, this._furStyle, this._furColor)
+    if (this._bodyGeoRef) {
+      const recipe = applyFurRecipeToGeometry(this._bodyGeoRef, this._furStyle, this._furColor)
+      this.root.userData.appearance = { ...(this.root.userData.appearance ?? {}), fur: recipe }
+    }
     this._furMaterials.forEach(m => m.color.set('#ffffff'))
     this._eyelids.forEach(lid => lid.material.color.set(hex))
     const trait = style === 'Custom' ? { color: hex } : getFurTrait(style)
@@ -272,6 +206,7 @@ export class CatModel {
     this._eyeStyle = style
     this._rebuildEyes()
     this._rebuildVRHeadset()
+    if (this._gearType) this.setGear(this._gearType)
   }
 
   setFaceExpression(expr) {
@@ -282,6 +217,12 @@ export class CatModel {
   setGear(type) {
     this._gearType = type
     this._equippedGear = this.equipmentAssembler.set(type)
+    const policy = resolveFaceEquipmentPolicy(this._eyeStyle, type)
+    if (this._equippedGear) {
+      this._equippedGear.visible = policy.equipmentVisible
+      this._equippedGear.userData.faceEquipmentPolicy = policy
+      if (policy.offset) this._equippedGear.position.add(new THREE.Vector3(...policy.offset))
+    }
   }
 
   setAnimation(mode = 'standing') {
@@ -339,7 +280,8 @@ export class CatModel {
     sdfBody.material.color.set('#ffffff')
     this._furMaterials.push(sdfBody.material)
     this._bodyGeoRef = sdfBody.geometry
-    applyFurVertexColors(sdfBody.geometry, this._furStyle, this._furColor)
+    const initialFurRecipe = applyFurRecipeToGeometry(sdfBody.geometry, this._furStyle, this._furColor)
+    this.root.userData.appearance = { ...(this.root.userData.appearance ?? {}), fur: initialFurRecipe }
 
     // 描边
     const outlineGeo = createOutlineGeometry(sdfBody.geometry, 0.018)
@@ -396,6 +338,9 @@ export class CatModel {
     this.root.add(headGroup)
     this._headGroup = headGroup
     this.registry.registerPart('head', headGroup)
+    // Face is a stable semantic aggregate. It aliases the head transform so all
+    // eyes/mouth/nose children share one animation/export coordinate contract.
+    this.registry.registerPart('face', headGroup)
 
     // -- 内耳贴花（粉红耳内） --
     this._earLGroup = createCatEar(headRadius, -1, getToonGradientMap())
@@ -443,10 +388,12 @@ export class CatModel {
 
     // -- 眼睛占位 --
     this._eyeGroupL = new THREE.Group()
+    this._eyeGroupL.name = 'FaceEyeLeft'
     this._eyeGroupL.position.set(-headRadius * 0.43, headRadius * 0.10, headRadius * 0.84)
     headGroup.add(this._eyeGroupL)
 
     this._eyeGroupR = new THREE.Group()
+    this._eyeGroupR.name = 'FaceEyeRight'
     this._eyeGroupR.position.set(headRadius * 0.43, headRadius * 0.10, headRadius * 0.84)
     headGroup.add(this._eyeGroupR)
 
@@ -461,9 +408,15 @@ export class CatModel {
     this.registry.registerPart('gear-root', this._gearRoot)
     this.registry.createSocket('head-top', headGroup, [-headCenter.x, 1.30 - headCenter.y, -headCenter.z])
     this.registry.createSocket('face-eyes', headGroup, [-headCenter.x, 0.955 - headCenter.y, 0.395 - headCenter.z])
+    this.registry.registerSocket('face-mouth', this._mouthGroup)
     this.registry.createSocket('chest-front', bodyGroup, [0, 0.57, 0.405])
     this.registry.createSocket('back', bodyGroup, [0, 0.47, -0.37])
     this.registry.createSocket('paw-left', this._armLGroup, [-0.14, -0.46, 0.20])
+    this.registry.createSocket('shoulder-left', bodyGroup, [-0.32, 0.64, 0.12])
+    this.registry.createSocket('shoulder-right', bodyGroup, [0.32, 0.64, 0.12])
+    this.registry.createSocket('hip-left', bodyGroup, [-0.18, -0.10, 0.02])
+    this.registry.createSocket('hip-right', bodyGroup, [0.18, -0.10, 0.02])
+    this.registry.createSocket('tail-base', bodyGroup, [0.04, -0.08, -0.31])
 
     // 初始构建
     this._rebuildEyes()
@@ -485,6 +438,7 @@ export class CatModel {
     g.userData.faceBounds = { width: profile.mouthWidth, height: profile.mouthHeight }
     g.userData.hasTongue = profile.hasTongue
     g.userData.hasFangs = profile.hasFangs
+    g.userData.componentContract = ['mouth-cavity', 'teeth', 'tongue', 'lip-line']
 
     if (expr === 'Excited') {
       const cavity = new THREE.Mesh(
@@ -616,6 +570,13 @@ export class CatModel {
     const irR = 0.084
     const hlR = 0.026
     const profile = getEyeAppearanceProfile(this._eyeStyle)
+    const eyeBounds = { radius: eyeR, irisRadius: irR, highlightRadius: hlR }
+    for (const group of [this._eyeGroupL, this._eyeGroupR]) {
+      group.userData.eyeStyle = this._eyeStyle
+      group.userData.eyeFamily = profile.family
+      group.userData.eyeBounds = eyeBounds
+      group.userData.componentContract = ['eyeball', 'rim', 'pupil', 'highlight', 'wearable']
+    }
 
     const build = (group, side) => {
       switch (this._eyeStyle) {

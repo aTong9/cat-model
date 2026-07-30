@@ -1,9 +1,4 @@
-const REFERENCE_BACKGROUNDS = Object.freeze({
-  'Thunderous Might': '#737b82',
-  'Galactic Voyage': '#17183e',
-  'Onsen journey': '#545873',
-  'Fitness Guru': '#81958d',
-})
+import { getSpecialRecipe } from '../character/appearance/environmentRecipes.js'
 
 export function createLatestLoadGuard() {
   let version = 0
@@ -26,7 +21,7 @@ export async function loadReferenceSpecialScene(type) {
   const { createReferenceSpecialScene } = await import('./scenes/ReferenceSpecialScenes.js')
   return {
     group: createReferenceSpecialScene(type),
-    background: REFERENCE_BACKGROUNDS[type] || null,
+    background: getSpecialRecipe(type)?.lightingProfile.background ?? null,
   }
 }
 

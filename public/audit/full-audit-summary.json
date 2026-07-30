@@ -1,0 +1,33 @@
+{
+  "schemaVersion": 1,
+  "generatorVersion": "3.0.0",
+  "generatorVersionFrozen": true,
+  "catalogSchemaVersion": 2,
+  "generatedAt": "2026-07-30T16:06:54.111Z",
+  "total": 9901,
+  "normalized": 9901,
+  "assembled": 9901,
+  "rendered": 9901,
+  "metadataMatched": 9901,
+  "missingAssets": 0,
+  "invalidBounds": 0,
+  "detachedSockets": 0,
+  "cameraClipping": 0,
+  "transparentOutputFailures": 0,
+  "resourceLeaks": 0,
+  "exportFailures": 0,
+  "unexplainedVisualExceptions": 0,
+  "representativeCount": 133,
+  "uniqueTraitClusters": 2322,
+  "failureClusters": [],
+  "tokenSpecificExceptions": [],
+  "representativeBaseline": "public/audit/representative-review.json",
+  "traitPayload": "public/audit/token-traits.jsonl",
+  "thumbnailIndex": "public/audit/thumbnail-index.json",
+  "optionalGlb": {
+    "generated": 0,
+    "policy": "on-demand-after-audit"
+  },
+  "failures": [],
+  "warnings": []
+}

@@ -2,6 +2,11 @@ import fs from 'node:fs'
 import path from 'node:path'
 import { fileURLToPath } from 'node:url'
 import { normalizeMetadataRecord } from '../src/core/catTraits.js'
+import {
+  TOKEN_CATALOG_COLUMNS,
+  TOKEN_CATALOG_EXCLUSIONS,
+  TOKEN_CATALOG_SCHEMA_VERSION,
+} from '../src/core/tokenCatalogSchema.js'
 
 const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..')
 const metadataPath = path.join(root, 'liberty_cats_download', 'all_metadata.json')
@@ -40,6 +45,17 @@ if (process.argv.includes('--write') && !process.exitCode) {
   const targetDir = path.join(root, 'public', 'data')
   fs.mkdirSync(targetDir, { recursive: true })
   const target = path.join(targetDir, 'token-catalog.json')
-  fs.writeFileSync(target, JSON.stringify({ schemaVersion: 1, count: catalog.length, tokens: catalog }))
+  fs.writeFileSync(target, JSON.stringify({
+    schemaVersion: TOKEN_CATALOG_SCHEMA_VERSION,
+    columns: TOKEN_CATALOG_COLUMNS,
+    count: catalog.length,
+    excluded: TOKEN_CATALOG_EXCLUSIONS,
+    sources: {
+      metadata: 'liberty_cats_download/all_metadata.json',
+      images: 'liberty_cats_download/images/',
+      properties: 'liberty_cats_download/properties.md',
+    },
+    tokens: catalog,
+  }))
   console.log(`Wrote ${catalog.length} tokens to ${target}`)
 }

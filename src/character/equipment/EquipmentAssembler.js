@@ -1,6 +1,7 @@
 import { createGear, TEXTURE_GEAR_TYPES } from '../../three/EquipmentFactory.js'
 import { applyEquipmentAttachment } from '../../three/EquipmentAttachments.js'
 import { disposeObject3DResources } from '../resources/disposeObject3DResources.js'
+import { getEquipmentRecipe } from './equipmentRecipes.js'
 
 export function disposeEquipment(root) {
   return disposeObject3DResources(root)
@@ -23,6 +24,7 @@ export class EquipmentAssembler {
     if (!this.supportedTypes.has(type)) return null
     const gear = this.createGear(type)
     if (!gear || !applyEquipmentAttachment(gear, type)) return null
+    gear.userData.equipmentRecipe = getEquipmentRecipe(type)
     const socketName = gear.userData.attachment.socket
     const socket = this.registry.getSocket(socketName)
     if (!socket) {

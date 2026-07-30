@@ -229,5 +229,17 @@ export function createFoot(side, { gradientMap, createHeart }) {
   solePad.name = `${hip.name}MainPad`
   ankle.add(solePad)
   hip.userData.joints = { knee, ankle }
+  hip.userData.attachment = {
+    parentId: 'body',
+    parentSocket: side < 0 ? 'hip-left' : 'hip-right',
+    localStart: hip.position.toArray(),
+    localEnd: hip.position.clone().add(thighVector).add(shinVector).toArray(),
+    baseRadius: 0.148,
+    endRadius: 0.080,
+    embedDepth: 0.09,
+    contactType: 'embedded',
+    gapTolerance: 0.01,
+    evidenceRefs: ['pixel_cat_3d/sdf/1.png', 'pixel_cat_3d/sdf/2.png'],
+  }
   return hip
 }

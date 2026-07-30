@@ -3,11 +3,11 @@ import assert from 'node:assert/strict'
 import { captureOutput, captureViewSet } from '../src/export/captureCanvasOutputs.js'
 import { QUALITY_BASELINE, validateQualityBaseline } from '../src/export/qualityBaseline.js'
 
-test('canvas output profiles and three-view capture are deterministic', async () => {
+test('canvas output profiles and four-view capture are deterministic', async () => {
   const canvas = { toBlob: callback => callback(new Blob(['png'], { type: 'image/png' })) }
   const visited = []
   const views = await captureViewSet(canvas, { setView: view => visited.push(view), wait: async () => {} })
-  assert.deepEqual(visited, ['front', 'side', 'back'])
+  assert.deepEqual(visited, ['front', 'three-quarter', 'side', 'back'])
   assert.equal(views.every(item => item.blob.type === 'image/png'), true)
   canvas.width = 800; canvas.height = 600
   const calls = []

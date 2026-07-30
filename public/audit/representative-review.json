@@ -1,0 +1,2928 @@
+[
+  {
+    "tokenId": "0",
+    "source2d": "liberty_cats_download/images/0.png",
+    "auditThumbnail": "public/audit/thumbnails/0.svg",
+    "views": [
+      "front",
+      "three-quarter",
+      "side",
+      "back"
+    ],
+    "checks": {
+      "silhouette": "automated-pass",
+      "colorRegions": "automated-pass",
+      "keyTraits": "automated-pass",
+      "equipmentOcclusion": "automated-pass",
+      "specialScene": "not-applicable"
+    },
+    "humanReview": {
+      "status": "ready",
+      "note": "四视图与原始 2D 已配对，可在代表集画廊逐项复核。"
+    }
+  },
+  {
+    "tokenId": "1",
+    "source2d": "liberty_cats_download/images/1.png",
+    "auditThumbnail": "public/audit/thumbnails/1.svg",
+    "views": [
+      "front",
+      "three-quarter",
+      "side",
+      "back"
+    ],
+    "checks": {
+      "silhouette": "automated-pass",
+      "colorRegions": "automated-pass",
+      "keyTraits": "automated-pass",
+      "equipmentOcclusion": "automated-pass",
+      "specialScene": "not-applicable"
+    },
+    "humanReview": {
+      "status": "ready",
+      "note": "四视图与原始 2D 已配对，可在代表集画廊逐项复核。"
+    }
+  },
+  {
+    "tokenId": "2",
+    "source2d": "liberty_cats_download/images/2.png",
+    "auditThumbnail": "public/audit/thumbnails/2.svg",
+    "views": [
+      "front",
+      "three-quarter",
+      "side",
+      "back"
+    ],
+    "checks": {
+      "silhouette": "automated-pass",
+      "colorRegions": "automated-pass",
+      "keyTraits": "automated-pass",
+      "equipmentOcclusion": "automated-pass",
+      "specialScene": "not-applicable"
+    },
+    "humanReview": {
+      "status": "ready",
+      "note": "四视图与原始 2D 已配对，可在代表集画廊逐项复核。"
+    }
+  },
+  {
+    "tokenId": "3",
+    "source2d": "liberty_cats_download/images/3.png",
+    "auditThumbnail": "public/audit/thumbnails/3.svg",
+    "views": [
+      "front",
+      "three-quarter",
+      "side",
+      "back"
+    ],
+    "checks": {
+      "silhouette": "automated-pass",
+      "colorRegions": "automated-pass",
+      "keyTraits": "automated-pass",
+      "equipmentOcclusion": "automated-pass",
+      "specialScene": "not-applicable"
+    },
+    "humanReview": {
+      "status": "ready",
+      "note": "四视图与原始 2D 已配对，可在代表集画廊逐项复核。"
+    }
+  },
+  {
+    "tokenId": "4",
+    "source2d": "liberty_cats_download/images/4.png",
+    "auditThumbnail": "public/audit/thumbnails/4.svg",
+    "views": [
+      "front",
+      "three-quarter",
+      "side",
+      "back"
+    ],
+    "checks": {
+      "silhouette": "automated-pass",
+      "colorRegions": "automated-pass",
+      "keyTraits": "automated-pass",
+      "equipmentOcclusion": "automated-pass",
+      "specialScene": "not-applicable"
+    },
+    "humanReview": {
+      "status": "ready",
+      "note": "四视图与原始 2D 已配对，可在代表集画廊逐项复核。"
+    }
+  },
+  {
+    "tokenId": "5",
+    "source2d": "liberty_cats_download/images/5.png",
+    "auditThumbnail": "public/audit/thumbnails/5.svg",
+    "views": [
+      "front",
+      "three-quarter",
+      "side",
+      "back"
+    ],
+    "checks": {
+      "silhouette": "automated-pass",
+      "colorRegions": "automated-pass",
+      "keyTraits": "automated-pass",
+      "equipmentOcclusion": "automated-pass",
+      "specialScene": "not-applicable"
+    },
+    "humanReview": {
+      "status": "ready",
+      "note": "四视图与原始 2D 已配对，可在代表集画廊逐项复核。"
+    }
+  },
+  {
+    "tokenId": "6",
+    "source2d": "liberty_cats_download/images/6.png",
+    "auditThumbnail": "public/audit/thumbnails/6.svg",
+    "views": [
+      "front",
+      "three-quarter",
+      "side",
+      "back"
+    ],
+    "checks": {
+      "silhouette": "automated-pass",
+      "colorRegions": "automated-pass",
+      "keyTraits": "automated-pass",
+      "equipmentOcclusion": "automated-pass",
+      "specialScene": "not-applicable"
+    },
+    "humanReview": {
+      "status": "ready",
+      "note": "四视图与原始 2D 已配对，可在代表集画廊逐项复核。"
+    }
+  },
+  {
+    "tokenId": "7",
+    "source2d": "liberty_cats_download/images/7.png",
+    "auditThumbnail": "public/audit/thumbnails/7.svg",
+    "views": [
+      "front",
+      "three-quarter",
+      "side",
+      "back"
+    ],
+    "checks": {
+      "silhouette": "automated-pass",
+      "colorRegions": "automated-pass",
+      "keyTraits": "automated-pass",
+      "equipmentOcclusion": "automated-pass",
+      "specialScene": "not-applicable"
+    },
+    "humanReview": {
+      "status": "ready",
+      "note": "四视图与原始 2D 已配对，可在代表集画廊逐项复核。"
+    }
+  },
+  {
+    "tokenId": "8",
+    "source2d": "liberty_cats_download/images/8.png",
+    "auditThumbnail": "public/audit/thumbnails/8.svg",
+    "views": [
+      "front",
+      "three-quarter",
+      "side",
+      "back"
+    ],
+    "checks": {
+      "silhouette": "automated-pass",
+      "colorRegions": "automated-pass",
+      "keyTraits": "automated-pass",
+      "equipmentOcclusion": "automated-pass",
+      "specialScene": "not-applicable"
+    },
+    "humanReview": {
+      "status": "ready",
+      "note": "四视图与原始 2D 已配对，可在代表集画廊逐项复核。"
+    }
+  },
+  {
+    "tokenId": "9",
+    "source2d": "liberty_cats_download/images/9.png",
+    "auditThumbnail": "public/audit/thumbnails/9.svg",
+    "views": [
+      "front",
+      "three-quarter",
+      "side",
+      "back"
+    ],
+    "checks": {
+      "silhouette": "automated-pass",
+      "colorRegions": "automated-pass",
+      "keyTraits": "automated-pass",
+      "equipmentOcclusion": "automated-pass",
+      "specialScene": "not-applicable"
+    },
+    "humanReview": {
+      "status": "ready",
+      "note": "四视图与原始 2D 已配对，可在代表集画廊逐项复核。"
+    }
+  },
+  {
+    "tokenId": "10",
+    "source2d": "liberty_cats_download/images/10.png",
+    "auditThumbnail": "public/audit/thumbnails/10.svg",
+    "views": [
+      "front",
+      "three-quarter",
+      "side",
+      "back"
+    ],
+    "checks": {
+      "silhouette": "automated-pass",
+      "colorRegions": "automated-pass",
+      "keyTraits": "automated-pass",
+      "equipmentOcclusion": "automated-pass",
+      "specialScene": "not-applicable"
+    },
+    "humanReview": {
+      "status": "ready",
+      "note": "四视图与原始 2D 已配对，可在代表集画廊逐项复核。"
+    }
+  },
+  {
+    "tokenId": "11",
+    "source2d": "liberty_cats_download/images/11.png",
+    "auditThumbnail": "public/audit/thumbnails/11.svg",
+    "views": [
+      "front",
+      "three-quarter",
+      "side",
+      "back"
+    ],
+    "checks": {
+      "silhouette": "automated-pass",
+      "colorRegions": "automated-pass",
+      "keyTraits": "automated-pass",
+      "equipmentOcclusion": "automated-pass",
+      "specialScene": "automated-pass"
+    },
+    "humanReview": {
+      "status": "ready",
+      "note": "四视图与原始 2D 已配对，可在代表集画廊逐项复核。"
+    }
+  },
+  {
+    "tokenId": "12",
+    "source2d": "liberty_cats_download/images/12.png",
+    "auditThumbnail": "public/audit/thumbnails/12.svg",
+    "views": [
+      "front",
+      "three-quarter",
+      "side",
+      "back"
+    ],
+    "checks": {
+      "silhouette": "automated-pass",
+      "colorRegions": "automated-pass",
+      "keyTraits": "automated-pass",
+      "equipmentOcclusion": "automated-pass",
+      "specialScene": "not-applicable"
+    },
+    "humanReview": {
+      "status": "ready",
+      "note": "四视图与原始 2D 已配对，可在代表集画廊逐项复核。"
+    }
+  },
+  {
+    "tokenId": "13",
+    "source2d": "liberty_cats_download/images/13.png",
+    "auditThumbnail": "public/audit/thumbnails/13.svg",
+    "views": [
+      "front",
+      "three-quarter",
+      "side",
+      "back"
+    ],
+    "checks": {
+      "silhouette": "automated-pass",
+      "colorRegions": "automated-pass",
+      "keyTraits": "automated-pass",
+      "equipmentOcclusion": "automated-pass",
+      "specialScene": "not-applicable"
+    },
+    "humanReview": {
+      "status": "ready",
+      "note": "四视图与原始 2D 已配对，可在代表集画廊逐项复核。"
+    }
+  },
+  {
+    "tokenId": "14",
+    "source2d": "liberty_cats_download/images/14.png",
+    "auditThumbnail": "public/audit/thumbnails/14.svg",
+    "views": [
+      "front",
+      "three-quarter",
+      "side",
+      "back"
+    ],
+    "checks": {
+      "silhouette": "automated-pass",
+      "colorRegions": "automated-pass",
+      "keyTraits": "automated-pass",
+      "equipmentOcclusion": "automated-pass",
+      "specialScene": "not-applicable"
+    },
+    "humanReview": {
+      "status": "ready",
+      "note": "四视图与原始 2D 已配对，可在代表集画廊逐项复核。"
+    }
+  },
+  {
+    "tokenId": "15",
+    "source2d": "liberty_cats_download/images/15.png",
+    "auditThumbnail": "public/audit/thumbnails/15.svg",
+    "views": [
+      "front",
+      "three-quarter",
+      "side",
+      "back"
+    ],
+    "checks": {
+      "silhouette": "automated-pass",
+      "colorRegions": "automated-pass",
+      "keyTraits": "automated-pass",
+      "equipmentOcclusion": "automated-pass",
+      "specialScene": "not-applicable"
+    },
+    "humanReview": {
+      "status": "ready",
+      "note": "四视图与原始 2D 已配对，可在代表集画廊逐项复核。"
+    }
+  },
+  {
+    "tokenId": "16",
+    "source2d": "liberty_cats_download/images/16.png",
+    "auditThumbnail": "public/audit/thumbnails/16.svg",
+    "views": [
+      "front",
+      "three-quarter",
+      "side",
+      "back"
+    ],
+    "checks": {
+      "silhouette": "automated-pass",
+      "colorRegions": "automated-pass",
+      "keyTraits": "automated-pass",
+      "equipmentOcclusion": "automated-pass",
+      "specialScene": "not-applicable"
+    },
+    "humanReview": {
+      "status": "ready",
+      "note": "四视图与原始 2D 已配对，可在代表集画廊逐项复核。"
+    }
+  },
+  {
+    "tokenId": "17",
+    "source2d": "liberty_cats_download/images/17.png",
+    "auditThumbnail": "public/audit/thumbnails/17.svg",
+    "views": [
+      "front",
+      "three-quarter",
+      "side",
+      "back"
+    ],
+    "checks": {
+      "silhouette": "automated-pass",
+      "colorRegions": "automated-pass",
+      "keyTraits": "automated-pass",
+      "equipmentOcclusion": "automated-pass",
+      "specialScene": "not-applicable"
+    },
+    "humanReview": {
+      "status": "ready",
+      "note": "四视图与原始 2D 已配对，可在代表集画廊逐项复核。"
+    }
+  },
+  {
+    "tokenId": "18",
+    "source2d": "liberty_cats_download/images/18.png",
+    "auditThumbnail": "public/audit/thumbnails/18.svg",
+    "views": [
+      "front",
+      "three-quarter",
+      "side",
+      "back"
+    ],
+    "checks": {
+      "silhouette": "automated-pass",
+      "colorRegions": "automated-pass",
+      "keyTraits": "automated-pass",
+      "equipmentOcclusion": "automated-pass",
+      "specialScene": "not-applicable"
+    },
+    "humanReview": {
+      "status": "ready",
+      "note": "四视图与原始 2D 已配对，可在代表集画廊逐项复核。"
+    }
+  },
+  {
+    "tokenId": "19",
+    "source2d": "liberty_cats_download/images/19.png",
+    "auditThumbnail": "public/audit/thumbnails/19.svg",
+    "views": [
+      "front",
+      "three-quarter",
+      "side",
+      "back"
+    ],
+    "checks": {
+      "silhouette": "automated-pass",
+      "colorRegions": "automated-pass",
+      "keyTraits": "automated-pass",
+      "equipmentOcclusion": "automated-pass",
+      "specialScene": "not-applicable"
+    },
+    "humanReview": {
+      "status": "ready",
+      "note": "四视图与原始 2D 已配对，可在代表集画廊逐项复核。"
+    }
+  },
+  {
+    "tokenId": "20",
+    "source2d": "liberty_cats_download/images/20.png",
+    "auditThumbnail": "public/audit/thumbnails/20.svg",
+    "views": [
+      "front",
+      "three-quarter",
+      "side",
+      "back"
+    ],
+    "checks": {
+      "silhouette": "automated-pass",
+      "colorRegions": "automated-pass",
+      "keyTraits": "automated-pass",
+      "equipmentOcclusion": "automated-pass",
+      "specialScene": "not-applicable"
+    },
+    "humanReview": {
+      "status": "ready",
+      "note": "四视图与原始 2D 已配对，可在代表集画廊逐项复核。"
+    }
+  },
+  {
+    "tokenId": "21",
+    "source2d": "liberty_cats_download/images/21.png",
+    "auditThumbnail": "public/audit/thumbnails/21.svg",
+    "views": [
+      "front",
+      "three-quarter",
+      "side",
+      "back"
+    ],
+    "checks": {
+      "silhouette": "automated-pass",
+      "colorRegions": "automated-pass",
+      "keyTraits": "automated-pass",
+      "equipmentOcclusion": "automated-pass",
+      "specialScene": "not-applicable"
+    },
+    "humanReview": {
+      "status": "ready",
+      "note": "四视图与原始 2D 已配对，可在代表集画廊逐项复核。"
+    }
+  },
+  {
+    "tokenId": "22",
+    "source2d": "liberty_cats_download/images/22.png",
+    "auditThumbnail": "public/audit/thumbnails/22.svg",
+    "views": [
+      "front",
+      "three-quarter",
+      "side",
+      "back"
+    ],
+    "checks": {
+      "silhouette": "automated-pass",
+      "colorRegions": "automated-pass",
+      "keyTraits": "automated-pass",
+      "equipmentOcclusion": "automated-pass",
+      "specialScene": "not-applicable"
+    },
+    "humanReview": {
+      "status": "ready",
+      "note": "四视图与原始 2D 已配对，可在代表集画廊逐项复核。"
+    }
+  },
+  {
+    "tokenId": "23",
+    "source2d": "liberty_cats_download/images/23.png",
+    "auditThumbnail": "public/audit/thumbnails/23.svg",
+    "views": [
+      "front",
+      "three-quarter",
+      "side",
+      "back"
+    ],
+    "checks": {
+      "silhouette": "automated-pass",
+      "colorRegions": "automated-pass",
+      "keyTraits": "automated-pass",
+      "equipmentOcclusion": "automated-pass",
+      "specialScene": "not-applicable"
+    },
+    "humanReview": {
+      "status": "ready",
+      "note": "四视图与原始 2D 已配对，可在代表集画廊逐项复核。"
+    }
+  },
+  {
+    "tokenId": "24",
+    "source2d": "liberty_cats_download/images/24.png",
+    "auditThumbnail": "public/audit/thumbnails/24.svg",
+    "views": [
+      "front",
+      "three-quarter",
+      "side",
+      "back"
+    ],
+    "checks": {
+      "silhouette": "automated-pass",
+      "colorRegions": "automated-pass",
+      "keyTraits": "automated-pass",
+      "equipmentOcclusion": "automated-pass",
+      "specialScene": "not-applicable"
+    },
+    "humanReview": {
+      "status": "ready",
+      "note": "四视图与原始 2D 已配对，可在代表集画廊逐项复核。"
+    }
+  },
+  {
+    "tokenId": "25",
+    "source2d": "liberty_cats_download/images/25.png",
+    "auditThumbnail": "public/audit/thumbnails/25.svg",
+    "views": [
+      "front",
+      "three-quarter",
+      "side",
+      "back"
+    ],
+    "checks": {
+      "silhouette": "automated-pass",
+      "colorRegions": "automated-pass",
+      "keyTraits": "automated-pass",
+      "equipmentOcclusion": "automated-pass",
+      "specialScene": "not-applicable"
+    },
+    "humanReview": {
+      "status": "ready",
+      "note": "四视图与原始 2D 已配对，可在代表集画廊逐项复核。"
+    }
+  },
+  {
+    "tokenId": "26",
+    "source2d": "liberty_cats_download/images/26.png",
+    "auditThumbnail": "public/audit/thumbnails/26.svg",
+    "views": [
+      "front",
+      "three-quarter",
+      "side",
+      "back"
+    ],
+    "checks": {
+      "silhouette": "automated-pass",
+      "colorRegions": "automated-pass",
+      "keyTraits": "automated-pass",
+      "equipmentOcclusion": "automated-pass",
+      "specialScene": "not-applicable"
+    },
+    "humanReview": {
+      "status": "ready",
+      "note": "四视图与原始 2D 已配对，可在代表集画廊逐项复核。"
+    }
+  },
+  {
+    "tokenId": "27",
+    "source2d": "liberty_cats_download/images/27.png",
+    "auditThumbnail": "public/audit/thumbnails/27.svg",
+    "views": [
+      "front",
+      "three-quarter",
+      "side",
+      "back"
+    ],
+    "checks": {
+      "silhouette": "automated-pass",
+      "colorRegions": "automated-pass",
+      "keyTraits": "automated-pass",
+      "equipmentOcclusion": "automated-pass",
+      "specialScene": "not-applicable"
+    },
+    "humanReview": {
+      "status": "ready",
+      "note": "四视图与原始 2D 已配对，可在代表集画廊逐项复核。"
+    }
+  },
+  {
+    "tokenId": "28",
+    "source2d": "liberty_cats_download/images/28.png",
+    "auditThumbnail": "public/audit/thumbnails/28.svg",
+    "views": [
+      "front",
+      "three-quarter",
+      "side",
+      "back"
+    ],
+    "checks": {
+      "silhouette": "automated-pass",
+      "colorRegions": "automated-pass",
+      "keyTraits": "automated-pass",
+      "equipmentOcclusion": "automated-pass",
+      "specialScene": "not-applicable"
+    },
+    "humanReview": {
+      "status": "ready",
+      "note": "四视图与原始 2D 已配对，可在代表集画廊逐项复核。"
+    }
+  },
+  {
+    "tokenId": "29",
+    "source2d": "liberty_cats_download/images/29.png",
+    "auditThumbnail": "public/audit/thumbnails/29.svg",
+    "views": [
+      "front",
+      "three-quarter",
+      "side",
+      "back"
+    ],
+    "checks": {
+      "silhouette": "automated-pass",
+      "colorRegions": "automated-pass",
+      "keyTraits": "automated-pass",
+      "equipmentOcclusion": "automated-pass",
+      "specialScene": "not-applicable"
+    },
+    "humanReview": {
+      "status": "ready",
+      "note": "四视图与原始 2D 已配对，可在代表集画廊逐项复核。"
+    }
+  },
+  {
+    "tokenId": "30",
+    "source2d": "liberty_cats_download/images/30.png",
+    "auditThumbnail": "public/audit/thumbnails/30.svg",
+    "views": [
+      "front",
+      "three-quarter",
+      "side",
+      "back"
+    ],
+    "checks": {
+      "silhouette": "automated-pass",
+      "colorRegions": "automated-pass",
+      "keyTraits": "automated-pass",
+      "equipmentOcclusion": "automated-pass",
+      "specialScene": "not-applicable"
+    },
+    "humanReview": {
+      "status": "ready",
+      "note": "四视图与原始 2D 已配对，可在代表集画廊逐项复核。"
+    }
+  },
+  {
+    "tokenId": "31",
+    "source2d": "liberty_cats_download/images/31.png",
+    "auditThumbnail": "public/audit/thumbnails/31.svg",
+    "views": [
+      "front",
+      "three-quarter",
+      "side",
+      "back"
+    ],
+    "checks": {
+      "silhouette": "automated-pass",
+      "colorRegions": "automated-pass",
+      "keyTraits": "automated-pass",
+      "equipmentOcclusion": "automated-pass",
+      "specialScene": "not-applicable"
+    },
+    "humanReview": {
+      "status": "ready",
+      "note": "四视图与原始 2D 已配对，可在代表集画廊逐项复核。"
+    }
+  },
+  {
+    "tokenId": "32",
+    "source2d": "liberty_cats_download/images/32.png",
+    "auditThumbnail": "public/audit/thumbnails/32.svg",
+    "views": [
+      "front",
+      "three-quarter",
+      "side",
+      "back"
+    ],
+    "checks": {
+      "silhouette": "automated-pass",
+      "colorRegions": "automated-pass",
+      "keyTraits": "automated-pass",
+      "equipmentOcclusion": "automated-pass",
+      "specialScene": "not-applicable"
+    },
+    "humanReview": {
+      "status": "ready",
+      "note": "四视图与原始 2D 已配对，可在代表集画廊逐项复核。"
+    }
+  },
+  {
+    "tokenId": "33",
+    "source2d": "liberty_cats_download/images/33.png",
+    "auditThumbnail": "public/audit/thumbnails/33.svg",
+    "views": [
+      "front",
+      "three-quarter",
+      "side",
+      "back"
+    ],
+    "checks": {
+      "silhouette": "automated-pass",
+      "colorRegions": "automated-pass",
+      "keyTraits": "automated-pass",
+      "equipmentOcclusion": "automated-pass",
+      "specialScene": "not-applicable"
+    },
+    "humanReview": {
+      "status": "ready",
+      "note": "四视图与原始 2D 已配对，可在代表集画廊逐项复核。"
+    }
+  },
+  {
+    "tokenId": "34",
+    "source2d": "liberty_cats_download/images/34.png",
+    "auditThumbnail": "public/audit/thumbnails/34.svg",
+    "views": [
+      "front",
+      "three-quarter",
+      "side",
+      "back"
+    ],
+    "checks": {
+      "silhouette": "automated-pass",
+      "colorRegions": "automated-pass",
+      "keyTraits": "automated-pass",
+      "equipmentOcclusion": "automated-pass",
+      "specialScene": "not-applicable"
+    },
+    "humanReview": {
+      "status": "ready",
+      "note": "四视图与原始 2D 已配对，可在代表集画廊逐项复核。"
+    }
+  },
+  {
+    "tokenId": "35",
+    "source2d": "liberty_cats_download/images/35.png",
+    "auditThumbnail": "public/audit/thumbnails/35.svg",
+    "views": [
+      "front",
+      "three-quarter",
+      "side",
+      "back"
+    ],
+    "checks": {
+      "silhouette": "automated-pass",
+      "colorRegions": "automated-pass",
+      "keyTraits": "automated-pass",
+      "equipmentOcclusion": "automated-pass",
+      "specialScene": "not-applicable"
+    },
+    "humanReview": {
+      "status": "ready",
+      "note": "四视图与原始 2D 已配对，可在代表集画廊逐项复核。"
+    }
+  },
+  {
+    "tokenId": "36",
+    "source2d": "liberty_cats_download/images/36.png",
+    "auditThumbnail": "public/audit/thumbnails/36.svg",
+    "views": [
+      "front",
+      "three-quarter",
+      "side",
+      "back"
+    ],
+    "checks": {
+      "silhouette": "automated-pass",
+      "colorRegions": "automated-pass",
+      "keyTraits": "automated-pass",
+      "equipmentOcclusion": "automated-pass",
+      "specialScene": "not-applicable"
+    },
+    "humanReview": {
+      "status": "ready",
+      "note": "四视图与原始 2D 已配对，可在代表集画廊逐项复核。"
+    }
+  },
+  {
+    "tokenId": "37",
+    "source2d": "liberty_cats_download/images/37.png",
+    "auditThumbnail": "public/audit/thumbnails/37.svg",
+    "views": [
+      "front",
+      "three-quarter",
+      "side",
+      "back"
+    ],
+    "checks": {
+      "silhouette": "automated-pass",
+      "colorRegions": "automated-pass",
+      "keyTraits": "automated-pass",
+      "equipmentOcclusion": "automated-pass",
+      "specialScene": "not-applicable"
+    },
+    "humanReview": {
+      "status": "ready",
+      "note": "四视图与原始 2D 已配对，可在代表集画廊逐项复核。"
+    }
+  },
+  {
+    "tokenId": "38",
+    "source2d": "liberty_cats_download/images/38.png",
+    "auditThumbnail": "public/audit/thumbnails/38.svg",
+    "views": [
+      "front",
+      "three-quarter",
+      "side",
+      "back"
+    ],
+    "checks": {
+      "silhouette": "automated-pass",
+      "colorRegions": "automated-pass",
+      "keyTraits": "automated-pass",
+      "equipmentOcclusion": "automated-pass",
+      "specialScene": "not-applicable"
+    },
+    "humanReview": {
+      "status": "ready",
+      "note": "四视图与原始 2D 已配对，可在代表集画廊逐项复核。"
+    }
+  },
+  {
+    "tokenId": "39",
+    "source2d": "liberty_cats_download/images/39.png",
+    "auditThumbnail": "public/audit/thumbnails/39.svg",
+    "views": [
+      "front",
+      "three-quarter",
+      "side",
+      "back"
+    ],
+    "checks": {
+      "silhouette": "automated-pass",
+      "colorRegions": "automated-pass",
+      "keyTraits": "automated-pass",
+      "equipmentOcclusion": "automated-pass",
+      "specialScene": "not-applicable"
+    },
+    "humanReview": {
+      "status": "ready",
+      "note": "四视图与原始 2D 已配对，可在代表集画廊逐项复核。"
+    }
+  },
+  {
+    "tokenId": "40",
+    "source2d": "liberty_cats_download/images/40.png",
+    "auditThumbnail": "public/audit/thumbnails/40.svg",
+    "views": [
+      "front",
+      "three-quarter",
+      "side",
+      "back"
+    ],
+    "checks": {
+      "silhouette": "automated-pass",
+      "colorRegions": "automated-pass",
+      "keyTraits": "automated-pass",
+      "equipmentOcclusion": "automated-pass",
+      "specialScene": "not-applicable"
+    },
+    "humanReview": {
+      "status": "ready",
+      "note": "四视图与原始 2D 已配对，可在代表集画廊逐项复核。"
+    }
+  },
+  {
+    "tokenId": "41",
+    "source2d": "liberty_cats_download/images/41.png",
+    "auditThumbnail": "public/audit/thumbnails/41.svg",
+    "views": [
+      "front",
+      "three-quarter",
+      "side",
+      "back"
+    ],
+    "checks": {
+      "silhouette": "automated-pass",
+      "colorRegions": "automated-pass",
+      "keyTraits": "automated-pass",
+      "equipmentOcclusion": "automated-pass",
+      "specialScene": "not-applicable"
+    },
+    "humanReview": {
+      "status": "ready",
+      "note": "四视图与原始 2D 已配对，可在代表集画廊逐项复核。"
+    }
+  },
+  {
+    "tokenId": "42",
+    "source2d": "liberty_cats_download/images/42.png",
+    "auditThumbnail": "public/audit/thumbnails/42.svg",
+    "views": [
+      "front",
+      "three-quarter",
+      "side",
+      "back"
+    ],
+    "checks": {
+      "silhouette": "automated-pass",
+      "colorRegions": "automated-pass",
+      "keyTraits": "automated-pass",
+      "equipmentOcclusion": "automated-pass",
+      "specialScene": "not-applicable"
+    },
+    "humanReview": {
+      "status": "ready",
+      "note": "四视图与原始 2D 已配对，可在代表集画廊逐项复核。"
+    }
+  },
+  {
+    "tokenId": "43",
+    "source2d": "liberty_cats_download/images/43.png",
+    "auditThumbnail": "public/audit/thumbnails/43.svg",
+    "views": [
+      "front",
+      "three-quarter",
+      "side",
+      "back"
+    ],
+    "checks": {
+      "silhouette": "automated-pass",
+      "colorRegions": "automated-pass",
+      "keyTraits": "automated-pass",
+      "equipmentOcclusion": "automated-pass",
+      "specialScene": "not-applicable"
+    },
+    "humanReview": {
+      "status": "ready",
+      "note": "四视图与原始 2D 已配对，可在代表集画廊逐项复核。"
+    }
+  },
+  {
+    "tokenId": "44",
+    "source2d": "liberty_cats_download/images/44.png",
+    "auditThumbnail": "public/audit/thumbnails/44.svg",
+    "views": [
+      "front",
+      "three-quarter",
+      "side",
+      "back"
+    ],
+    "checks": {
+      "silhouette": "automated-pass",
+      "colorRegions": "automated-pass",
+      "keyTraits": "automated-pass",
+      "equipmentOcclusion": "automated-pass",
+      "specialScene": "not-applicable"
+    },
+    "humanReview": {
+      "status": "ready",
+      "note": "四视图与原始 2D 已配对，可在代表集画廊逐项复核。"
+    }
+  },
+  {
+    "tokenId": "45",
+    "source2d": "liberty_cats_download/images/45.png",
+    "auditThumbnail": "public/audit/thumbnails/45.svg",
+    "views": [
+      "front",
+      "three-quarter",
+      "side",
+      "back"
+    ],
+    "checks": {
+      "silhouette": "automated-pass",
+      "colorRegions": "automated-pass",
+      "keyTraits": "automated-pass",
+      "equipmentOcclusion": "automated-pass",
+      "specialScene": "not-applicable"
+    },
+    "humanReview": {
+      "status": "ready",
+      "note": "四视图与原始 2D 已配对，可在代表集画廊逐项复核。"
+    }
+  },
+  {
+    "tokenId": "46",
+    "source2d": "liberty_cats_download/images/46.png",
+    "auditThumbnail": "public/audit/thumbnails/46.svg",
+    "views": [
+      "front",
+      "three-quarter",
+      "side",
+      "back"
+    ],
+    "checks": {
+      "silhouette": "automated-pass",
+      "colorRegions": "automated-pass",
+      "keyTraits": "automated-pass",
+      "equipmentOcclusion": "automated-pass",
+      "specialScene": "not-applicable"
+    },
+    "humanReview": {
+      "status": "ready",
+      "note": "四视图与原始 2D 已配对，可在代表集画廊逐项复核。"
+    }
+  },
+  {
+    "tokenId": "47",
+    "source2d": "liberty_cats_download/images/47.png",
+    "auditThumbnail": "public/audit/thumbnails/47.svg",
+    "views": [
+      "front",
+      "three-quarter",
+      "side",
+      "back"
+    ],
+    "checks": {
+      "silhouette": "automated-pass",
+      "colorRegions": "automated-pass",
+      "keyTraits": "automated-pass",
+      "equipmentOcclusion": "automated-pass",
+      "specialScene": "not-applicable"
+    },
+    "humanReview": {
+      "status": "ready",
+      "note": "四视图与原始 2D 已配对，可在代表集画廊逐项复核。"
+    }
+  },
+  {
+    "tokenId": "48",
+    "source2d": "liberty_cats_download/images/48.png",
+    "auditThumbnail": "public/audit/thumbnails/48.svg",
+    "views": [
+      "front",
+      "three-quarter",
+      "side",
+      "back"
+    ],
+    "checks": {
+      "silhouette": "automated-pass",
+      "colorRegions": "automated-pass",
+      "keyTraits": "automated-pass",
+      "equipmentOcclusion": "automated-pass",
+      "specialScene": "not-applicable"
+    },
+    "humanReview": {
+      "status": "ready",
+      "note": "四视图与原始 2D 已配对，可在代表集画廊逐项复核。"
+    }
+  },
+  {
+    "tokenId": "49",
+    "source2d": "liberty_cats_download/images/49.png",
+    "auditThumbnail": "public/audit/thumbnails/49.svg",
+    "views": [
+      "front",
+      "three-quarter",
+      "side",
+      "back"
+    ],
+    "checks": {
+      "silhouette": "automated-pass",
+      "colorRegions": "automated-pass",
+      "keyTraits": "automated-pass",
+      "equipmentOcclusion": "automated-pass",
+      "specialScene": "not-applicable"
+    },
+    "humanReview": {
+      "status": "ready",
+      "note": "四视图与原始 2D 已配对，可在代表集画廊逐项复核。"
+    }
+  },
+  {
+    "tokenId": "51",
+    "source2d": "liberty_cats_download/images/51.png",
+    "auditThumbnail": "public/audit/thumbnails/51.svg",
+    "views": [
+      "front",
+      "three-quarter",
+      "side",
+      "back"
+    ],
+    "checks": {
+      "silhouette": "automated-pass",
+      "colorRegions": "automated-pass",
+      "keyTraits": "automated-pass",
+      "equipmentOcclusion": "automated-pass",
+      "specialScene": "not-applicable"
+    },
+    "humanReview": {
+      "status": "ready",
+      "note": "四视图与原始 2D 已配对，可在代表集画廊逐项复核。"
+    }
+  },
+  {
+    "tokenId": "52",
+    "source2d": "liberty_cats_download/images/52.png",
+    "auditThumbnail": "public/audit/thumbnails/52.svg",
+    "views": [
+      "front",
+      "three-quarter",
+      "side",
+      "back"
+    ],
+    "checks": {
+      "silhouette": "automated-pass",
+      "colorRegions": "automated-pass",
+      "keyTraits": "automated-pass",
+      "equipmentOcclusion": "automated-pass",
+      "specialScene": "not-applicable"
+    },
+    "humanReview": {
+      "status": "ready",
+      "note": "四视图与原始 2D 已配对，可在代表集画廊逐项复核。"
+    }
+  },
+  {
+    "tokenId": "53",
+    "source2d": "liberty_cats_download/images/53.png",
+    "auditThumbnail": "public/audit/thumbnails/53.svg",
+    "views": [
+      "front",
+      "three-quarter",
+      "side",
+      "back"
+    ],
+    "checks": {
+      "silhouette": "automated-pass",
+      "colorRegions": "automated-pass",
+      "keyTraits": "automated-pass",
+      "equipmentOcclusion": "automated-pass",
+      "specialScene": "not-applicable"
+    },
+    "humanReview": {
+      "status": "ready",
+      "note": "四视图与原始 2D 已配对，可在代表集画廊逐项复核。"
+    }
+  },
+  {
+    "tokenId": "54",
+    "source2d": "liberty_cats_download/images/54.png",
+    "auditThumbnail": "public/audit/thumbnails/54.svg",
+    "views": [
+      "front",
+      "three-quarter",
+      "side",
+      "back"
+    ],
+    "checks": {
+      "silhouette": "automated-pass",
+      "colorRegions": "automated-pass",
+      "keyTraits": "automated-pass",
+      "equipmentOcclusion": "automated-pass",
+      "specialScene": "not-applicable"
+    },
+    "humanReview": {
+      "status": "ready",
+      "note": "四视图与原始 2D 已配对，可在代表集画廊逐项复核。"
+    }
+  },
+  {
+    "tokenId": "55",
+    "source2d": "liberty_cats_download/images/55.png",
+    "auditThumbnail": "public/audit/thumbnails/55.svg",
+    "views": [
+      "front",
+      "three-quarter",
+      "side",
+      "back"
+    ],
+    "checks": {
+      "silhouette": "automated-pass",
+      "colorRegions": "automated-pass",
+      "keyTraits": "automated-pass",
+      "equipmentOcclusion": "automated-pass",
+      "specialScene": "not-applicable"
+    },
+    "humanReview": {
+      "status": "ready",
+      "note": "四视图与原始 2D 已配对，可在代表集画廊逐项复核。"
+    }
+  },
+  {
+    "tokenId": "56",
+    "source2d": "liberty_cats_download/images/56.png",
+    "auditThumbnail": "public/audit/thumbnails/56.svg",
+    "views": [
+      "front",
+      "three-quarter",
+      "side",
+      "back"
+    ],
+    "checks": {
+      "silhouette": "automated-pass",
+      "colorRegions": "automated-pass",
+      "keyTraits": "automated-pass",
+      "equipmentOcclusion": "automated-pass",
+      "specialScene": "not-applicable"
+    },
+    "humanReview": {
+      "status": "ready",
+      "note": "四视图与原始 2D 已配对，可在代表集画廊逐项复核。"
+    }
+  },
+  {
+    "tokenId": "57",
+    "source2d": "liberty_cats_download/images/57.png",
+    "auditThumbnail": "public/audit/thumbnails/57.svg",
+    "views": [
+      "front",
+      "three-quarter",
+      "side",
+      "back"
+    ],
+    "checks": {
+      "silhouette": "automated-pass",
+      "colorRegions": "automated-pass",
+      "keyTraits": "automated-pass",
+      "equipmentOcclusion": "automated-pass",
+      "specialScene": "not-applicable"
+    },
+    "humanReview": {
+      "status": "ready",
+      "note": "四视图与原始 2D 已配对，可在代表集画廊逐项复核。"
+    }
+  },
+  {
+    "tokenId": "60",
+    "source2d": "liberty_cats_download/images/60.png",
+    "auditThumbnail": "public/audit/thumbnails/60.svg",
+    "views": [
+      "front",
+      "three-quarter",
+      "side",
+      "back"
+    ],
+    "checks": {
+      "silhouette": "automated-pass",
+      "colorRegions": "automated-pass",
+      "keyTraits": "automated-pass",
+      "equipmentOcclusion": "automated-pass",
+      "specialScene": "not-applicable"
+    },
+    "humanReview": {
+      "status": "ready",
+      "note": "四视图与原始 2D 已配对，可在代表集画廊逐项复核。"
+    }
+  },
+  {
+    "tokenId": "61",
+    "source2d": "liberty_cats_download/images/61.png",
+    "auditThumbnail": "public/audit/thumbnails/61.svg",
+    "views": [
+      "front",
+      "three-quarter",
+      "side",
+      "back"
+    ],
+    "checks": {
+      "silhouette": "automated-pass",
+      "colorRegions": "automated-pass",
+      "keyTraits": "automated-pass",
+      "equipmentOcclusion": "automated-pass",
+      "specialScene": "not-applicable"
+    },
+    "humanReview": {
+      "status": "ready",
+      "note": "四视图与原始 2D 已配对，可在代表集画廊逐项复核。"
+    }
+  },
+  {
+    "tokenId": "63",
+    "source2d": "liberty_cats_download/images/63.png",
+    "auditThumbnail": "public/audit/thumbnails/63.svg",
+    "views": [
+      "front",
+      "three-quarter",
+      "side",
+      "back"
+    ],
+    "checks": {
+      "silhouette": "automated-pass",
+      "colorRegions": "automated-pass",
+      "keyTraits": "automated-pass",
+      "equipmentOcclusion": "automated-pass",
+      "specialScene": "not-applicable"
+    },
+    "humanReview": {
+      "status": "ready",
+      "note": "四视图与原始 2D 已配对，可在代表集画廊逐项复核。"
+    }
+  },
+  {
+    "tokenId": "64",
+    "source2d": "liberty_cats_download/images/64.png",
+    "auditThumbnail": "public/audit/thumbnails/64.svg",
+    "views": [
+      "front",
+      "three-quarter",
+      "side",
+      "back"
+    ],
+    "checks": {
+      "silhouette": "automated-pass",
+      "colorRegions": "automated-pass",
+      "keyTraits": "automated-pass",
+      "equipmentOcclusion": "automated-pass",
+      "specialScene": "not-applicable"
+    },
+    "humanReview": {
+      "status": "ready",
+      "note": "四视图与原始 2D 已配对，可在代表集画廊逐项复核。"
+    }
+  },
+  {
+    "tokenId": "65",
+    "source2d": "liberty_cats_download/images/65.png",
+    "auditThumbnail": "public/audit/thumbnails/65.svg",
+    "views": [
+      "front",
+      "three-quarter",
+      "side",
+      "back"
+    ],
+    "checks": {
+      "silhouette": "automated-pass",
+      "colorRegions": "automated-pass",
+      "keyTraits": "automated-pass",
+      "equipmentOcclusion": "automated-pass",
+      "specialScene": "not-applicable"
+    },
+    "humanReview": {
+      "status": "ready",
+      "note": "四视图与原始 2D 已配对，可在代表集画廊逐项复核。"
+    }
+  },
+  {
+    "tokenId": "66",
+    "source2d": "liberty_cats_download/images/66.png",
+    "auditThumbnail": "public/audit/thumbnails/66.svg",
+    "views": [
+      "front",
+      "three-quarter",
+      "side",
+      "back"
+    ],
+    "checks": {
+      "silhouette": "automated-pass",
+      "colorRegions": "automated-pass",
+      "keyTraits": "automated-pass",
+      "equipmentOcclusion": "automated-pass",
+      "specialScene": "not-applicable"
+    },
+    "humanReview": {
+      "status": "ready",
+      "note": "四视图与原始 2D 已配对，可在代表集画廊逐项复核。"
+    }
+  },
+  {
+    "tokenId": "67",
+    "source2d": "liberty_cats_download/images/67.png",
+    "auditThumbnail": "public/audit/thumbnails/67.svg",
+    "views": [
+      "front",
+      "three-quarter",
+      "side",
+      "back"
+    ],
+    "checks": {
+      "silhouette": "automated-pass",
+      "colorRegions": "automated-pass",
+      "keyTraits": "automated-pass",
+      "equipmentOcclusion": "automated-pass",
+      "specialScene": "not-applicable"
+    },
+    "humanReview": {
+      "status": "ready",
+      "note": "四视图与原始 2D 已配对，可在代表集画廊逐项复核。"
+    }
+  },
+  {
+    "tokenId": "68",
+    "source2d": "liberty_cats_download/images/68.png",
+    "auditThumbnail": "public/audit/thumbnails/68.svg",
+    "views": [
+      "front",
+      "three-quarter",
+      "side",
+      "back"
+    ],
+    "checks": {
+      "silhouette": "automated-pass",
+      "colorRegions": "automated-pass",
+      "keyTraits": "automated-pass",
+      "equipmentOcclusion": "automated-pass",
+      "specialScene": "not-applicable"
+    },
+    "humanReview": {
+      "status": "ready",
+      "note": "四视图与原始 2D 已配对，可在代表集画廊逐项复核。"
+    }
+  },
+  {
+    "tokenId": "69",
+    "source2d": "liberty_cats_download/images/69.png",
+    "auditThumbnail": "public/audit/thumbnails/69.svg",
+    "views": [
+      "front",
+      "three-quarter",
+      "side",
+      "back"
+    ],
+    "checks": {
+      "silhouette": "automated-pass",
+      "colorRegions": "automated-pass",
+      "keyTraits": "automated-pass",
+      "equipmentOcclusion": "automated-pass",
+      "specialScene": "not-applicable"
+    },
+    "humanReview": {
+      "status": "ready",
+      "note": "四视图与原始 2D 已配对，可在代表集画廊逐项复核。"
+    }
+  },
+  {
+    "tokenId": "70",
+    "source2d": "liberty_cats_download/images/70.png",
+    "auditThumbnail": "public/audit/thumbnails/70.svg",
+    "views": [
+      "front",
+      "three-quarter",
+      "side",
+      "back"
+    ],
+    "checks": {
+      "silhouette": "automated-pass",
+      "colorRegions": "automated-pass",
+      "keyTraits": "automated-pass",
+      "equipmentOcclusion": "automated-pass",
+      "specialScene": "not-applicable"
+    },
+    "humanReview": {
+      "status": "ready",
+      "note": "四视图与原始 2D 已配对，可在代表集画廊逐项复核。"
+    }
+  },
+  {
+    "tokenId": "71",
+    "source2d": "liberty_cats_download/images/71.png",
+    "auditThumbnail": "public/audit/thumbnails/71.svg",
+    "views": [
+      "front",
+      "three-quarter",
+      "side",
+      "back"
+    ],
+    "checks": {
+      "silhouette": "automated-pass",
+      "colorRegions": "automated-pass",
+      "keyTraits": "automated-pass",
+      "equipmentOcclusion": "automated-pass",
+      "specialScene": "not-applicable"
+    },
+    "humanReview": {
+      "status": "ready",
+      "note": "四视图与原始 2D 已配对，可在代表集画廊逐项复核。"
+    }
+  },
+  {
+    "tokenId": "72",
+    "source2d": "liberty_cats_download/images/72.png",
+    "auditThumbnail": "public/audit/thumbnails/72.svg",
+    "views": [
+      "front",
+      "three-quarter",
+      "side",
+      "back"
+    ],
+    "checks": {
+      "silhouette": "automated-pass",
+      "colorRegions": "automated-pass",
+      "keyTraits": "automated-pass",
+      "equipmentOcclusion": "automated-pass",
+      "specialScene": "not-applicable"
+    },
+    "humanReview": {
+      "status": "ready",
+      "note": "四视图与原始 2D 已配对，可在代表集画廊逐项复核。"
+    }
+  },
+  {
+    "tokenId": "74",
+    "source2d": "liberty_cats_download/images/74.png",
+    "auditThumbnail": "public/audit/thumbnails/74.svg",
+    "views": [
+      "front",
+      "three-quarter",
+      "side",
+      "back"
+    ],
+    "checks": {
+      "silhouette": "automated-pass",
+      "colorRegions": "automated-pass",
+      "keyTraits": "automated-pass",
+      "equipmentOcclusion": "automated-pass",
+      "specialScene": "not-applicable"
+    },
+    "humanReview": {
+      "status": "ready",
+      "note": "四视图与原始 2D 已配对，可在代表集画廊逐项复核。"
+    }
+  },
+  {
+    "tokenId": "75",
+    "source2d": "liberty_cats_download/images/75.png",
+    "auditThumbnail": "public/audit/thumbnails/75.svg",
+    "views": [
+      "front",
+      "three-quarter",
+      "side",
+      "back"
+    ],
+    "checks": {
+      "silhouette": "automated-pass",
+      "colorRegions": "automated-pass",
+      "keyTraits": "automated-pass",
+      "equipmentOcclusion": "automated-pass",
+      "specialScene": "not-applicable"
+    },
+    "humanReview": {
+      "status": "ready",
+      "note": "四视图与原始 2D 已配对，可在代表集画廊逐项复核。"
+    }
+  },
+  {
+    "tokenId": "78",
+    "source2d": "liberty_cats_download/images/78.png",
+    "auditThumbnail": "public/audit/thumbnails/78.svg",
+    "views": [
+      "front",
+      "three-quarter",
+      "side",
+      "back"
+    ],
+    "checks": {
+      "silhouette": "automated-pass",
+      "colorRegions": "automated-pass",
+      "keyTraits": "automated-pass",
+      "equipmentOcclusion": "automated-pass",
+      "specialScene": "not-applicable"
+    },
+    "humanReview": {
+      "status": "ready",
+      "note": "四视图与原始 2D 已配对，可在代表集画廊逐项复核。"
+    }
+  },
+  {
+    "tokenId": "79",
+    "source2d": "liberty_cats_download/images/79.png",
+    "auditThumbnail": "public/audit/thumbnails/79.svg",
+    "views": [
+      "front",
+      "three-quarter",
+      "side",
+      "back"
+    ],
+    "checks": {
+      "silhouette": "automated-pass",
+      "colorRegions": "automated-pass",
+      "keyTraits": "automated-pass",
+      "equipmentOcclusion": "automated-pass",
+      "specialScene": "not-applicable"
+    },
+    "humanReview": {
+      "status": "ready",
+      "note": "四视图与原始 2D 已配对，可在代表集画廊逐项复核。"
+    }
+  },
+  {
+    "tokenId": "81",
+    "source2d": "liberty_cats_download/images/81.webp",
+    "auditThumbnail": "public/audit/thumbnails/81.svg",
+    "views": [
+      "front",
+      "three-quarter",
+      "side",
+      "back"
+    ],
+    "checks": {
+      "silhouette": "automated-pass",
+      "colorRegions": "automated-pass",
+      "keyTraits": "automated-pass",
+      "equipmentOcclusion": "automated-pass",
+      "specialScene": "not-applicable"
+    },
+    "humanReview": {
+      "status": "ready",
+      "note": "四视图与原始 2D 已配对，可在代表集画廊逐项复核。"
+    }
+  },
+  {
+    "tokenId": "82",
+    "source2d": "liberty_cats_download/images/82.png",
+    "auditThumbnail": "public/audit/thumbnails/82.svg",
+    "views": [
+      "front",
+      "three-quarter",
+      "side",
+      "back"
+    ],
+    "checks": {
+      "silhouette": "automated-pass",
+      "colorRegions": "automated-pass",
+      "keyTraits": "automated-pass",
+      "equipmentOcclusion": "automated-pass",
+      "specialScene": "not-applicable"
+    },
+    "humanReview": {
+      "status": "ready",
+      "note": "四视图与原始 2D 已配对，可在代表集画廊逐项复核。"
+    }
+  },
+  {
+    "tokenId": "83",
+    "source2d": "liberty_cats_download/images/83.png",
+    "auditThumbnail": "public/audit/thumbnails/83.svg",
+    "views": [
+      "front",
+      "three-quarter",
+      "side",
+      "back"
+    ],
+    "checks": {
+      "silhouette": "automated-pass",
+      "colorRegions": "automated-pass",
+      "keyTraits": "automated-pass",
+      "equipmentOcclusion": "automated-pass",
+      "specialScene": "not-applicable"
+    },
+    "humanReview": {
+      "status": "ready",
+      "note": "四视图与原始 2D 已配对，可在代表集画廊逐项复核。"
+    }
+  },
+  {
+    "tokenId": "84",
+    "source2d": "liberty_cats_download/images/84.png",
+    "auditThumbnail": "public/audit/thumbnails/84.svg",
+    "views": [
+      "front",
+      "three-quarter",
+      "side",
+      "back"
+    ],
+    "checks": {
+      "silhouette": "automated-pass",
+      "colorRegions": "automated-pass",
+      "keyTraits": "automated-pass",
+      "equipmentOcclusion": "automated-pass",
+      "specialScene": "not-applicable"
+    },
+    "humanReview": {
+      "status": "ready",
+      "note": "四视图与原始 2D 已配对，可在代表集画廊逐项复核。"
+    }
+  },
+  {
+    "tokenId": "85",
+    "source2d": "liberty_cats_download/images/85.png",
+    "auditThumbnail": "public/audit/thumbnails/85.svg",
+    "views": [
+      "front",
+      "three-quarter",
+      "side",
+      "back"
+    ],
+    "checks": {
+      "silhouette": "automated-pass",
+      "colorRegions": "automated-pass",
+      "keyTraits": "automated-pass",
+      "equipmentOcclusion": "automated-pass",
+      "specialScene": "not-applicable"
+    },
+    "humanReview": {
+      "status": "ready",
+      "note": "四视图与原始 2D 已配对，可在代表集画廊逐项复核。"
+    }
+  },
+  {
+    "tokenId": "86",
+    "source2d": "liberty_cats_download/images/86.png",
+    "auditThumbnail": "public/audit/thumbnails/86.svg",
+    "views": [
+      "front",
+      "three-quarter",
+      "side",
+      "back"
+    ],
+    "checks": {
+      "silhouette": "automated-pass",
+      "colorRegions": "automated-pass",
+      "keyTraits": "automated-pass",
+      "equipmentOcclusion": "automated-pass",
+      "specialScene": "not-applicable"
+    },
+    "humanReview": {
+      "status": "ready",
+      "note": "四视图与原始 2D 已配对，可在代表集画廊逐项复核。"
+    }
+  },
+  {
+    "tokenId": "89",
+    "source2d": "liberty_cats_download/images/89.png",
+    "auditThumbnail": "public/audit/thumbnails/89.svg",
+    "views": [
+      "front",
+      "three-quarter",
+      "side",
+      "back"
+    ],
+    "checks": {
+      "silhouette": "automated-pass",
+      "colorRegions": "automated-pass",
+      "keyTraits": "automated-pass",
+      "equipmentOcclusion": "automated-pass",
+      "specialScene": "not-applicable"
+    },
+    "humanReview": {
+      "status": "ready",
+      "note": "四视图与原始 2D 已配对，可在代表集画廊逐项复核。"
+    }
+  },
+  {
+    "tokenId": "92",
+    "source2d": "liberty_cats_download/images/92.png",
+    "auditThumbnail": "public/audit/thumbnails/92.svg",
+    "views": [
+      "front",
+      "three-quarter",
+      "side",
+      "back"
+    ],
+    "checks": {
+      "silhouette": "automated-pass",
+      "colorRegions": "automated-pass",
+      "keyTraits": "automated-pass",
+      "equipmentOcclusion": "automated-pass",
+      "specialScene": "not-applicable"
+    },
+    "humanReview": {
+      "status": "ready",
+      "note": "四视图与原始 2D 已配对，可在代表集画廊逐项复核。"
+    }
+  },
+  {
+    "tokenId": "93",
+    "source2d": "liberty_cats_download/images/93.png",
+    "auditThumbnail": "public/audit/thumbnails/93.svg",
+    "views": [
+      "front",
+      "three-quarter",
+      "side",
+      "back"
+    ],
+    "checks": {
+      "silhouette": "automated-pass",
+      "colorRegions": "automated-pass",
+      "keyTraits": "automated-pass",
+      "equipmentOcclusion": "automated-pass",
+      "specialScene": "not-applicable"
+    },
+    "humanReview": {
+      "status": "ready",
+      "note": "四视图与原始 2D 已配对，可在代表集画廊逐项复核。"
+    }
+  },
+  {
+    "tokenId": "97",
+    "source2d": "liberty_cats_download/images/97.png",
+    "auditThumbnail": "public/audit/thumbnails/97.svg",
+    "views": [
+      "front",
+      "three-quarter",
+      "side",
+      "back"
+    ],
+    "checks": {
+      "silhouette": "automated-pass",
+      "colorRegions": "automated-pass",
+      "keyTraits": "automated-pass",
+      "equipmentOcclusion": "automated-pass",
+      "specialScene": "not-applicable"
+    },
+    "humanReview": {
+      "status": "ready",
+      "note": "四视图与原始 2D 已配对，可在代表集画廊逐项复核。"
+    }
+  },
+  {
+    "tokenId": "98",
+    "source2d": "liberty_cats_download/images/98.png",
+    "auditThumbnail": "public/audit/thumbnails/98.svg",
+    "views": [
+      "front",
+      "three-quarter",
+      "side",
+      "back"
+    ],
+    "checks": {
+      "silhouette": "automated-pass",
+      "colorRegions": "automated-pass",
+      "keyTraits": "automated-pass",
+      "equipmentOcclusion": "automated-pass",
+      "specialScene": "not-applicable"
+    },
+    "humanReview": {
+      "status": "ready",
+      "note": "四视图与原始 2D 已配对，可在代表集画廊逐项复核。"
+    }
+  },
+  {
+    "tokenId": "101",
+    "source2d": "liberty_cats_download/images/101.png",
+    "auditThumbnail": "public/audit/thumbnails/101.svg",
+    "views": [
+      "front",
+      "three-quarter",
+      "side",
+      "back"
+    ],
+    "checks": {
+      "silhouette": "automated-pass",
+      "colorRegions": "automated-pass",
+      "keyTraits": "automated-pass",
+      "equipmentOcclusion": "automated-pass",
+      "specialScene": "automated-pass"
+    },
+    "humanReview": {
+      "status": "ready",
+      "note": "四视图与原始 2D 已配对，可在代表集画廊逐项复核。"
+    }
+  },
+  {
+    "tokenId": "105",
+    "source2d": "liberty_cats_download/images/105.png",
+    "auditThumbnail": "public/audit/thumbnails/105.svg",
+    "views": [
+      "front",
+      "three-quarter",
+      "side",
+      "back"
+    ],
+    "checks": {
+      "silhouette": "automated-pass",
+      "colorRegions": "automated-pass",
+      "keyTraits": "automated-pass",
+      "equipmentOcclusion": "automated-pass",
+      "specialScene": "not-applicable"
+    },
+    "humanReview": {
+      "status": "ready",
+      "note": "四视图与原始 2D 已配对，可在代表集画廊逐项复核。"
+    }
+  },
+  {
+    "tokenId": "108",
+    "source2d": "liberty_cats_download/images/108.png",
+    "auditThumbnail": "public/audit/thumbnails/108.svg",
+    "views": [
+      "front",
+      "three-quarter",
+      "side",
+      "back"
+    ],
+    "checks": {
+      "silhouette": "automated-pass",
+      "colorRegions": "automated-pass",
+      "keyTraits": "automated-pass",
+      "equipmentOcclusion": "automated-pass",
+      "specialScene": "not-applicable"
+    },
+    "humanReview": {
+      "status": "ready",
+      "note": "四视图与原始 2D 已配对，可在代表集画廊逐项复核。"
+    }
+  },
+  {
+    "tokenId": "110",
+    "source2d": "liberty_cats_download/images/110.png",
+    "auditThumbnail": "public/audit/thumbnails/110.svg",
+    "views": [
+      "front",
+      "three-quarter",
+      "side",
+      "back"
+    ],
+    "checks": {
+      "silhouette": "automated-pass",
+      "colorRegions": "automated-pass",
+      "keyTraits": "automated-pass",
+      "equipmentOcclusion": "automated-pass",
+      "specialScene": "not-applicable"
+    },
+    "humanReview": {
+      "status": "ready",
+      "note": "四视图与原始 2D 已配对，可在代表集画廊逐项复核。"
+    }
+  },
+  {
+    "tokenId": "111",
+    "source2d": "liberty_cats_download/images/111.png",
+    "auditThumbnail": "public/audit/thumbnails/111.svg",
+    "views": [
+      "front",
+      "three-quarter",
+      "side",
+      "back"
+    ],
+    "checks": {
+      "silhouette": "automated-pass",
+      "colorRegions": "automated-pass",
+      "keyTraits": "automated-pass",
+      "equipmentOcclusion": "automated-pass",
+      "specialScene": "not-applicable"
+    },
+    "humanReview": {
+      "status": "ready",
+      "note": "四视图与原始 2D 已配对，可在代表集画廊逐项复核。"
+    }
+  },
+  {
+    "tokenId": "115",
+    "source2d": "liberty_cats_download/images/115.png",
+    "auditThumbnail": "public/audit/thumbnails/115.svg",
+    "views": [
+      "front",
+      "three-quarter",
+      "side",
+      "back"
+    ],
+    "checks": {
+      "silhouette": "automated-pass",
+      "colorRegions": "automated-pass",
+      "keyTraits": "automated-pass",
+      "equipmentOcclusion": "automated-pass",
+      "specialScene": "not-applicable"
+    },
+    "humanReview": {
+      "status": "ready",
+      "note": "四视图与原始 2D 已配对，可在代表集画廊逐项复核。"
+    }
+  },
+  {
+    "tokenId": "123",
+    "source2d": "liberty_cats_download/images/123.png",
+    "auditThumbnail": "public/audit/thumbnails/123.svg",
+    "views": [
+      "front",
+      "three-quarter",
+      "side",
+      "back"
+    ],
+    "checks": {
+      "silhouette": "automated-pass",
+      "colorRegions": "automated-pass",
+      "keyTraits": "automated-pass",
+      "equipmentOcclusion": "automated-pass",
+      "specialScene": "not-applicable"
+    },
+    "humanReview": {
+      "status": "ready",
+      "note": "四视图与原始 2D 已配对，可在代表集画廊逐项复核。"
+    }
+  },
+  {
+    "tokenId": "150",
+    "source2d": "liberty_cats_download/images/150.png",
+    "auditThumbnail": "public/audit/thumbnails/150.svg",
+    "views": [
+      "front",
+      "three-quarter",
+      "side",
+      "back"
+    ],
+    "checks": {
+      "silhouette": "automated-pass",
+      "colorRegions": "automated-pass",
+      "keyTraits": "automated-pass",
+      "equipmentOcclusion": "automated-pass",
+      "specialScene": "not-applicable"
+    },
+    "humanReview": {
+      "status": "ready",
+      "note": "四视图与原始 2D 已配对，可在代表集画廊逐项复核。"
+    }
+  },
+  {
+    "tokenId": "169",
+    "source2d": "liberty_cats_download/images/169.png",
+    "auditThumbnail": "public/audit/thumbnails/169.svg",
+    "views": [
+      "front",
+      "three-quarter",
+      "side",
+      "back"
+    ],
+    "checks": {
+      "silhouette": "automated-pass",
+      "colorRegions": "automated-pass",
+      "keyTraits": "automated-pass",
+      "equipmentOcclusion": "automated-pass",
+      "specialScene": "automated-pass"
+    },
+    "humanReview": {
+      "status": "ready",
+      "note": "四视图与原始 2D 已配对，可在代表集画廊逐项复核。"
+    }
+  },
+  {
+    "tokenId": "177",
+    "source2d": "liberty_cats_download/images/177.png",
+    "auditThumbnail": "public/audit/thumbnails/177.svg",
+    "views": [
+      "front",
+      "three-quarter",
+      "side",
+      "back"
+    ],
+    "checks": {
+      "silhouette": "automated-pass",
+      "colorRegions": "automated-pass",
+      "keyTraits": "automated-pass",
+      "equipmentOcclusion": "automated-pass",
+      "specialScene": "not-applicable"
+    },
+    "humanReview": {
+      "status": "ready",
+      "note": "四视图与原始 2D 已配对，可在代表集画廊逐项复核。"
+    }
+  },
+  {
+    "tokenId": "187",
+    "source2d": "liberty_cats_download/images/187.png",
+    "auditThumbnail": "public/audit/thumbnails/187.svg",
+    "views": [
+      "front",
+      "three-quarter",
+      "side",
+      "back"
+    ],
+    "checks": {
+      "silhouette": "automated-pass",
+      "colorRegions": "automated-pass",
+      "keyTraits": "automated-pass",
+      "equipmentOcclusion": "automated-pass",
+      "specialScene": "not-applicable"
+    },
+    "humanReview": {
+      "status": "ready",
+      "note": "四视图与原始 2D 已配对，可在代表集画廊逐项复核。"
+    }
+  },
+  {
+    "tokenId": "212",
+    "source2d": "liberty_cats_download/images/212.png",
+    "auditThumbnail": "public/audit/thumbnails/212.svg",
+    "views": [
+      "front",
+      "three-quarter",
+      "side",
+      "back"
+    ],
+    "checks": {
+      "silhouette": "automated-pass",
+      "colorRegions": "automated-pass",
+      "keyTraits": "automated-pass",
+      "equipmentOcclusion": "automated-pass",
+      "specialScene": "not-applicable"
+    },
+    "humanReview": {
+      "status": "ready",
+      "note": "四视图与原始 2D 已配对，可在代表集画廊逐项复核。"
+    }
+  },
+  {
+    "tokenId": "224",
+    "source2d": "liberty_cats_download/images/224.png",
+    "auditThumbnail": "public/audit/thumbnails/224.svg",
+    "views": [
+      "front",
+      "three-quarter",
+      "side",
+      "back"
+    ],
+    "checks": {
+      "silhouette": "automated-pass",
+      "colorRegions": "automated-pass",
+      "keyTraits": "automated-pass",
+      "equipmentOcclusion": "automated-pass",
+      "specialScene": "not-applicable"
+    },
+    "humanReview": {
+      "status": "ready",
+      "note": "四视图与原始 2D 已配对，可在代表集画廊逐项复核。"
+    }
+  },
+  {
+    "tokenId": "229",
+    "source2d": "liberty_cats_download/images/229.png",
+    "auditThumbnail": "public/audit/thumbnails/229.svg",
+    "views": [
+      "front",
+      "three-quarter",
+      "side",
+      "back"
+    ],
+    "checks": {
+      "silhouette": "automated-pass",
+      "colorRegions": "automated-pass",
+      "keyTraits": "automated-pass",
+      "equipmentOcclusion": "automated-pass",
+      "specialScene": "not-applicable"
+    },
+    "humanReview": {
+      "status": "ready",
+      "note": "四视图与原始 2D 已配对，可在代表集画廊逐项复核。"
+    }
+  },
+  {
+    "tokenId": "261",
+    "source2d": "liberty_cats_download/images/261.png",
+    "auditThumbnail": "public/audit/thumbnails/261.svg",
+    "views": [
+      "front",
+      "three-quarter",
+      "side",
+      "back"
+    ],
+    "checks": {
+      "silhouette": "automated-pass",
+      "colorRegions": "automated-pass",
+      "keyTraits": "automated-pass",
+      "equipmentOcclusion": "automated-pass",
+      "specialScene": "automated-pass"
+    },
+    "humanReview": {
+      "status": "ready",
+      "note": "四视图与原始 2D 已配对，可在代表集画廊逐项复核。"
+    }
+  },
+  {
+    "tokenId": "262",
+    "source2d": "liberty_cats_download/images/262.png",
+    "auditThumbnail": "public/audit/thumbnails/262.svg",
+    "views": [
+      "front",
+      "three-quarter",
+      "side",
+      "back"
+    ],
+    "checks": {
+      "silhouette": "automated-pass",
+      "colorRegions": "automated-pass",
+      "keyTraits": "automated-pass",
+      "equipmentOcclusion": "automated-pass",
+      "specialScene": "not-applicable"
+    },
+    "humanReview": {
+      "status": "ready",
+      "note": "四视图与原始 2D 已配对，可在代表集画廊逐项复核。"
+    }
+  },
+  {
+    "tokenId": "343",
+    "source2d": "liberty_cats_download/images/343.png",
+    "auditThumbnail": "public/audit/thumbnails/343.svg",
+    "views": [
+      "front",
+      "three-quarter",
+      "side",
+      "back"
+    ],
+    "checks": {
+      "silhouette": "automated-pass",
+      "colorRegions": "automated-pass",
+      "keyTraits": "automated-pass",
+      "equipmentOcclusion": "automated-pass",
+      "specialScene": "automated-pass"
+    },
+    "humanReview": {
+      "status": "ready",
+      "note": "四视图与原始 2D 已配对，可在代表集画廊逐项复核。"
+    }
+  },
+  {
+    "tokenId": "414",
+    "source2d": "liberty_cats_download/images/414.png",
+    "auditThumbnail": "public/audit/thumbnails/414.svg",
+    "views": [
+      "front",
+      "three-quarter",
+      "side",
+      "back"
+    ],
+    "checks": {
+      "silhouette": "automated-pass",
+      "colorRegions": "automated-pass",
+      "keyTraits": "automated-pass",
+      "equipmentOcclusion": "automated-pass",
+      "specialScene": "automated-pass"
+    },
+    "humanReview": {
+      "status": "ready",
+      "note": "四视图与原始 2D 已配对，可在代表集画廊逐项复核。"
+    }
+  },
+  {
+    "tokenId": "418",
+    "source2d": "liberty_cats_download/images/418.png",
+    "auditThumbnail": "public/audit/thumbnails/418.svg",
+    "views": [
+      "front",
+      "three-quarter",
+      "side",
+      "back"
+    ],
+    "checks": {
+      "silhouette": "automated-pass",
+      "colorRegions": "automated-pass",
+      "keyTraits": "automated-pass",
+      "equipmentOcclusion": "automated-pass",
+      "specialScene": "automated-pass"
+    },
+    "humanReview": {
+      "status": "ready",
+      "note": "四视图与原始 2D 已配对，可在代表集画廊逐项复核。"
+    }
+  },
+  {
+    "tokenId": "459",
+    "source2d": "liberty_cats_download/images/459.png",
+    "auditThumbnail": "public/audit/thumbnails/459.svg",
+    "views": [
+      "front",
+      "three-quarter",
+      "side",
+      "back"
+    ],
+    "checks": {
+      "silhouette": "automated-pass",
+      "colorRegions": "automated-pass",
+      "keyTraits": "automated-pass",
+      "equipmentOcclusion": "automated-pass",
+      "specialScene": "automated-pass"
+    },
+    "humanReview": {
+      "status": "ready",
+      "note": "四视图与原始 2D 已配对，可在代表集画廊逐项复核。"
+    }
+  },
+  {
+    "tokenId": "521",
+    "source2d": "liberty_cats_download/images/521.png",
+    "auditThumbnail": "public/audit/thumbnails/521.svg",
+    "views": [
+      "front",
+      "three-quarter",
+      "side",
+      "back"
+    ],
+    "checks": {
+      "silhouette": "automated-pass",
+      "colorRegions": "automated-pass",
+      "keyTraits": "automated-pass",
+      "equipmentOcclusion": "automated-pass",
+      "specialScene": "automated-pass"
+    },
+    "humanReview": {
+      "status": "ready",
+      "note": "四视图与原始 2D 已配对，可在代表集画廊逐项复核。"
+    }
+  },
+  {
+    "tokenId": "545",
+    "source2d": "liberty_cats_download/images/545.png",
+    "auditThumbnail": "public/audit/thumbnails/545.svg",
+    "views": [
+      "front",
+      "three-quarter",
+      "side",
+      "back"
+    ],
+    "checks": {
+      "silhouette": "automated-pass",
+      "colorRegions": "automated-pass",
+      "keyTraits": "automated-pass",
+      "equipmentOcclusion": "automated-pass",
+      "specialScene": "automated-pass"
+    },
+    "humanReview": {
+      "status": "ready",
+      "note": "四视图与原始 2D 已配对，可在代表集画廊逐项复核。"
+    }
+  },
+  {
+    "tokenId": "714",
+    "source2d": "liberty_cats_download/images/714.png",
+    "auditThumbnail": "public/audit/thumbnails/714.svg",
+    "views": [
+      "front",
+      "three-quarter",
+      "side",
+      "back"
+    ],
+    "checks": {
+      "silhouette": "automated-pass",
+      "colorRegions": "automated-pass",
+      "keyTraits": "automated-pass",
+      "equipmentOcclusion": "automated-pass",
+      "specialScene": "automated-pass"
+    },
+    "humanReview": {
+      "status": "ready",
+      "note": "四视图与原始 2D 已配对，可在代表集画廊逐项复核。"
+    }
+  },
+  {
+    "tokenId": "780",
+    "source2d": "liberty_cats_download/images/780.png",
+    "auditThumbnail": "public/audit/thumbnails/780.svg",
+    "views": [
+      "front",
+      "three-quarter",
+      "side",
+      "back"
+    ],
+    "checks": {
+      "silhouette": "automated-pass",
+      "colorRegions": "automated-pass",
+      "keyTraits": "automated-pass",
+      "equipmentOcclusion": "automated-pass",
+      "specialScene": "automated-pass"
+    },
+    "humanReview": {
+      "status": "ready",
+      "note": "四视图与原始 2D 已配对，可在代表集画廊逐项复核。"
+    }
+  },
+  {
+    "tokenId": "801",
+    "source2d": "liberty_cats_download/images/801.png",
+    "auditThumbnail": "public/audit/thumbnails/801.svg",
+    "views": [
+      "front",
+      "three-quarter",
+      "side",
+      "back"
+    ],
+    "checks": {
+      "silhouette": "automated-pass",
+      "colorRegions": "automated-pass",
+      "keyTraits": "automated-pass",
+      "equipmentOcclusion": "automated-pass",
+      "specialScene": "automated-pass"
+    },
+    "humanReview": {
+      "status": "ready",
+      "note": "四视图与原始 2D 已配对，可在代表集画廊逐项复核。"
+    }
+  },
+  {
+    "tokenId": "806",
+    "source2d": "liberty_cats_download/images/806.png",
+    "auditThumbnail": "public/audit/thumbnails/806.svg",
+    "views": [
+      "front",
+      "three-quarter",
+      "side",
+      "back"
+    ],
+    "checks": {
+      "silhouette": "automated-pass",
+      "colorRegions": "automated-pass",
+      "keyTraits": "automated-pass",
+      "equipmentOcclusion": "automated-pass",
+      "specialScene": "automated-pass"
+    },
+    "humanReview": {
+      "status": "ready",
+      "note": "四视图与原始 2D 已配对，可在代表集画廊逐项复核。"
+    }
+  },
+  {
+    "tokenId": "3000",
+    "source2d": "liberty_cats_download/images/3000.png",
+    "auditThumbnail": "public/audit/thumbnails/3000.svg",
+    "views": [
+      "front",
+      "three-quarter",
+      "side",
+      "back"
+    ],
+    "checks": {
+      "silhouette": "automated-pass",
+      "colorRegions": "automated-pass",
+      "keyTraits": "automated-pass",
+      "equipmentOcclusion": "automated-pass",
+      "specialScene": "automated-pass"
+    },
+    "humanReview": {
+      "status": "ready",
+      "note": "四视图与原始 2D 已配对，可在代表集画廊逐项复核。"
+    }
+  },
+  {
+    "tokenId": "3001",
+    "source2d": "liberty_cats_download/images/3001.png",
+    "auditThumbnail": "public/audit/thumbnails/3001.svg",
+    "views": [
+      "front",
+      "three-quarter",
+      "side",
+      "back"
+    ],
+    "checks": {
+      "silhouette": "automated-pass",
+      "colorRegions": "automated-pass",
+      "keyTraits": "automated-pass",
+      "equipmentOcclusion": "automated-pass",
+      "specialScene": "automated-pass"
+    },
+    "humanReview": {
+      "status": "ready",
+      "note": "四视图与原始 2D 已配对，可在代表集画廊逐项复核。"
+    }
+  },
+  {
+    "tokenId": "3002",
+    "source2d": "liberty_cats_download/images/3002.png",
+    "auditThumbnail": "public/audit/thumbnails/3002.svg",
+    "views": [
+      "front",
+      "three-quarter",
+      "side",
+      "back"
+    ],
+    "checks": {
+      "silhouette": "automated-pass",
+      "colorRegions": "automated-pass",
+      "keyTraits": "automated-pass",
+      "equipmentOcclusion": "automated-pass",
+      "specialScene": "automated-pass"
+    },
+    "humanReview": {
+      "status": "ready",
+      "note": "四视图与原始 2D 已配对，可在代表集画廊逐项复核。"
+    }
+  },
+  {
+    "tokenId": "3003",
+    "source2d": "liberty_cats_download/images/3003.png",
+    "auditThumbnail": "public/audit/thumbnails/3003.svg",
+    "views": [
+      "front",
+      "three-quarter",
+      "side",
+      "back"
+    ],
+    "checks": {
+      "silhouette": "automated-pass",
+      "colorRegions": "automated-pass",
+      "keyTraits": "automated-pass",
+      "equipmentOcclusion": "automated-pass",
+      "specialScene": "automated-pass"
+    },
+    "humanReview": {
+      "status": "ready",
+      "note": "四视图与原始 2D 已配对，可在代表集画廊逐项复核。"
+    }
+  },
+  {
+    "tokenId": "3004",
+    "source2d": "liberty_cats_download/images/3004.png",
+    "auditThumbnail": "public/audit/thumbnails/3004.svg",
+    "views": [
+      "front",
+      "three-quarter",
+      "side",
+      "back"
+    ],
+    "checks": {
+      "silhouette": "automated-pass",
+      "colorRegions": "automated-pass",
+      "keyTraits": "automated-pass",
+      "equipmentOcclusion": "automated-pass",
+      "specialScene": "automated-pass"
+    },
+    "humanReview": {
+      "status": "ready",
+      "note": "四视图与原始 2D 已配对，可在代表集画廊逐项复核。"
+    }
+  },
+  {
+    "tokenId": "3005",
+    "source2d": "liberty_cats_download/images/3005.png",
+    "auditThumbnail": "public/audit/thumbnails/3005.svg",
+    "views": [
+      "front",
+      "three-quarter",
+      "side",
+      "back"
+    ],
+    "checks": {
+      "silhouette": "automated-pass",
+      "colorRegions": "automated-pass",
+      "keyTraits": "automated-pass",
+      "equipmentOcclusion": "automated-pass",
+      "specialScene": "automated-pass"
+    },
+    "humanReview": {
+      "status": "ready",
+      "note": "四视图与原始 2D 已配对，可在代表集画廊逐项复核。"
+    }
+  },
+  {
+    "tokenId": "3006",
+    "source2d": "liberty_cats_download/images/3006.png",
+    "auditThumbnail": "public/audit/thumbnails/3006.svg",
+    "views": [
+      "front",
+      "three-quarter",
+      "side",
+      "back"
+    ],
+    "checks": {
+      "silhouette": "automated-pass",
+      "colorRegions": "automated-pass",
+      "keyTraits": "automated-pass",
+      "equipmentOcclusion": "automated-pass",
+      "specialScene": "automated-pass"
+    },
+    "humanReview": {
+      "status": "ready",
+      "note": "四视图与原始 2D 已配对，可在代表集画廊逐项复核。"
+    }
+  },
+  {
+    "tokenId": "3007",
+    "source2d": "liberty_cats_download/images/3007.png",
+    "auditThumbnail": "public/audit/thumbnails/3007.svg",
+    "views": [
+      "front",
+      "three-quarter",
+      "side",
+      "back"
+    ],
+    "checks": {
+      "silhouette": "automated-pass",
+      "colorRegions": "automated-pass",
+      "keyTraits": "automated-pass",
+      "equipmentOcclusion": "automated-pass",
+      "specialScene": "automated-pass"
+    },
+    "humanReview": {
+      "status": "ready",
+      "note": "四视图与原始 2D 已配对，可在代表集画廊逐项复核。"
+    }
+  },
+  {
+    "tokenId": "9033",
+    "source2d": "liberty_cats_download/images/9033.png",
+    "auditThumbnail": "public/audit/thumbnails/9033.svg",
+    "views": [
+      "front",
+      "three-quarter",
+      "side",
+      "back"
+    ],
+    "checks": {
+      "silhouette": "automated-pass",
+      "colorRegions": "automated-pass",
+      "keyTraits": "automated-pass",
+      "equipmentOcclusion": "automated-pass",
+      "specialScene": "automated-pass"
+    },
+    "humanReview": {
+      "status": "ready",
+      "note": "四视图与原始 2D 已配对，可在代表集画廊逐项复核。"
+    }
+  },
+  {
+    "tokenId": "9034",
+    "source2d": "liberty_cats_download/images/9034.png",
+    "auditThumbnail": "public/audit/thumbnails/9034.svg",
+    "views": [
+      "front",
+      "three-quarter",
+      "side",
+      "back"
+    ],
+    "checks": {
+      "silhouette": "automated-pass",
+      "colorRegions": "automated-pass",
+      "keyTraits": "automated-pass",
+      "equipmentOcclusion": "automated-pass",
+      "specialScene": "automated-pass"
+    },
+    "humanReview": {
+      "status": "ready",
+      "note": "四视图与原始 2D 已配对，可在代表集画廊逐项复核。"
+    }
+  },
+  {
+    "tokenId": "9035",
+    "source2d": "liberty_cats_download/images/9035.png",
+    "auditThumbnail": "public/audit/thumbnails/9035.svg",
+    "views": [
+      "front",
+      "three-quarter",
+      "side",
+      "back"
+    ],
+    "checks": {
+      "silhouette": "automated-pass",
+      "colorRegions": "automated-pass",
+      "keyTraits": "automated-pass",
+      "equipmentOcclusion": "automated-pass",
+      "specialScene": "automated-pass"
+    },
+    "humanReview": {
+      "status": "ready",
+      "note": "四视图与原始 2D 已配对，可在代表集画廊逐项复核。"
+    }
+  },
+  {
+    "tokenId": "9036",
+    "source2d": "liberty_cats_download/images/9036.png",
+    "auditThumbnail": "public/audit/thumbnails/9036.svg",
+    "views": [
+      "front",
+      "three-quarter",
+      "side",
+      "back"
+    ],
+    "checks": {
+      "silhouette": "automated-pass",
+      "colorRegions": "automated-pass",
+      "keyTraits": "automated-pass",
+      "equipmentOcclusion": "automated-pass",
+      "specialScene": "automated-pass"
+    },
+    "humanReview": {
+      "status": "ready",
+      "note": "四视图与原始 2D 已配对，可在代表集画廊逐项复核。"
+    }
+  },
+  {
+    "tokenId": "9037",
+    "source2d": "liberty_cats_download/images/9037.png",
+    "auditThumbnail": "public/audit/thumbnails/9037.svg",
+    "views": [
+      "front",
+      "three-quarter",
+      "side",
+      "back"
+    ],
+    "checks": {
+      "silhouette": "automated-pass",
+      "colorRegions": "automated-pass",
+      "keyTraits": "automated-pass",
+      "equipmentOcclusion": "automated-pass",
+      "specialScene": "automated-pass"
+    },
+    "humanReview": {
+      "status": "ready",
+      "note": "四视图与原始 2D 已配对，可在代表集画廊逐项复核。"
+    }
+  },
+  {
+    "tokenId": "9038",
+    "source2d": "liberty_cats_download/images/9038.png",
+    "auditThumbnail": "public/audit/thumbnails/9038.svg",
+    "views": [
+      "front",
+      "three-quarter",
+      "side",
+      "back"
+    ],
+    "checks": {
+      "silhouette": "automated-pass",
+      "colorRegions": "automated-pass",
+      "keyTraits": "automated-pass",
+      "equipmentOcclusion": "automated-pass",
+      "specialScene": "automated-pass"
+    },
+    "humanReview": {
+      "status": "ready",
+      "note": "四视图与原始 2D 已配对，可在代表集画廊逐项复核。"
+    }
+  },
+  {
+    "tokenId": "9039",
+    "source2d": "liberty_cats_download/images/9039.png",
+    "auditThumbnail": "public/audit/thumbnails/9039.svg",
+    "views": [
+      "front",
+      "three-quarter",
+      "side",
+      "back"
+    ],
+    "checks": {
+      "silhouette": "automated-pass",
+      "colorRegions": "automated-pass",
+      "keyTraits": "automated-pass",
+      "equipmentOcclusion": "automated-pass",
+      "specialScene": "automated-pass"
+    },
+    "humanReview": {
+      "status": "ready",
+      "note": "四视图与原始 2D 已配对，可在代表集画廊逐项复核。"
+    }
+  },
+  {
+    "tokenId": "9040",
+    "source2d": "liberty_cats_download/images/9040.png",
+    "auditThumbnail": "public/audit/thumbnails/9040.svg",
+    "views": [
+      "front",
+      "three-quarter",
+      "side",
+      "back"
+    ],
+    "checks": {
+      "silhouette": "automated-pass",
+      "colorRegions": "automated-pass",
+      "keyTraits": "automated-pass",
+      "equipmentOcclusion": "automated-pass",
+      "specialScene": "automated-pass"
+    },
+    "humanReview": {
+      "status": "ready",
+      "note": "四视图与原始 2D 已配对，可在代表集画廊逐项复核。"
+    }
+  },
+  {
+    "tokenId": "9066",
+    "source2d": "liberty_cats_download/images/9066.png",
+    "auditThumbnail": "public/audit/thumbnails/9066.svg",
+    "views": [
+      "front",
+      "three-quarter",
+      "side",
+      "back"
+    ],
+    "checks": {
+      "silhouette": "automated-pass",
+      "colorRegions": "automated-pass",
+      "keyTraits": "automated-pass",
+      "equipmentOcclusion": "automated-pass",
+      "specialScene": "automated-pass"
+    },
+    "humanReview": {
+      "status": "ready",
+      "note": "四视图与原始 2D 已配对，可在代表集画廊逐项复核。"
+    }
+  },
+  {
+    "tokenId": "9067",
+    "source2d": "liberty_cats_download/images/9067.png",
+    "auditThumbnail": "public/audit/thumbnails/9067.svg",
+    "views": [
+      "front",
+      "three-quarter",
+      "side",
+      "back"
+    ],
+    "checks": {
+      "silhouette": "automated-pass",
+      "colorRegions": "automated-pass",
+      "keyTraits": "automated-pass",
+      "equipmentOcclusion": "automated-pass",
+      "specialScene": "automated-pass"
+    },
+    "humanReview": {
+      "status": "ready",
+      "note": "四视图与原始 2D 已配对，可在代表集画廊逐项复核。"
+    }
+  },
+  {
+    "tokenId": "9068",
+    "source2d": "liberty_cats_download/images/9068.png",
+    "auditThumbnail": "public/audit/thumbnails/9068.svg",
+    "views": [
+      "front",
+      "three-quarter",
+      "side",
+      "back"
+    ],
+    "checks": {
+      "silhouette": "automated-pass",
+      "colorRegions": "automated-pass",
+      "keyTraits": "automated-pass",
+      "equipmentOcclusion": "automated-pass",
+      "specialScene": "automated-pass"
+    },
+    "humanReview": {
+      "status": "ready",
+      "note": "四视图与原始 2D 已配对，可在代表集画廊逐项复核。"
+    }
+  },
+  {
+    "tokenId": "9069",
+    "source2d": "liberty_cats_download/images/9069.png",
+    "auditThumbnail": "public/audit/thumbnails/9069.svg",
+    "views": [
+      "front",
+      "three-quarter",
+      "side",
+      "back"
+    ],
+    "checks": {
+      "silhouette": "automated-pass",
+      "colorRegions": "automated-pass",
+      "keyTraits": "automated-pass",
+      "equipmentOcclusion": "automated-pass",
+      "specialScene": "automated-pass"
+    },
+    "humanReview": {
+      "status": "ready",
+      "note": "四视图与原始 2D 已配对，可在代表集画廊逐项复核。"
+    }
+  },
+  {
+    "tokenId": "9070",
+    "source2d": "liberty_cats_download/images/9070.png",
+    "auditThumbnail": "public/audit/thumbnails/9070.svg",
+    "views": [
+      "front",
+      "three-quarter",
+      "side",
+      "back"
+    ],
+    "checks": {
+      "silhouette": "automated-pass",
+      "colorRegions": "automated-pass",
+      "keyTraits": "automated-pass",
+      "equipmentOcclusion": "automated-pass",
+      "specialScene": "automated-pass"
+    },
+    "humanReview": {
+      "status": "ready",
+      "note": "四视图与原始 2D 已配对，可在代表集画廊逐项复核。"
+    }
+  },
+  {
+    "tokenId": "9071",
+    "source2d": "liberty_cats_download/images/9071.webp",
+    "auditThumbnail": "public/audit/thumbnails/9071.svg",
+    "views": [
+      "front",
+      "three-quarter",
+      "side",
+      "back"
+    ],
+    "checks": {
+      "silhouette": "automated-pass",
+      "colorRegions": "automated-pass",
+      "keyTraits": "automated-pass",
+      "equipmentOcclusion": "automated-pass",
+      "specialScene": "automated-pass"
+    },
+    "humanReview": {
+      "status": "ready",
+      "note": "四视图与原始 2D 已配对，可在代表集画廊逐项复核。"
+    }
+  },
+  {
+    "tokenId": "9072",
+    "source2d": "liberty_cats_download/images/9072.png",
+    "auditThumbnail": "public/audit/thumbnails/9072.svg",
+    "views": [
+      "front",
+      "three-quarter",
+      "side",
+      "back"
+    ],
+    "checks": {
+      "silhouette": "automated-pass",
+      "colorRegions": "automated-pass",
+      "keyTraits": "automated-pass",
+      "equipmentOcclusion": "automated-pass",
+      "specialScene": "automated-pass"
+    },
+    "humanReview": {
+      "status": "ready",
+      "note": "四视图与原始 2D 已配对，可在代表集画廊逐项复核。"
+    }
+  }
+]

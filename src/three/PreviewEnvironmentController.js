@@ -1,15 +1,9 @@
 import * as THREE from 'three'
+import { BACKGROUND_RECIPES } from '../character/appearance/environmentRecipes.js'
 
-export const BACKGROUND_COLORS = Object.freeze({
-  'Blue Gradient': '#253f88',
-  'Green Gradient': '#28624a',
-  'Green To Blue Gradient': '#277b88',
-  'Orange Gradient': '#9b4d2e',
-  'Pink To Orange Gradient': '#b4506e',
-  'Purple Gradient': '#5f3e9f',
-  'Red To Pink Gradient': '#9a3e59',
-  'Yellow To Green Gradient': '#878e31',
-})
+export const BACKGROUND_COLORS = Object.freeze(Object.fromEntries(
+  Object.entries(BACKGROUND_RECIPES).map(([id, recipe]) => [id, recipe.colors.base]),
+))
 
 export function createPreviewEnvironmentController(scene) {
   if (!scene) throw new Error('PreviewEnvironmentController requires a scene')

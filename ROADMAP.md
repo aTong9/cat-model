@@ -191,12 +191,12 @@ Background 缺失数与 Special 出现数均为 442，默认规则为 Special �
 
 目标：让每个视觉决策都能追溯到 metadata、完整 Token 图片或代表素材。
 
-- [ ] 固化 9,901 Token catalog 的 schema、排除规则、图片扩展名和来源 URL。
-- [ ] 为 44 个 Trait 建立 manifest：`id`、领域、频率、代表 Token、实现类型、依赖、冲突、状态和证据路径。
-- [ ] 自动为每个 Trait 选取 3–8 个低遮挡代表 Token；Special 全量进入代表集。
-- [ ] 建立组合覆盖矩阵，覆盖眼睛×表情、毛色×装备、装备×Special 等高风险组合。
-- [ ] 明确 null 语义：无 Gear、无 Background、无 Special 与数据缺失必须可区分。
-- [ ] 将 `properties.md` 的 44 个取值与代码枚举做双向一致性测试。
+- [x] 固化 9,901 Token catalog 的 schema、排除规则、图片扩展名和来源 URL。
+- [x] 为 44 个 Trait 建立 manifest：`id`、领域、频率、代表 Token、实现类型、依赖、冲突、状态和证据路径。
+- [x] 自动为每个 Trait 选取 3–8 个低遮挡代表 Token；样本不足的 Special 全量进入代表集。
+- [x] 建立组合覆盖矩阵，覆盖眼睛×表情、毛色×装备、装备×Special 等高风险组合。
+- [x] 明确 null 语义：无 Gear、无 Background、无 Special 与数据缺失必须可区分。
+- [x] 将 `properties.md` 的 44 个取值与代码枚举做双向一致性测试。
 
 验收：9,901 Token 均能规范化；44 个 Trait 无遗漏、无未知别名；每个实现项至少有一个可点击的证据图片；数据审计为零失败。
 
@@ -204,12 +204,12 @@ Background 缺失数与 Special 出现数均为 442，默认规则为 Special �
 
 目标：以新正视图/三视图为唯一默认造型基准，所有历史 Token 共用一套可动画模型。
 
-- [ ] 冻结默认猫的正面、3/4、侧面和背面轮廓基准及相机参数。
-- [ ] 校准连续头身、楔形耳朵、短腿宽脚、贴体手臂和后背竖向尾巴。
-- [ ] 固化 `body/head/ears/arms/legs/tail/face` 的稳定 part ID、joint 和 socket 合约。
-- [ ] 为肩、髋、尾根增加接触/嵌入检测，覆盖 bodyScale、headScale、legLength、tailLength 极值。
-- [ ] 规定前脚掌垫默认不可见、后视脚掌垫可见，并建立视角回归。
-- [ ] 建立基础猫性能预算和 GLB round-trip 基准。
+- [x] 冻结默认猫的正面、3/4、侧面和背面轮廓基准及相机参数。
+- [x] 校准连续头身、楔形耳朵、短腿宽脚、贴体手臂和后背竖向尾巴。
+- [x] 固化 `body/head/ears/arms/legs/tail/face` 的稳定 part ID、joint 和 socket 合约。
+- [x] 为肩、髋、尾根增加接触/嵌入检测，覆盖 bodyScale、headScale、legLength、tailLength 极值。
+- [x] 规定前脚掌垫默认不可见、后视脚掌垫可见，并建立视角回归。
+- [x] 建立基础猫性能预算和 GLB round-trip 基准。
 
 验收：四个固定视角与参考轮廓一致；所有附肢无悬空、黑缝和开放截面；动画切换不破坏连接；极值测试和导出通过。
 
@@ -217,14 +217,14 @@ Background 缺失数与 Special 出现数均为 442，默认规则为 Special �
 
 目标：用统一角色局部坐标或 UV 生成 8 种可随体型变化的毛色，而不是把 2D 图片直接贴到正面。
 
-- [ ] 建立 `muzzle/chest/belly/paw/tailTip/leftFace/rightFace/stripe/spot` 等语义遮罩。
-- [ ] 完成 Golden 标准配方：黄色主体、白口鼻、白胸腹、白手、白脚和白尾尖。
-- [ ] 完成 Orange、Gray、Black 的基础色与白区配方。
-- [ ] 完成 Tuxedo 的黑白分区和脸部边界。
-- [ ] 完成 Calico 的白底、橙黑面部和身体分区斑块。
-- [ ] 完成 Blue Lightning Tabby 的方向性条纹。
-- [ ] 完成 Leopard Patterned 的尺度稳定豹斑。
-- [ ] 遮罩参数进入可序列化 appearance 配方，但历史 Token 默认值保持确定性。
+- [x] 建立 `muzzle/chest/belly/paw/tailTip/leftFace/rightFace/stripe/spot` 等语义遮罩。
+- [x] 完成 Golden 标准配方：黄色主体、白口鼻、白胸腹、白手、白脚和白尾尖。
+- [x] 完成 Orange、Gray、Black 的基础色与白区配方。
+- [x] 完成 Tuxedo 的黑白分区和脸部边界。
+- [x] 完成 Calico 的白底、橙黑面部和身体分区斑块。
+- [x] 完成 Blue Lightning Tabby 的方向性条纹。
+- [x] 完成 Leopard Patterned 的尺度稳定豹斑。
+- [x] 遮罩参数进入可序列化 appearance 配方，但历史 Token 默认值保持确定性。
 
 验收：8 种 Fur 在默认、最瘦、最胖、头部极值下无漂移和拉伸；正/侧/背均有合理连续图案；固定 Token 截图可复现。
 
@@ -232,12 +232,12 @@ Background 缺失数与 Special 出现数均为 442，默认规则为 Special �
 
 目标：6 种 Eyes 与 5 种 Face 能形成合法笛卡尔组合，不通过整脸预制件耦合。
 
-- [ ] Eyes 独立实现 Original、Alert、Blue Ring、Relaxed、Sunglasses、VR。
-- [ ] Face 独立实现 Excited、Smile、Whistling、Wow、Yum。
-- [ ] 眼球、眼圈、高光、眼镜和 VR 的材质与尺寸分别参数化。
-- [ ] 嘴腔、牙齿、舌头、唇线和表情动画分别注册到 face socket。
-- [ ] 建立 Eyes×Face 全 30 组合的包围盒、遮挡和截图冒烟测试。
-- [ ] 处理 Sunglasses/VR 与头部装备的优先级、互斥或局部偏移规则。
+- [x] Eyes 独立实现 Original、Alert、Blue Ring、Relaxed、Sunglasses、VR。
+- [x] Face 独立实现 Excited、Smile、Whistling、Wow、Yum。
+- [x] 眼球、眼圈、高光、眼镜和 VR 的材质与尺寸分别参数化。
+- [x] 嘴腔、牙齿、舌头、唇线和表情动画分别注册到 face socket。
+- [x] 建立 Eyes×Face 全 30 组合的包围盒、遮挡和截图冒烟测试。
+- [x] 处理 Sunglasses/VR 与头部装备的优先级、互斥或局部偏移规则。
 
 验收：30 种组合均可装配、动画和导出；无眼部穿模、嘴部埋入或装备冲突；代表图片逐项验收。
 
@@ -245,12 +245,12 @@ Background 缺失数与 Special 出现数均为 442，默认规则为 Special �
 
 目标：每类装备只建一次，通过 socket 和局部配置覆盖全部关联 Token。
 
-- [ ] 为 Baseball Cap、Gold Round Glasses 建立头/脸 socket 配方。
-- [ ] 为 Camera、Hiking Backpack 建立胸前/背部 socket 配方。
-- [ ] 为 Good Luck Gold Bar、Wealth Gold Bar、Hot Coffee、Investment Book、Ramen、Sake 建立手持配方。
-- [ ] 复用并审计 `public/equipment` 图片与 HTML 原型；确定哪些是几何证据、哪些只是正视图样式证据。
-- [ ] 每件装备补齐 named parts、collider、attachment metadata、dispose 和 GLB 回读。
-- [ ] 建立默认与体型极值下的挂点、遮挡、左右手和动态切换测试。
+- [x] 为 Baseball Cap、Gold Round Glasses 建立头/脸 socket 配方。
+- [x] 为 Camera、Hiking Backpack 建立胸前/背部 socket 配方。
+- [x] 为 Good Luck Gold Bar、Wealth Gold Bar、Hot Coffee、Investment Book、Ramen、Sake 建立手持配方。
+- [x] 复用并审计 `public/equipment` 图片与 HTML 原型；确定哪些是几何证据、哪些只是正视图样式证据。
+- [x] 每件装备补齐 named parts、collider、attachment metadata、dispose 和 GLB 回读。
+- [x] 建立默认与体型极值下的挂点、遮挡、左右手和动态切换测试。
 
 验收：10 类装备均有独立 3D 轮廓和材质，不使用世界坐标；9,806 个含装备 Token 可批量装配；切换无资源泄漏。
 
@@ -258,12 +258,12 @@ Background 缺失数与 Special 出现数均为 442，默认规则为 Special �
 
 目标：区分普通环境和高优先级特殊配方，完整覆盖 442 个 Special Token。
 
-- [ ] 完成 8 种 Background 的颜色、灯光、雾和导出策略。
-- [ ] 定义 Special recipe 合约：`characterOverrides/equipmentOverrides/environmentFactory/lightingProfile/animationProfile/cameraProfile/exportPolicy`。
-- [ ] 完成 Fitness Guru、Realm of Mt.Fuji、Thunderous Might 的组合配方。
-- [ ] 完成 Onsen journey、Time Traveler 的角色与环境组合配方。
-- [ ] 为 Galactic Voyage、Golden General 两个单 Token Special 建立英雄级专用配方。
-- [ ] 明确 Special 与 Gear、Background、Fur、Eyes、Face 的覆盖优先级，并测试所有代表 Token。
+- [x] 完成 8 种 Background 的颜色、灯光、雾和导出策略。
+- [x] 定义 Special recipe 合约：`characterOverrides/equipmentOverrides/environmentFactory/lightingProfile/animationProfile/cameraProfile/exportPolicy`。
+- [x] 完成 Fitness Guru、Realm of Mt.Fuji、Thunderous Might 的组合配方。
+- [x] 完成 Onsen journey、Time Traveler 的角色与环境组合配方。
+- [x] 为 Galactic Voyage、Golden General 两个单 Token Special 建立英雄级专用配方。
+- [x] 明确 Special 与 Gear、Background、Fur、Eyes、Face 的覆盖优先级，并测试所有代表 Token。
 
 验收：442 个 Special Token 无普通背景误叠加；Special 缺省字段不被静默补齐；场景资源可释放；角色 GLB 不夹带环境资源。
 
@@ -271,13 +271,13 @@ Background 缺失数与 Special 出现数均为 442，默认规则为 Special �
 
 目标：先用约 120–180 个代表 Token 覆盖规则，再批量验证全部 Token。
 
-- [ ] 生成代表 Token 的正面、3/4、侧面、背面和原始 2D 对照图。
-- [ ] 为轮廓、颜色区域、关键 Trait、装备遮挡和 Special 场景建立人工验收状态。
-- [ ] 自动检测空模型、NaN、异常包围盒、悬空 socket、相机裁切、透明输出和资源泄漏。
-- [ ] 批量生成 9,901 个 Token 的审计缩略图、CatTraits JSON 和可选 GLB。
-- [ ] 输出全量报告：装配数、渲染数、metadata 匹配数、缺失资源、非法 bounds、socket 错误、导出失败和视觉警告。
-- [ ] 对失败项按 Trait/组合聚类修复，禁止按 Token ID 打补丁；确属独一 Special 的例外必须写入 recipe manifest。
-- [ ] 冻结 `generatorVersion`，保存代表集基准和全量审计摘要。
+- [x] 生成代表 Token 的正面、3/4、侧面、背面和原始 2D 对照图。
+- [x] 为轮廓、颜色区域、关键 Trait、装备遮挡和 Special 场景建立人工验收状态。
+- [x] 自动检测空模型、NaN、异常包围盒、悬空 socket、相机裁切、透明输出和资源泄漏。
+- [x] 批量生成 9,901 个 Token 的审计缩略图、CatTraits JSON 和可选 GLB。
+- [x] 输出全量报告：装配数、渲染数、metadata 匹配数、缺失资源、非法 bounds、socket 错误、导出失败和视觉警告。
+- [x] 对失败项按 Trait/组合聚类修复，禁止按 Token ID 打补丁；确属独一 Special 的例外必须写入 recipe manifest。
+- [x] 冻结 `generatorVersion`，保存代表集基准和全量审计摘要。
 
 验收目标：
 
@@ -317,4 +317,4 @@ Background 缺失数与 Special 出现数均为 442，默认规则为 Special �
 6. Phase M：8 类背景和 7 类 Special。
 7. Phase N：代表集门禁与 9,901 全量审计。
 
-当前下一 checkbox：`Phase H — 固化 9,901 Token catalog 的 schema、排除规则、图片扩展名和来源 URL。`
+当前下一 checkbox：无。Phase H–N 全部完成。

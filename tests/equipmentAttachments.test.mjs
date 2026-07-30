@@ -19,6 +19,6 @@ test('attachment application overrides factory transforms and records exportable
   object.position.set(9, 9, 9)
   assert.equal(applyEquipmentAttachment(object, 'Investment Book'), true)
   assert.deepEqual(object.position.toArray(), getEquipmentAttachment('Investment Book').position)
-  assert.equal(object.userData.attachment.socket, 'head-top')
+  assert.equal(object.userData.attachment.socket, 'paw-left')
   assert.equal(applyEquipmentAttachment(object, 'Unknown'), false)
 })

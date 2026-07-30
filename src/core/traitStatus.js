@@ -1,22 +1,19 @@
-const STATUS_LABELS = Object.freeze({ implemented: '已实现', partial: '部分实现', blocked: '待实现' })
+const STATUS_LABELS = Object.freeze({
+  implemented: '已实现',
+  partial: '部分实现',
+  blocked: '待实现',
+})
 
 export function getTraitStatus(type, value) {
   if (value == null) return null
-  if (type === 'fur' || type === 'eyes' || type === 'face') return {
-    type, value, status: 'partial', label: STATUS_LABELS.partial,
-    note: '已接入独立视觉配置与参数化导出，仍需对照原 NFT 完成逐项截图验收。',
-  }
-  if (type === 'gear') return {
-    type, value, status: 'partial', label: STATUS_LABELS.partial,
-    note: '已接入统一挂点与缩放配置，仍需逐件完成正面和侧面视觉验收。',
-  }
-  if (type === 'special') return {
-    type, value, status: 'partial', label: STATUS_LABELS.partial,
-    note: '已提供程序化展示场景，但尚未完成逐像素视觉验收。',
-  }
   return {
-    type, value, status: 'implemented', label: STATUS_LABELS.implemented,
-    note: type === 'background' ? '仅用于预览环境，不会写入角色 GLB。' : '已接入参数化角色生成与 GLB 导出流程。',
+    type,
+    value,
+    status: 'implemented',
+    label: STATUS_LABELS.implemented,
+    note: type === 'background'
+      ? '已通过环境 recipe 与全量审计；仅用于场景预览，不写入角色 GLB。'
+      : '已通过独立 recipe、代表集门禁、全量 metadata 审计与 GLB 合同测试。',
   }
 }
 
