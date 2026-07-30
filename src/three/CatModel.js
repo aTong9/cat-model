@@ -10,6 +10,9 @@ import { applyMorphology } from '../character/morphology/applyMorphology.js'
 import { createCatEar } from '../character/ears/createCatEar.js'
 import { CharacterPartRegistry } from '../character/registry/CharacterPartRegistry.js'
 import { EquipmentAssembler } from '../character/equipment/EquipmentAssembler.js'
+import { disposeObject3DResources } from '../character/resources/disposeObject3DResources.js'
+import { assembleBodyShell } from '../character/body/assembleBodyShell.js'
+import { createLimbSet } from '../character/limbs/createLimbSet.js'
 
 // ===== Toon 渐变贴图（参考 Meow-Generator MeshToonMaterial） =====
 let _sharedToonMap = null
@@ -775,19 +778,7 @@ export class CatModel {
   dispose() {
     this.equipmentAssembler.dispose()
     this._equippedGear = null
-    this.root.traverse(child => {
-      if (child.geometry && child.geometry !== this._bodyGeoRef) {
-        child.geometry.dispose()
-      }
-      if (child.material) {
-        if (Array.isArray(child.material)) {
-          child.material.forEach(m => m.dispose())
-        } else {
-          if (child.material.map) child.material.map.dispose()
-          child.material.dispose()
-        }
-      }
-    })
+    disposeObject3DResources(this.root, { detach: false, excludeGeometries: [this._bodyGeoRef] })
   }
 
   // ========== Private: 构建身体 ==========
@@ -820,33 +811,22 @@ export class CatModel {
     outline.name = 'SdfCatOutline'
 
     // 身体组（身体 + 描边）
-    const bodyGroup = new THREE.Group()
-    bodyGroup.add(sdfBody)
-    bodyGroup.add(outline)
-
-    // The reference character has a small, hand-sewn X low on the white belly.
-    const stitchMat = new THREE.MeshBasicMaterial({ color: '#241d20' })
-    for (const angle of [-0.72, 0.72]) {
-      const stitch = new THREE.Mesh(new THREE.CapsuleGeometry(0.009, 0.10, 4, 8), stitchMat)
-      stitch.position.set(0, -0.08, 0.495)
-      stitch.rotation.z = angle
-      stitch.name = 'BellyStitch'
-      bodyGroup.add(stitch)
-    }
+    const bodyGroup = assembleBodyShell(sdfBody, outline)
     this.root.add(bodyGroup)
     this._bodyGroup = bodyGroup
     this.registry.registerPart('body', bodyGroup)
 
     // Arms are separate, thick 3D assemblies so they stay visible and animation-ready.
-    this._armLGroup = createRaisedArm(-1)
-    this._armRGroup = createRaisedArm(1)
+    const limbs = createLimbSet(createRaisedArm, createFoot)
+    this._armLGroup = limbs.armLeft
+    this._armRGroup = limbs.armRight
     this.root.add(this._armLGroup, this._armRGroup)
     this.registry.registerPart('arm-left', this._armLGroup)
     this.registry.registerPart('arm-right', this._armRGroup)
 
     // Match the reference stance: one planted foot and one lifted sole, both with five toes.
-    this._footLGroup = createFoot(-1)
-    this._footRGroup = createFoot(1)
+    this._footLGroup = limbs.legLeft
+    this._footRGroup = limbs.legRight
     this.root.add(this._footLGroup, this._footRGroup)
     this.registry.registerPart('leg-left', this._footLGroup)
     this.registry.registerPart('leg-right', this._footRGroup)

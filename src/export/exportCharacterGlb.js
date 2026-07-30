@@ -1,5 +1,6 @@
 import * as THREE from 'three'
 import { clone as cloneSkeleton } from 'three/addons/utils/SkeletonUtils.js'
+import { disposeObject3DResources } from '../character/resources/disposeObject3DResources.js'
 
 function toSerializable(value, seen = new WeakSet()) {
   if (value == null || typeof value === 'string' || typeof value === 'number' || typeof value === 'boolean') return value
@@ -156,14 +157,7 @@ function inspectRoundTrip(gltf, expectedTraits) {
 }
 
 function disposeGltf(gltf) {
-  gltf.scene.traverse(object => {
-    object.geometry?.dispose?.()
-    for (const material of (Array.isArray(object.material) ? object.material : [object.material])) {
-      if (!material) continue
-      for (const value of Object.values(material)) value?.isTexture && value.dispose()
-      material.dispose?.()
-    }
-  })
+  disposeObject3DResources(gltf.scene, { detach: false })
 }
 
 export async function exportCharacterGlb(root, options = {}) {
