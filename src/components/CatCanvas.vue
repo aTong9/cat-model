@@ -111,6 +111,7 @@ onMounted(async () => {
   catModel = catAssembly.model
   canvas.__character = catAssembly.root
   canvas.__catAssembly = catAssembly
+  canvas.__beginCharacterCapture = beginCharacterCapture
   scene.add(catAssembly.root)
   specialGroup = new THREE.Group()
   scene.add(specialGroup)
@@ -161,6 +162,28 @@ onUnmounted(() => {
   specialGroup?.removeFromParent()
   specialGroup = null
 })
+
+function beginCharacterCapture({ transparent = false } = {}) {
+  if (!renderer || !scene || !camera) return () => {}
+  stopAnimation()
+  const previous = { background: scene.background, fog: scene.fog, clearAlpha: renderer.getClearAlpha() }
+  const hidden = [envGroup, specialGroup, scene.getObjectByName('PreviewGround'), scene.getObjectByName('PreviewPodium'), ...(equipmentScatterController?.entries?.map(entry => entry.group) ?? [])]
+    .filter(Boolean).map(object => [object, object.visible])
+  if (transparent) {
+    hidden.forEach(([object]) => { object.visible = false })
+    scene.background = null
+    scene.fog = null
+    renderer.setClearAlpha(0)
+  }
+  renderer.render(scene, camera)
+  return () => {
+    hidden.forEach(([object, visible]) => { object.visible = visible })
+    scene.background = previous.background
+    scene.fog = previous.fog
+    renderer.setClearAlpha(previous.clearAlpha)
+    startAnimation()
+  }
+}
 
 function onClick(e) {
   if (equipmentScatterController?.cast(e.clientX, e.clientY)) return

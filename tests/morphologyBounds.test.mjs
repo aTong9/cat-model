@@ -64,3 +64,27 @@ test('tail updates replace and dispose the previous geometry', () => {
     assembly.dispose()
   }
 })
+
+test('non-tail morphology drags reuse geometry and materials', () => {
+  const assembly = createCatAssembly({ morphology: { tailCurl: 0.2 } })
+  try {
+    const resources = []
+    assembly.root.traverse(object => {
+      if (object.geometry) resources.push(object.geometry)
+      if (object.material) resources.push(...(Array.isArray(object.material) ? object.material : [object.material]))
+    })
+    const tailGeometry = assembly.root.getObjectByName('TailSurface').geometry
+    for (const bodyScale of [0.82, 0.95, 1.08, 1.22]) {
+      assembly.apply({ morphology: { ...assembly.traits.morphology, bodyScale } })
+    }
+    assert.equal(assembly.root.getObjectByName('TailSurface').geometry, tailGeometry)
+    const after = []
+    assembly.root.traverse(object => {
+      if (object.geometry) after.push(object.geometry)
+      if (object.material) after.push(...(Array.isArray(object.material) ? object.material : [object.material]))
+    })
+    assert.deepEqual(new Set(after), new Set(resources))
+  } finally {
+    assembly.dispose()
+  }
+})

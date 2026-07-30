@@ -55,6 +55,22 @@ test('animator exposes a validated strategy registration contract', () => {
   model.dispose()
 })
 
+test('pose switching resets transforms through the explicit animation rig', () => {
+  const model = new CatModel()
+  assert.notEqual(model.animationRig, model)
+  assert.equal(model.animationRig.parts.armRight, model.registry.getPart('arm-right'))
+  model.setAnimation('sleep')
+  model.update(0.8)
+  assert.notEqual(model.animationRig.parts.head.rotation.y, 0)
+  model.animator.registerStrategy('reset-probe', () => {})
+  model.animator.mode = 'reset-probe'
+  model.update(1)
+  assert.deepEqual(model.animationRig.parts.head.rotation.toArray(), [0, 0, 0, 'XYZ'])
+  assert.deepEqual(model.animationRig.parts.armRight.rotation.toArray(), [0, 0, 0, 'XYZ'])
+  assert.equal(model.animationRig.parts.body.position.y, 0)
+  model.dispose()
+})
+
 test('lie down and sleep keep the body low while wave raises the right arm', () => {
   const model = new CatModel()
   for (const pose of ['lie-down', 'sleep']) {

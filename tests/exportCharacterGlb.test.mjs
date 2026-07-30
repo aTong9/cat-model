@@ -53,13 +53,18 @@ test('maps toon materials to an explicit Blender-friendly PBR profile', () => {
   pbr.dispose()
 })
 
-test('GLB round-trip preserves morphology metadata', async () => {
+test('GLB round-trip preserves versioned morphology and identity metadata', async () => {
   const morphology = { bodyScale: 1.1, headScale: 0.9, earScale: 1.2, legLength: 1.15, tailLength: 1.25, tailCurl: 0.35 }
-  const assembly = createCatAssembly({ tokenId: '12', gear: 'Camera', morphology })
+  const identity = { name: 'Nova', personality: ['好奇'], occupation: '摄影师', theme: '城市', story: '记录每次相遇。', catchphrase: '出发！' }
+  const assembly = createCatAssembly({ tokenId: '12', seed: 42, gear: 'Camera', morphology, identity })
   try {
     const { report } = await exportCharacterGlb(assembly.root)
     assert.equal(report.roundTrip.valid, true)
     assert.deepEqual(report.roundTrip.morphology, morphology)
+    assert.deepEqual(report.roundTrip.identity, identity)
+    assert.equal(report.roundTrip.schemaVersion, 2)
+    assert.equal(report.roundTrip.generatorVersion, '3.0.0')
+    assert.equal(report.roundTrip.seed, 42)
     assert.ok(report.roundTrip.socketNames.includes('chest-front'))
     assert.equal(report.roundTrip.equipmentAttachment.socket, 'chest-front')
   } finally {

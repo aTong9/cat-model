@@ -4,6 +4,8 @@ import {
 } from '../config/traits.js'
 
 export const CAT_TRAITS_SCHEMA_VERSION = 2
+export const CAT_GENERATOR_VERSION = '3.0.0'
+export const DEFAULT_IDENTITY = Object.freeze({ name: '', personality: [], occupation: '', theme: '', story: '', catchphrase: '' })
 export const MORPHOLOGY_DEFINITIONS = Object.freeze({
   bodyScale: Object.freeze({ min: 0.8, max: 1.25, default: 1 }),
   headScale: Object.freeze({ min: 0.8, max: 1.25, default: 1 }),
@@ -52,6 +54,15 @@ function normalizeMorphology(input = {}) {
   }))
 }
 
+function normalizeIdentity(value = {}) {
+  const text = key => String(value?.[key] ?? '').trim().slice(0, key === 'story' ? 1200 : 120)
+  return {
+    name: text('name'),
+    personality: [...new Set((Array.isArray(value?.personality) ? value.personality : []).map(item => String(item).trim()).filter(Boolean))].slice(0, 5),
+    occupation: text('occupation'), theme: text('theme'), story: text('story'), catchphrase: text('catchphrase'),
+  }
+}
+
 export function isExcludedTokenId(value) {
   const tokenId = normalizeTokenId(value)
   return tokenId == null || EXCLUDED_TOKEN_IDS.has(tokenId)
@@ -61,7 +72,9 @@ export function createCatTraits(input = {}) {
   const fur = normalizeValue('fur', input.fur ?? input.furStyle) ?? DEFAULT_TRAITS.fur
   return {
     schemaVersion: CAT_TRAITS_SCHEMA_VERSION,
+    generatorVersion: CAT_GENERATOR_VERSION,
     tokenId: normalizeTokenId(input.tokenId),
+    seed: Number(input.seed ?? input.tokenId) >>> 0,
     eyes: normalizeValue('eyes', input.eyes ?? input.eyeStyle) ?? DEFAULT_TRAITS.eyes,
     face: normalizeValue('face', input.face ?? input.faceExpression) ?? DEFAULT_TRAITS.face,
     fur,
@@ -70,6 +83,7 @@ export function createCatTraits(input = {}) {
     background: normalizeValue('background', input.background),
     special: normalizeValue('special', input.special),
     morphology: normalizeMorphology(input),
+    identity: normalizeIdentity(input.identity),
   }
 }
 
@@ -99,6 +113,7 @@ export function normalizeMetadataRecord(record) {
 export function validateCatTraits(traits) {
   const errors = []
   if (traits?.schemaVersion !== CAT_TRAITS_SCHEMA_VERSION) errors.push('unsupported-schema-version')
+  if (traits?.generatorVersion !== CAT_GENERATOR_VERSION) errors.push('unsupported-generator-version')
   for (const key of Object.keys(definitions)) {
     const value = traits?.[key]
     if (value != null && !definitions[key].includes(value)) errors.push(`invalid-${key}:${value}`)

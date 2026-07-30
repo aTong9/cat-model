@@ -9,7 +9,8 @@ export function applyMorphology(parts, morphology = {}) {
   parts.legLeft?.scale.set(1, legLength, 1)
   parts.legRight?.scale.set(1, legLength, 1)
   parts.tail?.scale.set(1, tailLength, 1)
+  const previousTailCurl = parts.tail?.userData.tailCurl
   if (parts.tail) parts.tail.userData.tailCurl = tailCurl
-  updateCatTail(parts.tail, 0, 0, 1)
+  if (previousTailCurl !== tailCurl) updateCatTail(parts.tail, 0, 0, 1)
   return { bodyScale, headScale, earScale, legLength, tailLength, tailCurl }
 }

@@ -15,6 +15,7 @@ import { createLimbSet } from '../character/limbs/createLimbSet.js'
 import { createRaisedArm, createFoot } from '../character/limbs/createCatLimbs.js'
 import { CatAnimator } from '../character/animation/CatAnimator.js'
 import { createCatPoseStrategies } from '../character/animation/catPoseStrategies.js'
+import { createCatAnimationRig } from '../character/animation/createCatAnimationRig.js'
 
 // ===== Toon 渐变贴图（参考 Meow-Generator MeshToonMaterial） =====
 let _sharedToonMap = null
@@ -225,7 +226,7 @@ export class CatModel {
 
     this._buildBody()
     this.equipmentAssembler = new EquipmentAssembler(this.registry)
-    this.animator = new CatAnimator({
+    const animatorOptions = {
       root: this.root,
       registry: this.registry,
       parts: {
@@ -235,8 +236,16 @@ export class CatModel {
         legLeft: this._footLGroup, legRight: this._footRGroup,
       },
       updateTail: (...args) => this._updateTailSurface(...args),
-      strategies: createCatPoseStrategies(this),
+    }
+    this.animator = new CatAnimator(animatorOptions)
+    this.animationRig = createCatAnimationRig({
+      root: this.root, registry: this.registry,
+      updateTail: animatorOptions.updateTail,
+      getRunSpeed: () => this.animator.runSpeed,
     })
+    for (const [mode, strategy] of Object.entries(createCatPoseStrategies(this.animationRig))) {
+      this.animator.registerStrategy(mode, strategy)
+    }
   }
 
   // ========== Public API ==========
@@ -285,10 +294,6 @@ export class CatModel {
 
   _updateTailSurface(time, intensity = 0.06, speed = 1) {
     updateCatTail(this._tailGroup, time, intensity, speed)
-  }
-
-  _getJoints(part) {
-    return this.registry.getJoints(this.registry.getPartId(part))
   }
 
 

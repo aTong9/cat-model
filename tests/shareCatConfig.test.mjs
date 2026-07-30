@@ -13,6 +13,13 @@ test('share query round-trips normalized cat traits', () => {
   assert.deepEqual(restored.morphology, traits.morphology)
 })
 
+test('share query preserves seed and editable identity', () => {
+  const shared = parseShareQuery(createShareQuery({ tokenId: '7', seed: 99, identity: { name: 'Nova', personality: ['好奇'], story: '星际旅行' } }))
+  assert.equal(shared.seed, 99)
+  assert.equal(shared.identity.name, 'Nova')
+  assert.deepEqual(shared.identity.personality, ['好奇'])
+})
+
 test('share URL replaces old search and removes hash', () => {
   const url = new URL(createShareUrl('https://example.com/studio?old=1#preview', traits))
   assert.equal(url.searchParams.has('old'), false)

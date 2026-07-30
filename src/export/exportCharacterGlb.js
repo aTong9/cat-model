@@ -149,11 +149,14 @@ function inspectRoundTrip(gltf, expectedTraits) {
   if (!meshes) errors.push('roundtrip-has-no-meshes')
   if (!traits) errors.push('roundtrip-missing-cat-traits')
   else if (String(traits.tokenId) !== String(expectedTraits?.tokenId)) errors.push('roundtrip-token-mismatch')
+  else if (traits.schemaVersion !== expectedTraits?.schemaVersion || traits.generatorVersion !== expectedTraits?.generatorVersion) errors.push('roundtrip-version-mismatch')
+  else if (traits.seed !== expectedTraits?.seed) errors.push('roundtrip-seed-mismatch')
   else if (JSON.stringify(traits.morphology) !== JSON.stringify(expectedTraits?.morphology)) errors.push('roundtrip-morphology-mismatch')
+  else if (JSON.stringify(traits.identity) !== JSON.stringify(expectedTraits?.identity)) errors.push('roundtrip-identity-mismatch')
   if (!Array.isArray(socketNames) || !socketNames.length) errors.push('roundtrip-missing-socket-metadata')
   if (expectedTraits?.gear && !equipmentAttachment) errors.push('roundtrip-missing-equipment-attachment')
   if (equipmentAttachment && !socketNames.includes(equipmentAttachment.socket)) errors.push('roundtrip-invalid-equipment-socket')
-  return { valid: errors.length === 0, errors, morphology: traits?.morphology ?? null, socketNames, equipmentAttachment, stats: { meshes, materials, animations: gltf.animations.length } }
+  return { valid: errors.length === 0, errors, schemaVersion: traits?.schemaVersion, generatorVersion: traits?.generatorVersion, seed: traits?.seed, morphology: traits?.morphology ?? null, identity: traits?.identity ?? null, socketNames, equipmentAttachment, stats: { meshes, materials, animations: gltf.animations.length } }
 }
 
 function disposeGltf(gltf) {

@@ -5,6 +5,10 @@
       <div class="divider"></div>
       <button class="btn export-btn" :disabled="exporting" @click="exportGLB"><span>{{ exporting ? exportLabel : '导出 GLB' }}</span><i v-if="exporting" :style="{ width: `${exportProgress}%` }"></i></button>
       <button class="btn" :disabled="exporting" @click="exportPNG">保存 PNG</button>
+      <button class="btn secondary-action" @click="exportCharacterCard">角色卡</button>
+      <button class="btn secondary-action" @click="exportProfile('transparent')">透明头像</button>
+      <button class="btn secondary-action" @click="exportProfile('social')">社交头像</button>
+      <button class="btn secondary-action" @click="exportTurnaround">三视图</button>
       <button class="btn secondary-action" @click="copyConfig">{{ copied === 'config' ? '已复制参数' : '复制参数' }}</button>
       <button class="btn secondary-action" @click="copyShareUrl">{{ copied === 'url' ? '链接已复制' : '分享链接' }}</button>
       <span class="hint-text">拖动旋转 · 滚轮缩放 · 右键平移</span>
@@ -86,6 +90,40 @@ function exportPNG() {
     showNotice('error', 'PNG 保存失败，远程纹理可能受到浏览器跨域限制', 5000)
   }
 }
+function downloadBlob(blob, filename) {
+  const link = document.createElement('a')
+  const url = URL.createObjectURL(blob)
+  link.href = url; link.download = filename; link.click()
+  setTimeout(() => URL.revokeObjectURL(url), 1000)
+}
+function exportCharacterCard() {
+  import('../export/characterCard.js').then(({ createCharacterCardSvg }) => {
+    downloadBlob(new Blob([createCharacterCardSvg(store.currentTraits)], { type: 'image/svg+xml' }), `liberty-cat-${store.tokenId}-card.svg`)
+    showNotice('success', 'SVG 角色卡已生成')
+  }).catch(error => showNotice('error', error.message))
+}
+async function exportProfile(profile) {
+  let restore = () => {}
+  try {
+    const canvas = document.querySelector('canvas')
+    restore = canvas?.__beginCharacterCapture?.({ transparent: profile === 'transparent' }) ?? restore
+    const { captureOutput } = await import('../export/captureCanvasOutputs.js')
+    const result = await captureOutput(canvas, profile)
+    downloadBlob(result.blob, `liberty-cat-${store.tokenId}-${profile}-${result.spec.width}x${result.spec.height}.png`)
+    showNotice('success', profile === 'transparent' ? '透明头像已生成' : '社交头像已生成')
+  } catch (error) { showNotice('error', error.message) }
+  finally { restore() }
+}
+async function exportTurnaround() {
+  try {
+    const canvas = document.querySelector('canvas')
+    const { captureViewSet } = await import('../export/captureCanvasOutputs.js')
+    const captures = await captureViewSet(canvas, { setView: view => window.dispatchEvent(new CustomEvent('cat:set-camera-view', { detail: { view } })) })
+    captures.forEach(({ view, blob }) => downloadBlob(blob, `liberty-cat-${store.tokenId}-${view}.png`))
+    showNotice('success', '正侧背三视图已生成')
+  } catch (error) { showNotice('error', error.message) }
+}
+
 </script>
 
 <style scoped>

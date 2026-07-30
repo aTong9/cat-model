@@ -31,16 +31,26 @@ export class CatAnimator {
   }
 
   update(time) {
-    const { body, earLeft, earRight } = this.parts
-    if (body) body.position.y = 0
-    if (earLeft) earLeft.rotation.set(0, 0, 0)
-    if (earRight) earRight.rotation.set(0, 0, 0)
+    this.resetPose()
     const strategy = this.strategies.get(this.mode)
     if (strategy) {
       strategy(time)
       return
     }
     this._updateStanding(time)
+  }
+
+  resetPose() {
+    this.root.scale.set(1, 1, 1)
+    const { body, head, earLeft, earRight, armLeft, armRight, legLeft, legRight } = this.parts
+    if (body) body.position.y = 0
+    for (const part of [head, earLeft, earRight, armLeft, armRight, legLeft, legRight]) {
+      if (part) part.rotation.set(0, 0, 0)
+    }
+    for (const partId of ['arm-left', 'arm-right', 'leg-left', 'leg-right']) {
+      const joints = this.registry.getJoints(partId)
+      for (const joint of Object.values(joints)) joint?.rotation?.set(0, 0, 0)
+    }
   }
 
   _updateStanding(time) {

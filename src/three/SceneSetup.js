@@ -8,7 +8,8 @@ import { OrbitControls } from 'three/addons/controls/OrbitControls.js'
  */
 export function createScene(canvas) {
   // --- Renderer ---
-  const renderer = new THREE.WebGLRenderer({ canvas, antialias: true, alpha: false })
+  const renderer = new THREE.WebGLRenderer({ canvas, antialias: true, alpha: true })
+  renderer.setClearAlpha(1)
   renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2))
   renderer.shadowMap.enabled = true
   renderer.shadowMap.type = THREE.PCFSoftShadowMap
@@ -61,6 +62,7 @@ export function createScene(canvas) {
   const groundGeo = new THREE.PlaneGeometry(12, 12)
   const groundMat = new THREE.MeshStandardMaterial({ color: '#171523', roughness: 0.9 })
   const ground = new THREE.Mesh(groundGeo, groundMat)
+  ground.name = 'PreviewGround'
   ground.rotation.x = -Math.PI / 2
   ground.position.y = -1.0
   ground.receiveShadow = true
@@ -70,6 +72,7 @@ export function createScene(canvas) {
   const podiumGeo = new THREE.CylinderGeometry(0.65, 0.7, 0.08, 48)
   const podiumMat = new THREE.MeshStandardMaterial({ color: '#302b42', roughness: 0.48, metalness: 0.28 })
   const podium = new THREE.Mesh(podiumGeo, podiumMat)
+  podium.name = 'PreviewPodium'
   podium.position.y = -0.55
   podium.receiveShadow = true; podium.castShadow = true
   scene.add(podium)

@@ -16,8 +16,17 @@
           <div><span>LIBERTY CAT GENERATOR</span><h1>角色配置器</h1></div>
           <b>#{{ String(store.tokenId).padStart(4, '0') }}</b>
         </header>
+        <div class="editor-tools" aria-label="编辑历史">
+          <button class="btn" :disabled="!store.canUndo" @click="store.undo">撤销</button>
+          <button class="btn" :disabled="!store.canRedo" @click="store.redo">重做</button>
+          <input v-model.trim="traitQuery" type="search" placeholder="搜索选项" aria-label="搜索角色选项" />
+        </div>
 
         <form class="token-search" @submit.prevent="searchToken">
+          <div v-if="traitQuery" class="search-results" role="listbox">
+            <button v-for="result in searchResults" :key="result.id" class="btn" type="button" @click="activeTab = result.tab">{{ result.label }}</button>
+            <small v-if="!searchResults.length">没有匹配项</small>
+          </div>
           <label for="token-id">按 Token ID 载入原始属性</label>
           <div><input id="token-id" v-model.trim="tokenQuery" inputmode="numeric" pattern="[0-9]*" placeholder="0–9901" /><button class="btn" type="submit" :disabled="store.tokenLoading">{{ store.tokenLoading ? '载入中…' : '载入' }}</button></div>
           <small v-if="store.tokenError">{{ store.tokenError }}</small>
@@ -75,6 +84,17 @@
           <SettingBlock title="特殊场景"><div class="choice-grid two"><button class="choice" :class="{ active: store.special === null }" @click="store.setSpecial(null)">默认场景</button><button v-for="item in SPECIALS" :key="item.id" class="choice" :class="{ active: store.special === item.id }" @click="store.setSpecial(item.id)">{{ item.label }}</button></div></SettingBlock>
         </section>
 
+        <section v-else-if="activeTab === 'ip'" class="settings-section identity-editor">
+          <p v-if="store.isSpecialFullScene" class="conflict-note">完整 Special 场景会自动移除冲突装备。</p>
+          <button class="btn" @click="store.generateIdentity">按 Seed 离线生成身份</button>
+          <label>名称<input :value="store.identity.name" @change="store.setIdentity('name', $event.target.value)" /></label>
+          <label>性格<input :value="store.identity.personality.join('，')" @change="store.setIdentity('personality', $event.target.value)" /></label>
+          <label>职业<input :value="store.identity.occupation" @change="store.setIdentity('occupation', $event.target.value)" /></label>
+          <label>主题<input :value="store.identity.theme" @change="store.setIdentity('theme', $event.target.value)" /></label>
+          <label>口头禅<input :value="store.identity.catchphrase" @change="store.setIdentity('catchphrase', $event.target.value)" /></label>
+          <label>故事<textarea :value="store.identity.story" rows="5" @change="store.setIdentity('story', $event.target.value)" /></label>
+        </section>
+
         <section v-else class="settings-section">
           <SettingBlock title="姿势"><div class="choice-grid two"><button v-for="item in ACTIONS" :key="item.id" class="choice pose-choice" :class="{ active: store.actionMode === item.id }" :title="item.description" @click="store.actionMode = item.id"><b>{{ item.label }}</b><small>{{ item.description }}</small></button></div></SettingBlock>
           <p class="pose-hint">点击画面中的猫，可依次切换四种姿势</p>
@@ -94,11 +114,20 @@ import { QUALITY_MODES } from '../three/RenderQualityController.js'
 const store = useCatStore()
 const tokenQuery = ref(String(store.tokenId))
 const activeTab = ref('look')
+const traitQuery = ref('')
+const searchIndex = [
+  { id: 'body', tab: 'body', label: '体型与比例' }, { id: 'fur', tab: 'look', label: '毛色外观' },
+  { id: 'eyes', tab: 'look', label: '眼睛表情' }, { id: 'gear', tab: 'gear', label: '装备饰品' },
+  { id: 'scene', tab: 'scene', label: '场景背景' }, { id: 'identity', tab: 'ip', label: 'IP 身份故事' },
+  { id: 'motion', tab: 'motion', label: '动作姿势' },
+]
+const searchResults = computed(() => searchIndex.filter(item => item.label.toLowerCase().includes(traitQuery.value.toLowerCase())))
 const traitSummary = computed(() => summarizeTraitStatuses(store.currentTraits))
 const traitNames = { fur: '毛色', eyes: '眼睛', face: '表情', gear: '装备', background: '背景', special: 'Special' }
 const tabs = [{ id: 'body', label: '体型' }, { id: 'look', label: '外观' }, { id: 'gear', label: '装备' }, { id: 'scene', label: '场景' }, { id: 'motion', label: '动作' }]
 const weathers = [{ id: 'sunny', icon: '☀', label: '晴天' }, { id: 'cloudy', icon: '☁', label: '多云' }, { id: 'rain', icon: '☂', label: '降雨' }, { id: 'thunder', icon: 'ϟ', label: '雷雨' }]
 const searchToken = async () => { if (await store.loadToken(tokenQuery.value)) tokenQuery.value = String(store.tokenId) }
+tabs.splice(4, 0, { id: 'ip', label: 'IP' })
 const navigateToken = async direction => { if (await store.loadAdjacent(direction)) tokenQuery.value = String(store.tokenId) }
 const furDotStyle = preset => ({ background: preset.pattern === 'solid' ? preset.color : `linear-gradient(135deg,${preset.color} 0 46%,${preset.accent} 47% 65%,#f4f0e4 66%)` })
 const SettingBlock = defineComponent({
@@ -119,5 +148,6 @@ const SettingBlock = defineComponent({
 .pose-choice{display:grid;gap:3px;text-align:left}.pose-choice b{font-size:.68rem}.pose-choice small{color:#7f899f;font-size:.56rem;line-height:1.3}.pose-choice.active small{color:rgba(26,26,46,.72)}.pose-hint{margin-left:58px;color:#7f899f;font-size:.62rem}
 .trait-audit{margin-top:11px;border:1px solid var(--border);border-radius:9px;background:rgba(255,255,255,.025)}.trait-audit summary{display:flex;justify-content:space-between;padding:9px 10px;cursor:pointer;color:#aeb5c8;font-size:.65rem}.trait-audit summary b{color:#8590a6;font-weight:500}.trait-audit ul{display:grid;gap:7px;padding:2px 10px 10px;list-style:none}.trait-audit li{display:grid;grid-template-columns:8px 1fr auto;align-items:center;gap:7px;color:#c8ccda;font-size:.62rem}.trait-audit li i{width:7px;height:7px;border-radius:50%}.trait-audit li i.implemented{background:#68d391}.trait-audit li i.partial{background:#f5d33d}.trait-audit li span b{margin-right:6px;color:#7f899f;font-weight:500}.trait-audit li em{color:#8c96aa;font-style:normal}.trait-audit li small{grid-column:2/4;color:#687288;line-height:1.35}
 .section-tabs{grid-template-columns:repeat(5,1fr)}
+.section-tabs{grid-template-columns:repeat(6,1fr)}.editor-tools{display:flex;gap:6px;margin-top:10px}.identity-editor input,.identity-editor textarea{width:100%;padding:8px;border:1px solid var(--border);border-radius:7px;background:rgba(255,255,255,.055);color:var(--text)}.identity-editor label{display:grid;gap:5px;color:#9ba4b8;font-size:.68rem}.conflict-note{padding:8px;border:1px solid rgba(245,211,61,.3);border-radius:7px;color:#e7d878;font-size:.65rem}
 .range-control{display:grid;grid-template-columns:1fr 42px 38px;align-items:center;gap:7px}.range-control input{width:100%;accent-color:var(--accent)}.range-control output{color:var(--accent);font:700 .68rem monospace;text-align:right}.lock-control{padding:4px 2px;border:1px solid var(--border);border-radius:5px;background:transparent;color:#7f899f;font-size:.58rem;cursor:pointer}.lock-control.active{border-color:var(--accent);color:var(--accent)}.reset-morphology{margin-left:58px}
 </style>

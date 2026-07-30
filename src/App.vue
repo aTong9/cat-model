@@ -56,17 +56,10 @@ onMounted(() => {
   if (params.has('seed')) {
     store.setFromSeed(parseInt(params.get('seed')))
   }
-  const explicitKeys = ['fur', 'color', 'eyes', 'face', 'gear', 'bg', 'special']
+  const explicitKeys = ['fur', 'color', 'eyes', 'face', 'gear', 'bg', 'special', 'body', 'head', 'ears', 'legs', 'tail', 'curl', 'identity']
   if (explicitKeys.some(key => params.has(key))) {
     const traits = parseShareQuery(params)
-    store.tokenId = Number(traits.tokenId || 1)
-    store.setFurStyle(traits.fur)
-    if (params.has('color')) store.setCustomFurColor(traits.furColor)
-    store.eyeStyle = traits.eyes
-    store.faceExpression = traits.face
-    store.gearType = traits.gear
-    store.background = traits.background
-    store.special = traits.special
+    store.applyTraits(traits, { record: false })
   } else if (params.has('tokenId')) store.loadToken(params.get('tokenId'))
 })
 </script>

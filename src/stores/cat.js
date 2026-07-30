@@ -2,6 +2,9 @@ import { defineStore } from 'pinia'
 import { computed, ref } from 'vue'
 import { getAdjacentToken, getTokenById } from '../data/tokenCatalog.js'
 import { createCatTraits, MORPHOLOGY_DEFINITIONS } from '../core/catTraits.js'
+import { generateCatTraits } from '../core/generateCatTraits.js'
+import { generateCatIdentity } from '../core/generateCatIdentity.js'
+import { EditorHistory } from '../core/EditorHistory.js'
 import {
   BACKGROUND_TRAITS,
   DEFAULT_TRAITS,
@@ -49,6 +52,7 @@ export const useCatStore = defineStore('cat', () => {
   const qualityMode = ref('auto')
   const morphology = ref(Object.fromEntries(Object.entries(MORPHOLOGY_DEFINITIONS).map(([key, value]) => [key, value.default])))
   const morphologyLocks = ref(Object.fromEntries(Object.keys(MORPHOLOGY_DEFINITIONS).map(key => [key, false])))
+  const identity = ref({ name: '', personality: [], occupation: '', theme: '', story: '', catchphrase: '' })
 
   const weather = ref('sunny')
   const lightIntensity = ref(1)
@@ -72,8 +76,43 @@ export const useCatStore = defineStore('cat', () => {
   const currentTraits = computed(() => createCatTraits({
     tokenId: tokenId.value, fur: furStyle.value, furColor: furColor.value,
     eyes: eyeStyle.value, face: faceExpression.value, gear: gearType.value,
-    background: background.value, special: special.value, morphology: morphology.value,
+    background: background.value, special: special.value, morphology: morphology.value, identity: identity.value,
   }))
+  const historyVersion = ref(0)
+  const editorHistory = new EditorHistory(currentTraits.value)
+  const canUndo = computed(() => { historyVersion.value; return editorHistory.canUndo })
+  const canRedo = computed(() => { historyVersion.value; return editorHistory.canRedo })
+  function recordEditorState() { editorHistory.push(currentTraits.value); historyVersion.value++ }
+  function restoreEditorState(snapshot) {
+    if (!snapshot) return false
+    const fur = getFurTrait(snapshot.fur)
+    furStyle.value = fur.id; furColor.value = snapshot.furColor
+    eyeStyle.value = snapshot.eyes; faceExpression.value = snapshot.face; gearType.value = snapshot.gear
+    background.value = snapshot.background; special.value = snapshot.special
+    morphology.value = { ...snapshot.morphology }; identity.value = { ...snapshot.identity, personality: [...snapshot.identity.personality] }
+    tokenId.value = Number(snapshot.tokenId || tokenId.value); historyVersion.value++
+    return true
+  }
+  const undo = () => restoreEditorState(editorHistory.undo())
+  const redo = () => restoreEditorState(editorHistory.redo())
+  function setIdentity(key, value) {
+    identity.value = { ...identity.value, [key]: key === 'personality' ? String(value).split(/[，,]/).map(item => item.trim()).filter(Boolean).slice(0, 5) : String(value ?? '') }
+    recordEditorState()
+  }
+  function generateIdentity() { identity.value = { ...generateCatIdentity(currentTraits.value, seed.value) }; recordEditorState() }
+  function applyTraits(input, { record = true } = {}) {
+    const traits = createCatTraits(input)
+    const fur = getFurTrait(traits.fur)
+    furStyle.value = fur.id; furColor.value = traits.furColor
+    eyeStyle.value = traits.eyes; faceExpression.value = traits.face; gearType.value = traits.gear
+    background.value = traits.background; special.value = traits.special
+    morphology.value = { ...traits.morphology }
+    identity.value = { ...traits.identity, personality: [...traits.identity.personality] }
+    tokenId.value = Number(traits.tokenId || 1); seed.value = traits.seed
+    activePreset.value = null; referenceImage.value = null; referenceImageFallback.value = null
+    if (record) recordEditorState()
+    return traits
+  }
 
   function setMorphology(key, value) {
     const definition = MORPHOLOGY_DEFINITIONS[key]
@@ -81,6 +120,7 @@ export const useCatStore = defineStore('cat', () => {
     const numeric = Number(value)
     morphology.value[key] = Number.isFinite(numeric) ? Math.min(definition.max, Math.max(definition.min, numeric)) : definition.default
     activePreset.value = null
+    recordEditorState()
   }
 
   function resetMorphology() {
@@ -97,6 +137,7 @@ export const useCatStore = defineStore('cat', () => {
     furColor.value = trait.color
     activePreset.value = null
     referenceImage.value = null
+    recordEditorState()
   }
 
   function setCustomFurColor(color) {
@@ -104,12 +145,14 @@ export const useCatStore = defineStore('cat', () => {
     furColor.value = color
     activePreset.value = null
     referenceImage.value = null
+    recordEditorState()
   }
 
   function setBackground(value) {
     background.value = value
     if (value) special.value = null
     activePreset.value = null
+    recordEditorState()
   }
 
   function setSpecial(value) {
@@ -117,30 +160,27 @@ export const useCatStore = defineStore('cat', () => {
     if (value) background.value = null
     else if (!background.value) background.value = DEFAULT_TRAITS.background
     activePreset.value = null
+    recordEditorState()
   }
 
   function applyGeneratedTraits(value, rng = createRng(value)) {
-    const pick = list => list[Math.floor(rng() * list.length)]
-    const fur = pick(FUR_PRESETS)
-    furStyle.value = fur.id
-    furColor.value = fur.color
-    eyeStyle.value = pick(EYE_STYLES)
-    faceExpression.value = pick(FACE_EXPRESSIONS)
-    gearType.value = rng() < .2 ? null : pick(GEAR_LIST).id
-    special.value = rng() < .08 ? pick(SPECIALS).id : null
-    background.value = special.value ? null : pick(BACKGROUNDS)
-    weather.value = pick(WEATHERS)
-    for (const [key, definition] of Object.entries(MORPHOLOGY_DEFINITIONS)) {
-      const generated = definition.min + rng() * (definition.max - definition.min)
-      if (!morphologyLocks.value[key]) setMorphology(key, generated)
-    }
+    const generated = generateCatTraits(value, {
+      base: currentTraits.value,
+      locks: { morphology: morphologyLocks.value },
+    })
+    const fur = getFurTrait(generated.fur)
+    furStyle.value = fur.id; furColor.value = fur.color
+    eyeStyle.value = generated.eyes; faceExpression.value = generated.face
+    gearType.value = generated.gear; special.value = generated.special; background.value = generated.background
+    weather.value = generated.special === 'Thunderous Might' ? 'thunder' : WEATHERS[Math.floor(rng() * WEATHERS.length)]
+    for (const [key, value] of Object.entries(generated.morphology)) if (!morphologyLocks.value[key]) setMorphology(key, value)
   }
 
   function randomize() {
     activePreset.value = null
     seed.value = Math.floor(Math.random() * 0xffffffff)
     applyGeneratedTraits(seed.value)
-    tokenId.value = Math.floor(Math.random() * 9999) + 1
+    tokenId.value = (seed.value % 9901) + 1
     referenceImage.value = null
     referenceImageFallback.value = null
   }
@@ -223,11 +263,11 @@ export const useCatStore = defineStore('cat', () => {
   }
 
   return {
-    furStyle, furColor, eyeStyle, gearType, faceExpression, background, special, actionMode, qualityMode, morphology, morphologyLocks,
+    furStyle, furColor, eyeStyle, gearType, faceExpression, background, special, actionMode, qualityMode, morphology, morphologyLocks, identity,
     tokenId, seed, activePreset, weather, lightIntensity, rainAmount, cloudAmount,
     fishAmount, musicOn, language, loading, loadingProgress, panelExpanded, showHints,
     tokenLoading, tokenError, referenceImage, referenceImageFallback, referenceImageSource, comparisonOpen,
-    isSpecialFullScene, currentTraits, randomize, setFromSeed, cycleWeather, togglePanel, setLanguage,
+    isSpecialFullScene, currentTraits, canUndo, canRedo, undo, redo, setIdentity, generateIdentity, applyTraits, randomize, setFromSeed, cycleWeather, togglePanel, setLanguage,
     applyPreset, setFurStyle, setCustomFurColor, setBackground, setSpecial, setMorphology, resetMorphology, toggleMorphologyLock, loadToken, loadAdjacent,
   }
 })

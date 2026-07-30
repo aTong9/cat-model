@@ -64,9 +64,9 @@
 任务：
 
 - [x] 接入 bodyScale、headScale、earScale、legLength、tailLength、tailCurl。
-- [ ] 将造型实现从动画 root transform 中隔离。
+- [x] 将造型实现从动画 root transform 中隔离。
 - [x] 参数面板增加滑杆、数值显示、复位和锁定。
-- [ ] 拖动时不泄漏 geometry/material，不造成明显掉帧。
+- [x] 拖动时不泄漏 geometry/material，不造成明显掉帧。
 - [x] GLB 回读后保留造型比例及 morphology metadata。
 
 验收：最小值/最大值无 NaN、无明显穿模；预览、PNG、GLB 一致。
@@ -99,6 +99,7 @@ src/character/
 - [x] 姿势模式、速度、策略分发与站立待机动画迁入独立 `CatAnimator`。
 - [x] registry joints 改用稳定 part ID 作为键，不再使用 `Object3D` 引用作为键。
 - [x] 各姿势关节计算迁入独立 animator strategy 模块，并提供可验证的策略注册合约。
+- [x] 姿势 strategy 使用显式 animation rig 合约，并在每帧策略执行前重置基础 pose。
 
 验收：调用方无需直接依赖子模块；现有动画、装备、导出测试不回退。
 
@@ -106,11 +107,20 @@ src/character/
 
 任务：参数锁定、按主题随机、相似变体、权重/稀有度、装备冲突规则、Special 覆盖规则。所有模式都必须由 seed 确定。
 
+- [x] 独立 seed 规则引擎与确定性回归测试。
+- [x] 参数锁定、主题随机和相似变体。
+- [x] 权重稀有度、装备冲突与 Special 覆盖规则。
+
 验收：固定 seed 与锁定集合可复现；不产生非法组合；规则有独立单测。
 
 ### Phase E — 创作型编辑器
 
 任务：按身体/外观/装饰/场景/IP 分栏；撤销重做；锁定随机；搜索；正侧背视图；移动端布局；未实现与冲突提示。
+
+- [x] 身体、外观、装饰、场景、IP 与动作分栏。
+- [x] 有界撤销/重做历史与 Pinia 集成。
+- [x] 参数搜索、随机锁定、正侧背视图和冲突/实现状态提示。
+- [x] 键盘焦点样式、移动端面板与移动控制布局。
 
 验收：键盘可访问；移动端可完成核心流程；编辑状态与角色数据分离。
 
@@ -118,11 +128,20 @@ src/character/
 
 任务：名称、性格、职业、主题、故事、口头禅；先实现离线模板，再提供可选 AI 扩写；生成头像和三视图角色卡。
 
+- [x] 身份字段进入 CatTraits，并可在编辑器修改。
+- [x] 基于 seed/traits 的确定性离线名称、性格、职业、主题、故事与口头禅。
+- [x] SVG 角色卡、头像输出规格和正侧背三视图捕获。
+- [x] AI 扩写保持可选，离线流程不依赖网络。
+
 验收：无网络仍可完整生成；文本与 seed/traits 可复现；用户可编辑后导出。
 
 ### Phase G — 输出与质量门禁
 
 任务：透明头像、社交头像、三视图、JSON、GLB、完整角色包；视觉基准截图；设备矩阵；性能预算；schema/generator 版本记录。
+
+- [x] 透明头像、社交头像、三视图、JSON、GLB 与角色包 manifest。
+- [x] 固定 seed/视图质量基准、设备矩阵和性能预算审计。
+- [x] schemaVersion、generatorVersion、seed 与 traits 写入可审计输出。
 
 验收：历史 Token 与参数化角色批量审计通过；主流 PC/移动 WebGL 环境稳定。
 
@@ -139,4 +158,4 @@ src/character/
 
 ## 6. 当前下一任务
 
-将姿势 strategy 的角色引用从 `CatModel` 上下文收敛为显式 animation rig 合约，并增加姿势切换时的基础 pose reset。
+全部阶段目标已实现。后续新增需求应创建新的 Roadmap 阶段，并继续遵循 schema、确定性、资源释放和质量门禁约束。
