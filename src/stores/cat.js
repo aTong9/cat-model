@@ -26,7 +26,9 @@ export const MORPHOLOGY_CONTROLS = Object.freeze([
   { key: 'bodyScale', label: '身体胖瘦', ...MORPHOLOGY_DEFINITIONS.bodyScale },
   { key: 'headScale', label: '头部比例', ...MORPHOLOGY_DEFINITIONS.headScale },
   { key: 'earScale', label: '耳朵大小', ...MORPHOLOGY_DEFINITIONS.earScale },
+  { key: 'legLength', label: '腿部长度', ...MORPHOLOGY_DEFINITIONS.legLength },
   { key: 'tailLength', label: '尾巴长度', ...MORPHOLOGY_DEFINITIONS.tailLength },
+  { key: 'tailCurl', label: '尾巴卷曲', ...MORPHOLOGY_DEFINITIONS.tailCurl },
 ])
 
 const WEATHERS = ['sunny', 'cloudy', 'thunder', 'rain']
@@ -46,6 +48,7 @@ export const useCatStore = defineStore('cat', () => {
   const actionMode = ref('standing')
   const qualityMode = ref('auto')
   const morphology = ref(Object.fromEntries(Object.entries(MORPHOLOGY_DEFINITIONS).map(([key, value]) => [key, value.default])))
+  const morphologyLocks = ref(Object.fromEntries(Object.keys(MORPHOLOGY_DEFINITIONS).map(key => [key, false])))
 
   const weather = ref('sunny')
   const lightIntensity = ref(1)
@@ -82,6 +85,10 @@ export const useCatStore = defineStore('cat', () => {
 
   function resetMorphology() {
     for (const [key, definition] of Object.entries(MORPHOLOGY_DEFINITIONS)) morphology.value[key] = definition.default
+  }
+
+  function toggleMorphologyLock(key) {
+    if (Object.hasOwn(morphologyLocks.value, key)) morphologyLocks.value[key] = !morphologyLocks.value[key]
   }
 
   function setFurStyle(id) {
@@ -123,7 +130,10 @@ export const useCatStore = defineStore('cat', () => {
     special.value = rng() < .08 ? pick(SPECIALS).id : null
     background.value = special.value ? null : pick(BACKGROUNDS)
     weather.value = pick(WEATHERS)
-    for (const [key, definition] of Object.entries(MORPHOLOGY_DEFINITIONS)) setMorphology(key, definition.min + rng() * (definition.max - definition.min))
+    for (const [key, definition] of Object.entries(MORPHOLOGY_DEFINITIONS)) {
+      const generated = definition.min + rng() * (definition.max - definition.min)
+      if (!morphologyLocks.value[key]) setMorphology(key, generated)
+    }
   }
 
   function randomize() {
@@ -213,11 +223,11 @@ export const useCatStore = defineStore('cat', () => {
   }
 
   return {
-    furStyle, furColor, eyeStyle, gearType, faceExpression, background, special, actionMode, qualityMode, morphology,
+    furStyle, furColor, eyeStyle, gearType, faceExpression, background, special, actionMode, qualityMode, morphology, morphologyLocks,
     tokenId, seed, activePreset, weather, lightIntensity, rainAmount, cloudAmount,
     fishAmount, musicOn, language, loading, loadingProgress, panelExpanded, showHints,
     tokenLoading, tokenError, referenceImage, referenceImageFallback, referenceImageSource, comparisonOpen,
     isSpecialFullScene, currentTraits, randomize, setFromSeed, cycleWeather, togglePanel, setLanguage,
-    applyPreset, setFurStyle, setCustomFurColor, setBackground, setSpecial, setMorphology, resetMorphology, loadToken, loadAdjacent,
+    applyPreset, setFurStyle, setCustomFurColor, setBackground, setSpecial, setMorphology, resetMorphology, toggleMorphologyLock, loadToken, loadAdjacent,
   }
 })

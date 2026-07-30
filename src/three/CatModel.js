@@ -583,11 +583,12 @@ export class CatModel {
     const surface = tail?.userData.surface
     const basePoints = tail?.userData.basePoints
     if (!surface || !basePoints) return
+    const tailCurl = Number(tail.userData.tailCurl) || 0
     const points = basePoints.map((point, index) => {
       const weight = index / Math.max(1, basePoints.length - 1)
       return point.clone().add(new THREE.Vector3(
-        Math.sin(time * speed - index * 0.34) * intensity * weight,
-        Math.cos(time * speed * 0.72 - index * 0.26) * intensity * 0.28 * weight,
+        Math.sin(time * speed - index * 0.34) * intensity * weight + tailCurl * weight * weight * 0.34,
+        Math.cos(time * speed * 0.72 - index * 0.26) * intensity * 0.28 * weight + Math.abs(tailCurl) * weight * weight * 0.16,
         Math.sin(time * speed * 0.86 - index * 0.42) * intensity * 1.25 * weight,
       ))
     })
@@ -673,13 +674,17 @@ export class CatModel {
     this._updateTailSurface(time, 0.035, 0.8)
   }
 
-  setMorphology({ bodyScale = 1, headScale = 1, earScale = 1, tailLength = 1 } = {}) {
+  setMorphology({ bodyScale = 1, headScale = 1, earScale = 1, legLength = 1, tailLength = 1, tailCurl = 0 } = {}) {
     if (this._bodyGroup) this._bodyGroup.scale.set(bodyScale, 1, bodyScale)
     if (this._headGroup) this._headGroup.scale.setScalar(headScale)
     if (this._earLGroup) this._earLGroup.scale.setScalar(earScale)
     if (this._earRGroup) this._earRGroup.scale.setScalar(earScale)
+    if (this._footLGroup) this._footLGroup.scale.set(1, legLength, 1)
+    if (this._footRGroup) this._footRGroup.scale.set(1, legLength, 1)
     if (this._tailGroup) this._tailGroup.scale.set(1, tailLength, 1)
-    this.root.userData.morphology = { bodyScale, headScale, earScale, tailLength }
+    if (this._tailGroup) this._tailGroup.userData.tailCurl = tailCurl
+    this._updateTailSurface(0, 0, 1)
+    this.root.userData.morphology = { bodyScale, headScale, earScale, legLength, tailLength, tailCurl }
   }
 
   _updateSplaySit(time) {

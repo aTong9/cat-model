@@ -1,7 +1,7 @@
 import { createCatTraits } from './catTraits.js'
 
 const PARAMS = Object.freeze({ eyes: 'eyes', face: 'face', fur: 'fur', furColor: 'color', gear: 'gear', background: 'bg', special: 'special' })
-const MORPHOLOGY_PARAMS = Object.freeze({ bodyScale: 'body', headScale: 'head', earScale: 'ears', tailLength: 'tail' })
+const MORPHOLOGY_PARAMS = Object.freeze({ bodyScale: 'body', headScale: 'head', earScale: 'ears', legLength: 'legs', tailLength: 'tail', tailCurl: 'curl' })
 
 export function createShareQuery(input) {
   const traits = createCatTraits(input)

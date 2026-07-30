@@ -2,7 +2,18 @@ import test from 'node:test'
 import assert from 'node:assert/strict'
 import * as THREE from 'three'
 import { createCatAssembly } from '../src/core/createCatAssembly.js'
-import { auditCharacterRoot, createPbrExportMaterial, summarizeExportReport } from '../src/export/exportCharacterGlb.js'
+import { auditCharacterRoot, createPbrExportMaterial, exportCharacterGlb, summarizeExportReport } from '../src/export/exportCharacterGlb.js'
+
+if (!globalThis.FileReader) {
+  globalThis.FileReader = class FileReader {
+    readAsArrayBuffer(blob) {
+      blob.arrayBuffer().then(result => {
+        this.result = result
+        this.onloadend?.()
+      })
+    }
+  }
+}
 
 test('accepts a character root and reports export statistics', () => {
   const assembly = createCatAssembly({ tokenId: '1', fur: 'Golden', eyes: 'Original', face: 'Smile' })
@@ -40,4 +51,16 @@ test('maps toon materials to an explicit Blender-friendly PBR profile', () => {
   assert.equal(pbr.userData.exportProfile, 'blender-pbr-v1')
   toon.dispose()
   pbr.dispose()
+})
+
+test('GLB round-trip preserves morphology metadata', async () => {
+  const morphology = { bodyScale: 1.1, headScale: 0.9, earScale: 1.2, legLength: 1.15, tailLength: 1.25, tailCurl: 0.35 }
+  const assembly = createCatAssembly({ tokenId: '12', morphology })
+  try {
+    const { report } = await exportCharacterGlb(assembly.root)
+    assert.equal(report.roundTrip.valid, true)
+    assert.deepEqual(report.roundTrip.morphology, morphology)
+  } finally {
+    assembly.dispose()
+  }
 })

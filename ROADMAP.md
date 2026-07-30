@@ -63,11 +63,11 @@
 
 任务：
 
-- [ ] 接入 bodyScale、headScale、earScale、legLength、tailLength、tailCurl（已完成前四项；legLength、tailCurl 待实现）。
+- [x] 接入 bodyScale、headScale、earScale、legLength、tailLength、tailCurl。
 - [ ] 将造型实现从动画 root transform 中隔离。
-- [ ] 参数面板增加滑杆、数值显示、复位和锁定（滑杆、数值、复位已完成；锁定待实现）。
+- [x] 参数面板增加滑杆、数值显示、复位和锁定。
 - [ ] 拖动时不泄漏 geometry/material，不造成明显掉帧。
-- [ ] GLB 回读后保留造型比例。
+- [x] GLB 回读后保留造型比例及 morphology metadata。
 
 验收：最小值/最大值无 NaN、无明显穿模；预览、PNG、GLB 一致。
 
@@ -121,4 +121,4 @@ src/character/
 
 ## 6. 当前下一任务
 
-完成 Phase B 剩余参数 `legLength`、`tailCurl`，并为全部 morphology 参数增加锁定随机；随后补充 GLB 造型回读测试。
+补充 morphology 极值视觉/包围盒测试与参数锁定单测；随后开始 Phase C，将尾巴生成和造型 transform 从 `CatModel.js` 拆分为独立 character 模块。

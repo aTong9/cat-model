@@ -1,4 +1,5 @@
 import * as THREE from 'three'
+import { clone as cloneSkeleton } from 'three/addons/utils/SkeletonUtils.js'
 
 function toSerializable(value, seen = new WeakSet()) {
   if (value == null || typeof value === 'string' || typeof value === 'number' || typeof value === 'boolean') return value
@@ -104,7 +105,7 @@ export function createPbrExportMaterial(material) {
 function prepareExportClone(root) {
   const convertedMaterials = new Set()
   const materialMap = new Map()
-  const clone = root.clone(true)
+  const clone = cloneSkeleton(root)
   clone.traverse(object => {
     if (!object.isMesh) return
     const sourceMaterials = Array.isArray(object.material) ? object.material : [object.material]
@@ -143,7 +144,8 @@ function inspectRoundTrip(gltf, expectedTraits) {
   if (!meshes) errors.push('roundtrip-has-no-meshes')
   if (!traits) errors.push('roundtrip-missing-cat-traits')
   else if (String(traits.tokenId) !== String(expectedTraits?.tokenId)) errors.push('roundtrip-token-mismatch')
-  return { valid: errors.length === 0, errors, stats: { meshes, materials, animations: gltf.animations.length } }
+  else if (JSON.stringify(traits.morphology) !== JSON.stringify(expectedTraits?.morphology)) errors.push('roundtrip-morphology-mismatch')
+  return { valid: errors.length === 0, errors, morphology: traits?.morphology ?? null, stats: { meshes, materials, animations: gltf.animations.length } }
 }
 
 function disposeGltf(gltf) {

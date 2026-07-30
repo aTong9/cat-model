@@ -48,6 +48,7 @@
             <div class="range-control">
               <input type="range" :min="control.min" :max="control.max" step="0.01" :value="store.morphology[control.key]" @input="store.setMorphology(control.key, $event.target.value)" />
               <output>{{ store.morphology[control.key].toFixed(2) }}</output>
+              <button class="lock-control" :class="{ active: store.morphologyLocks[control.key] }" :title="store.morphologyLocks[control.key] ? '随机时保留此参数' : '锁定后随机不会改变'" @click="store.toggleMorphologyLock(control.key)">{{ store.morphologyLocks[control.key] ? '已锁' : '锁定' }}</button>
             </div>
           </SettingBlock>
           <button class="btn reset-morphology" @click="store.resetMorphology">恢复默认体型</button>
@@ -118,5 +119,5 @@ const SettingBlock = defineComponent({
 .pose-choice{display:grid;gap:3px;text-align:left}.pose-choice b{font-size:.68rem}.pose-choice small{color:#7f899f;font-size:.56rem;line-height:1.3}.pose-choice.active small{color:rgba(26,26,46,.72)}.pose-hint{margin-left:58px;color:#7f899f;font-size:.62rem}
 .trait-audit{margin-top:11px;border:1px solid var(--border);border-radius:9px;background:rgba(255,255,255,.025)}.trait-audit summary{display:flex;justify-content:space-between;padding:9px 10px;cursor:pointer;color:#aeb5c8;font-size:.65rem}.trait-audit summary b{color:#8590a6;font-weight:500}.trait-audit ul{display:grid;gap:7px;padding:2px 10px 10px;list-style:none}.trait-audit li{display:grid;grid-template-columns:8px 1fr auto;align-items:center;gap:7px;color:#c8ccda;font-size:.62rem}.trait-audit li i{width:7px;height:7px;border-radius:50%}.trait-audit li i.implemented{background:#68d391}.trait-audit li i.partial{background:#f5d33d}.trait-audit li span b{margin-right:6px;color:#7f899f;font-weight:500}.trait-audit li em{color:#8c96aa;font-style:normal}.trait-audit li small{grid-column:2/4;color:#687288;line-height:1.35}
 .section-tabs{grid-template-columns:repeat(5,1fr)}
-.range-control{display:grid;grid-template-columns:1fr 42px;align-items:center;gap:9px}.range-control input{width:100%;accent-color:var(--accent)}.range-control output{color:var(--accent);font:700 .68rem monospace;text-align:right}.reset-morphology{margin-left:58px}
+.range-control{display:grid;grid-template-columns:1fr 42px 38px;align-items:center;gap:7px}.range-control input{width:100%;accent-color:var(--accent)}.range-control output{color:var(--accent);font:700 .68rem monospace;text-align:right}.lock-control{padding:4px 2px;border:1px solid var(--border);border-radius:5px;background:transparent;color:#7f899f;font-size:.58rem;cursor:pointer}.lock-control.active{border-color:var(--accent);color:var(--accent)}.reset-morphology{margin-left:58px}
 </style>

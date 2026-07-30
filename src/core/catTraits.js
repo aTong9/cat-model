@@ -8,7 +8,9 @@ export const MORPHOLOGY_DEFINITIONS = Object.freeze({
   bodyScale: Object.freeze({ min: 0.8, max: 1.25, default: 1 }),
   headScale: Object.freeze({ min: 0.8, max: 1.25, default: 1 }),
   earScale: Object.freeze({ min: 0.7, max: 1.35, default: 1 }),
+  legLength: Object.freeze({ min: 0.8, max: 1.25, default: 1 }),
   tailLength: Object.freeze({ min: 0.7, max: 1.4, default: 1 }),
+  tailCurl: Object.freeze({ min: -0.6, max: 0.8, default: 0 }),
 })
 export const EXCLUDED_TOKEN_IDS = new Set([
   '4768',
