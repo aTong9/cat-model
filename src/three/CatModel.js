@@ -13,6 +13,7 @@ import { EquipmentAssembler } from '../character/equipment/EquipmentAssembler.js
 import { disposeObject3DResources } from '../character/resources/disposeObject3DResources.js'
 import { assembleBodyShell } from '../character/body/assembleBodyShell.js'
 import { createLimbSet } from '../character/limbs/createLimbSet.js'
+import { createRaisedArm, createFoot } from '../character/limbs/createCatLimbs.js'
 
 // ===== Toon 渐变贴图（参考 Meow-Generator MeshToonMaterial） =====
 let _sharedToonMap = null
@@ -189,214 +190,6 @@ function createOutlineGeometry(sourceGeo, thickness = 0.020) {
   return outlineGeo
 }
 
-function createFurJointCover(radius, material, name, scale = [1, 1, 1]) {
-  const cover = new THREE.Mesh(new THREE.SphereGeometry(radius, 28, 20), material)
-  cover.scale.set(...scale)
-  cover.name = name
-  cover.castShadow = true
-  return cover
-}
-
-function createSkinnedLimb({ name, upperVector, lowerVector, radii, material, radialSegments = 16 }) {
-  const ringCount = 19
-  const centers = [new THREE.Vector3(), upperVector.clone(), upperVector.clone().add(lowerVector)]
-  const centerCurve = new THREE.CatmullRomCurve3(centers, false, 'catmullrom', 0.5)
-  const positions = []
-  const normals = []
-  const skinIndices = []
-  const skinWeights = []
-  const indices = []
-
-  for (let ring = 0; ring < ringCount; ring++) {
-    const u = ring / (ringCount - 1)
-    const segment = u < 0.5 ? 0 : 1
-    const localT = segment === 0 ? u * 2 : (u - 0.5) * 2
-    const center = centerCurve.getPoint(u)
-    const tangent = centerCurve.getTangent(u)
-    const axis = Math.abs(tangent.z) < 0.9 ? new THREE.Vector3(0, 0, 1) : new THREE.Vector3(1, 0, 0)
-    const normalA = new THREE.Vector3().crossVectors(tangent, axis).normalize()
-    const normalB = new THREE.Vector3().crossVectors(tangent, normalA).normalize()
-    const radius = THREE.MathUtils.lerp(radii[segment], radii[segment + 1], localT)
-    const bonePosition = u * 2
-    const firstBone = Math.min(1, Math.floor(bonePosition))
-    const secondBone = Math.min(2, firstBone + 1)
-    const secondWeight = bonePosition - firstBone
-
-    for (let side = 0; side < radialSegments; side++) {
-      const angle = side / radialSegments * Math.PI * 2
-      const radial = normalA.clone().multiplyScalar(Math.cos(angle)).addScaledVector(normalB, Math.sin(angle))
-      const vertex = center.clone().addScaledVector(radial, radius)
-      positions.push(vertex.x, vertex.y, vertex.z)
-      normals.push(radial.x, radial.y, radial.z)
-      skinIndices.push(firstBone, secondBone, 0, 0)
-      skinWeights.push(1 - secondWeight, secondWeight, 0, 0)
-    }
-  }
-
-  for (let ring = 0; ring < ringCount - 1; ring++) {
-    for (let side = 0; side < radialSegments; side++) {
-      const nextSide = (side + 1) % radialSegments
-      const a = ring * radialSegments + side
-      const b = ring * radialSegments + nextSide
-      const c = (ring + 1) * radialSegments + nextSide
-      const d = (ring + 1) * radialSegments + side
-      indices.push(a, b, d, b, c, d)
-    }
-  }
-
-  const geometry = new THREE.BufferGeometry()
-  geometry.setAttribute('position', new THREE.Float32BufferAttribute(positions, 3))
-  geometry.setAttribute('normal', new THREE.Float32BufferAttribute(normals, 3))
-  geometry.setAttribute('skinIndex', new THREE.Uint16BufferAttribute(skinIndices, 4))
-  geometry.setAttribute('skinWeight', new THREE.Float32BufferAttribute(skinWeights, 4))
-  geometry.setIndex(indices)
-  geometry.computeBoundingSphere()
-
-  const rootBone = new THREE.Bone()
-  rootBone.name = `${name}ShoulderBone`
-  const middleBone = new THREE.Bone()
-  middleBone.name = `${name}ElbowBone`
-  middleBone.position.copy(upperVector)
-  const endBone = new THREE.Bone()
-  endBone.name = `${name}WristBone`
-  endBone.position.copy(lowerVector)
-  rootBone.add(middleBone)
-  middleBone.add(endBone)
-
-  const surface = new THREE.SkinnedMesh(geometry, material)
-  surface.name = `${name}ContinuousSurface`
-  surface.castShadow = true
-  surface.add(rootBone)
-  surface.bind(new THREE.Skeleton([rootBone, middleBone, endBone]))
-  return { surface, rootBone, middleBone, endBone }
-}
-
-function createRaisedArm(side) {
-  const shoulder = new THREE.Group()
-  shoulder.name = side < 0 ? 'ArmLeft' : 'ArmRight'
-  shoulder.position.set(side * 0.34, 0.64, 0.10)
-  const fur = new THREE.MeshToonMaterial({
-    color: '#f4c430',
-    gradientMap: getToonGradientMap(),
-  })
-  const pawFur = new THREE.MeshToonMaterial({ color: '#f5f1e6', gradientMap: getToonGradientMap() })
-  const pad = new THREE.MeshStandardMaterial({ color: '#f06f78', roughness: 0.42 })
-  // The reference arm is a single tapered silhouette. Its bind pose points
-  // downward so idle never needs the old 180° elbow fold that pinched the mesh.
-  const upperVector = new THREE.Vector3(side * 0.045, -0.27, 0.055)
-  const foreVector = new THREE.Vector3(-side * 0.018, -0.22, 0.035)
-  const limb = createSkinnedLimb({
-    name: shoulder.name,
-    upperVector,
-    lowerVector: foreVector,
-    radii: [0.150, 0.124, 0.102],
-    material: fur,
-    radialSegments: 20,
-  })
-  shoulder.add(limb.surface)
-  const elbow = limb.middleBone
-  const wrist = limb.endBone
-
-  const palm = new THREE.Mesh(new THREE.SphereGeometry(0.125, 20, 16), pawFur)
-  palm.scale.set(0.98, 1.16, 0.90)
-  palm.name = `${shoulder.name}Paw`
-  palm.castShadow = true
-  wrist.add(palm)
-
-  // Five individually modelled digits: four upper fingers and one lower thumb.
-  const digits = [
-    { x: -0.068, y: 0.052, s: 0.92 },
-    { x: -0.036, y: 0.098, s: 1.00 },
-    { x: 0, y: 0.128, s: 1.04 },
-    { x: 0.036, y: 0.098, s: 1.00 },
-    { x: 0.068, y: 0.052, s: 0.92 },
-  ]
-  digits.forEach((finger, index) => {
-    const digit = new THREE.Mesh(new THREE.SphereGeometry(0.050 * finger.s, 16, 12), pawFur)
-    digit.scale.set(0.88, 1.10, 0.82)
-    digit.position.set(finger.x, finger.y, 0.018)
-    digit.name = `${shoulder.name}Digit${index + 1}`
-    digit.castShadow = true
-    wrist.add(digit)
-
-    const fingerPad = new THREE.Mesh(new THREE.SphereGeometry(0.019 * finger.s, 12, 8), pad)
-    fingerPad.scale.set(0.90, 1.08, 0.34)
-    fingerPad.position.set(digit.position.x, digit.position.y - 0.004, 0.118)
-    fingerPad.name = `${shoulder.name}FingerPad${index + 1}`
-    wrist.add(fingerPad)
-  })
-
-  const pawPad = createHeartNose(0.058, pad)
-  pawPad.scale.set(1.06, 0.94, 0.58)
-  pawPad.position.set(0, -0.018, 0.140)
-  pawPad.name = `${shoulder.name}Pad`
-  wrist.add(pawPad)
-  shoulder.userData.joints = { elbow, wrist }
-  return shoulder
-}
-
-function createFoot(side) {
-  const hip = new THREE.Group()
-  hip.name = side < 0 ? 'LegLeft' : 'LegRight'
-  hip.position.set(side * 0.18, -0.10, 0.02)
-  const fur = new THREE.MeshToonMaterial({
-    color: '#f4c430',
-    gradientMap: getToonGradientMap(),
-  })
-  const pawFur = new THREE.MeshToonMaterial({ color: '#f5f1e6', gradientMap: getToonGradientMap() })
-  const pad = new THREE.MeshStandardMaterial({ color: '#f06f78', roughness: 0.42 })
-  const thighVector = new THREE.Vector3(side * 0.01, -0.22, 0.045)
-  hip.add(createFurJointCover(0.148, fur, `${hip.name}HipBlend`, [1.08, 1.14, 1.08]))
-  const shinVector = new THREE.Vector3(-side * 0.01, -0.17, 0.075)
-  const limb = createSkinnedLimb({
-    name: hip.name,
-    upperVector: thighVector,
-    lowerVector: shinVector,
-    radii: [0.122, 0.098, 0.080],
-    material: fur,
-    radialSegments: 14,
-  })
-  hip.add(limb.surface)
-  const knee = limb.middleBone
-  const ankle = limb.endBone
-  const center = new THREE.Vector3(0, -0.025, 0.105)
-
-  const sole = new THREE.Mesh(new THREE.SphereGeometry(0.13, 20, 16), pawFur)
-  sole.scale.set(1.18, 0.74, 1.34)
-  sole.position.copy(center)
-  sole.name = `${hip.name}Sole`
-  sole.castShadow = true
-  ankle.add(sole)
-
-  const toeOffsets = [-0.086, -0.043, 0, 0.043, 0.086]
-  toeOffsets.forEach((offset, index) => {
-    const edgeScale = index === 0 || index === 4 ? 0.88 : 1
-    const toe = new THREE.Mesh(new THREE.SphereGeometry(0.041 * edgeScale, 14, 10), pawFur)
-    toe.scale.set(0.92, 1.02, 1.02)
-    toe.position.set(
-      center.x + offset,
-      center.y + 0.020,
-      center.z + 0.135,
-    )
-    toe.name = `${hip.name}Toe${index + 1}`
-    toe.castShadow = true
-    ankle.add(toe)
-
-    const toePad = new THREE.Mesh(new THREE.SphereGeometry(0.016 * edgeScale, 10, 8), pad)
-    toePad.scale.set(0.92, 1.04, 0.34)
-    toePad.position.set(toe.position.x, toe.position.y, toe.position.z + 0.039)
-    toePad.name = `${hip.name}ToePad${index + 1}`
-    ankle.add(toePad)
-  })
-
-  const solePad = createHeartNose(0.067, pad)
-  solePad.scale.set(1.12, 1.02, 0.72)
-  solePad.position.set(center.x, center.y - 0.040, center.z + 0.225)
-  solePad.name = `${hip.name}MainPad`
-  ankle.add(solePad)
-  hip.userData.joints = { knee, ankle }
-  return hip
-}
 
 export class CatModel {
   constructor() {
@@ -498,7 +291,7 @@ export class CatModel {
     ;[[this._armLGroup, -1, 0], [this._armRGroup, 1, Math.PI]].forEach(([arm, side, offset]) => {
       if (!arm) return
       const swing = Math.sin(cycle + offset)
-      const { elbow, wrist } = arm.userData.joints || {}
+      const { elbow, wrist } = this.registry.getJoints(arm)
       arm.rotation.set(-swing * 0.30, 0, side * 0.08 + swing * 0.025)
       if (elbow) elbow.rotation.set(0.12 + Math.max(0, swing) * 0.24, 0, side * 0.035)
       if (wrist) wrist.rotation.set(-0.06 - swing * 0.04, 0, 0)
@@ -507,7 +300,7 @@ export class CatModel {
       if (!leg) return
       const stride = Math.sin(cycle + offset)
       const lift = Math.max(0, -stride)
-      const { knee, ankle } = leg.userData.joints || {}
+      const { knee, ankle } = this.registry.getJoints(leg)
       leg.rotation.set(stride * 0.62, 0, 0)
       if (knee) knee.rotation.x = 0.08 + lift * 0.78
       if (ankle) ankle.rotation.x = -0.12 - lift * 0.38 + Math.max(0, stride) * 0.12
@@ -521,7 +314,7 @@ export class CatModel {
     if (this._headGroup) this._headGroup.rotation.set(-0.025, 0, Math.sin(time * 1.4) * 0.018)
     ;[[this._armLGroup, -1], [this._armRGroup, 1]].forEach(([arm, side]) => {
       if (!arm) return
-      const { elbow, wrist } = arm.userData.joints || {}
+      const { elbow, wrist } = this.registry.getJoints(arm)
       arm.rotation.set(-0.08, 0, side * (1.28 + pulse * 0.08))
       if (elbow) elbow.rotation.set(0.08, 0, side * (0.18 + pulse * 0.05))
       if (wrist) wrist.rotation.set(-0.08, 0, -side * 0.08)
@@ -529,7 +322,7 @@ export class CatModel {
     ;[this._footLGroup, this._footRGroup].forEach((leg) => {
       if (!leg) return
       leg.rotation.set(0, 0, 0)
-      const { knee, ankle } = leg.userData.joints || {}
+      const { knee, ankle } = this.registry.getJoints(leg)
       if (knee) knee.rotation.set(0.06, 0, 0)
       if (ankle) ankle.rotation.set(-0.06, 0, 0)
     })
@@ -545,14 +338,14 @@ export class CatModel {
     if (this._headGroup) this._headGroup.rotation.set(0.07, 0, Math.sin(time * 1.2) * 0.012)
     ;[[this._armLGroup, -1], [this._armRGroup, 1]].forEach(([arm, side]) => {
       if (!arm) return
-      const { elbow, wrist } = arm.userData.joints || {}
+      const { elbow, wrist } = this.registry.getJoints(arm)
       arm.rotation.set(0.16, 0, side * 0.12)
       if (elbow) elbow.rotation.set(0.42, 0, -side * 0.18)
       if (wrist) wrist.rotation.set(-0.18, 0, 0)
     })
     ;[this._footLGroup, this._footRGroup].forEach((leg) => {
       if (!leg) return
-      const { knee, ankle } = leg.userData.joints || {}
+      const { knee, ankle } = this.registry.getJoints(leg)
       leg.rotation.set(-0.28, 0, 0)
       if (knee) knee.rotation.set(0.72, 0, 0)
       if (ankle) ankle.rotation.set(-0.38, 0, 0)
@@ -575,14 +368,14 @@ export class CatModel {
     if (this._headGroup) this._headGroup.rotation.set(0.055, 0, Math.sin(time * 0.8) * 0.018)
     ;[[this._armLGroup, -1], [this._armRGroup, 1]].forEach(([arm, side]) => {
       if (!arm) return
-      const { elbow, wrist } = arm.userData.joints || {}
+      const { elbow, wrist } = this.registry.getJoints(arm)
       arm.rotation.set(0.10, 0, side * 0.12)
       if (elbow) elbow.rotation.set(0.28, 0, -side * 0.06)
       if (wrist) wrist.rotation.set(-0.10, 0, side * 0.04)
     })
     ;[[this._footLGroup, -1], [this._footRGroup, 1]].forEach(([leg, side]) => {
       if (!leg) return
-      const { knee, ankle } = leg.userData.joints || {}
+      const { knee, ankle } = this.registry.getJoints(leg)
       leg.rotation.set(-0.48, side * 0.16, side * 0.72)
       if (knee) knee.rotation.set(1.02, 0, -side * 0.18)
       if (ankle) ankle.rotation.set(-0.56, 0, side * 0.14)
@@ -595,14 +388,14 @@ export class CatModel {
     if (this._headGroup) this._headGroup.rotation.set(-0.08, 0, 0)
     ;[[this._armLGroup, -1], [this._armRGroup, 1]].forEach(([arm, side]) => {
       if (!arm) return
-      const { elbow, wrist } = arm.userData.joints || {}
+      const { elbow, wrist } = this.registry.getJoints(arm)
       arm.rotation.set(-0.18, 0, side * 0.82)
       if (elbow) elbow.rotation.set(0.24, 0, side * 0.14)
       if (wrist) wrist.rotation.set(-0.12, 0, 0)
     })
     ;[this._footLGroup, this._footRGroup].forEach((leg) => {
       if (!leg) return
-      const { knee, ankle } = leg.userData.joints || {}
+      const { knee, ankle } = this.registry.getJoints(leg)
       leg.rotation.set(-0.34, 0, 0)
       if (knee) knee.rotation.set(0.88, 0, 0)
       if (ankle) ankle.rotation.set(-0.44, 0, 0)
@@ -617,14 +410,14 @@ export class CatModel {
     if (this._headGroup) this._headGroup.rotation.set(0.12, 0, Math.sin(time * 0.65) * 0.012)
     ;[[this._armLGroup, -1], [this._armRGroup, 1]].forEach(([arm, side]) => {
       if (!arm) return
-      const { elbow, wrist } = arm.userData.joints || {}
+      const { elbow, wrist } = this.registry.getJoints(arm)
       arm.rotation.set(0.68, side * 0.08, side * 0.17)
       if (elbow) elbow.rotation.set(0.72, 0, -side * 0.12)
       if (wrist) wrist.rotation.set(-0.34, 0, side * 0.06)
     })
     ;[[this._footLGroup, -1], [this._footRGroup, 1]].forEach(([leg, side]) => {
       if (!leg) return
-      const { knee, ankle } = leg.userData.joints || {}
+      const { knee, ankle } = this.registry.getJoints(leg)
       leg.rotation.set(-0.92, side * 0.08, side * 0.20)
       if (knee) knee.rotation.set(1.16, 0, -side * 0.10)
       if (ankle) ankle.rotation.set(-0.54, 0, side * 0.08)
@@ -642,14 +435,14 @@ export class CatModel {
     }
     ;[[this._armLGroup, -1], [this._armRGroup, 1]].forEach(([arm, side]) => {
       if (!arm) return
-      const { elbow, wrist } = arm.userData.joints || {}
+      const { elbow, wrist } = this.registry.getJoints(arm)
       arm.rotation.set(0.76, side * 0.10, side * 0.25)
       if (elbow) elbow.rotation.set(0.94, 0, -side * 0.18)
       if (wrist) wrist.rotation.set(-0.42, 0, side * 0.10)
     })
     ;[[this._footLGroup, -1], [this._footRGroup, 1]].forEach(([leg, side]) => {
       if (!leg) return
-      const { knee, ankle } = leg.userData.joints || {}
+      const { knee, ankle } = this.registry.getJoints(leg)
       leg.rotation.set(-1.02, side * 0.12, side * 0.32)
       if (knee) knee.rotation.set(1.28, 0, -side * 0.16)
       if (ankle) ankle.rotation.set(-0.64, 0, side * 0.12)
@@ -664,20 +457,20 @@ export class CatModel {
     if (this._headGroup) this._headGroup.rotation.set(0, -0.08, -0.035 + wave * 0.012)
     const left = this._armLGroup
     if (left) {
-      const { elbow, wrist } = left.userData.joints || {}
+      const { elbow, wrist } = this.registry.getJoints(left)
       left.rotation.set(0, 0, -0.08)
       if (elbow) elbow.rotation.set(0, 0, 0)
       if (wrist) wrist.rotation.set(0, 0, 0)
     }
     const right = this._armRGroup
     if (right) {
-      const { elbow, wrist } = right.userData.joints || {}
+      const { elbow, wrist } = this.registry.getJoints(right)
       right.rotation.set(-0.10, 0, 1.72 + wave * 0.10)
       if (elbow) elbow.rotation.set(0.18, 0, -0.34)
       if (wrist) wrist.rotation.set(-0.06, 0, wave * 0.34)
     }
     for (const leg of [this._footLGroup, this._footRGroup]) {
-      const { knee, ankle } = leg?.userData.joints || {}
+      const { knee, ankle } = this.registry.getJoints(leg)
       if (leg) leg.rotation.set(0, 0, 0)
       if (knee) knee.rotation.set(0, 0, 0)
       if (ankle) ankle.rotation.set(0, 0, 0)
@@ -725,12 +518,12 @@ export class CatModel {
     const breathe = 1 + Math.sin(time * 1.5) * 0.012
     this.root.scale.set(1.05 * breathe, 1.02 * breathe, breathe)
     for (const arm of [this._armLGroup, this._armRGroup]) {
-      const { elbow, wrist } = arm?.userData.joints || {}
+      const { elbow, wrist } = this.registry.getJoints(arm)
       if (elbow) elbow.rotation.set(0, 0, 0)
       if (wrist) wrist.rotation.set(0, 0, 0)
     }
     for (const leg of [this._footLGroup, this._footRGroup]) {
-      const { knee, ankle } = leg?.userData.joints || {}
+      const { knee, ankle } = this.registry.getJoints(leg)
       if (knee) knee.rotation.set(0, 0, 0)
       if (ankle) ankle.rotation.set(0, 0, 0)
     }
@@ -817,12 +610,20 @@ export class CatModel {
     this.registry.registerPart('body', bodyGroup)
 
     // Arms are separate, thick 3D assemblies so they stay visible and animation-ready.
-    const limbs = createLimbSet(createRaisedArm, createFoot)
+    const limbOptions = { gradientMap: getToonGradientMap(), createHeart: createHeartNose }
+    const limbs = createLimbSet(
+      side => createRaisedArm(side, limbOptions),
+      side => createFoot(side, limbOptions),
+    )
     this._armLGroup = limbs.armLeft
     this._armRGroup = limbs.armRight
     this.root.add(this._armLGroup, this._armRGroup)
     this.registry.registerPart('arm-left', this._armLGroup)
     this.registry.registerPart('arm-right', this._armRGroup)
+    this.registry.registerJoints(this._armLGroup, this._armLGroup.userData.joints)
+    this.registry.registerJoints(this._armRGroup, this._armRGroup.userData.joints)
+    delete this._armLGroup.userData.joints
+    delete this._armRGroup.userData.joints
 
     // Match the reference stance: one planted foot and one lifted sole, both with five toes.
     this._footLGroup = limbs.legLeft
@@ -830,6 +631,10 @@ export class CatModel {
     this.root.add(this._footLGroup, this._footRGroup)
     this.registry.registerPart('leg-left', this._footLGroup)
     this.registry.registerPart('leg-right', this._footRGroup)
+    this.registry.registerJoints(this._footLGroup, this._footLGroup.userData.joints)
+    this.registry.registerJoints(this._footRGroup, this._footRGroup.userData.joints)
+    delete this._footLGroup.userData.joints
+    delete this._footRGroup.userData.joints
 
     this._tailGroup = createCatTail(getToonGradientMap())
     this.root.add(this._tailGroup)

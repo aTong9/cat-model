@@ -5,6 +5,7 @@ export class CharacterPartRegistry {
     this.root = root
     this._parts = new Map()
     this._sockets = new Map()
+    this._joints = new Map()
   }
 
   registerPart(name, object) {
@@ -31,6 +32,12 @@ export class CharacterPartRegistry {
 
   getPart(name) { return this._parts.get(name) ?? null }
   getSocket(name) { return this._sockets.get(name) ?? null }
+  registerJoints(part, joints) {
+    if (!part?.isObject3D || !joints) throw new Error('Invalid character joints')
+    this._joints.set(part, Object.freeze({ ...joints }))
+    return this._joints.get(part)
+  }
+  getJoints(part) { return this._joints.get(part) ?? Object.freeze({}) }
   hasPart(name) { return this._parts.has(name) }
   hasSocket(name) { return this._sockets.has(name) }
   get partNames() { return [...this._parts.keys()] }

@@ -94,7 +94,8 @@ src/character/
 - [x] 增加动态切换资源释放与 GLB socket/attachment metadata 回读测试。
 - [x] 建立共享 Object3D 资源销毁工具并接入模型、装备和 GLB 回读。
 - [x] 拆分身体 shell 与四肢集合装配边界。
-- [ ] 将 skinned limb 几何、手掌和脚掌工厂完整迁入 `src/character/limbs/`。
+- [x] 将 skinned limb 几何、手掌和脚掌工厂完整迁入 `src/character/limbs/`。
+- [x] 动画系统仅通过 registry joints 合约访问骨骼。
 
 验收：调用方无需直接依赖子模块；现有动画、装备、导出测试不回退。
 
@@ -135,4 +136,4 @@ src/character/
 
 ## 6. 当前下一任务
 
-将 skinned limb 几何、手掌和脚掌工厂完整迁入 `src/character/limbs/`，并让动画系统只通过 registry joints 合约访问骨骼。
+将姿势动画策略从 `CatModel` 拆入独立 animator，并把 registry joints 从 Object3D 键升级为稳定 part ID 键。
