@@ -42,6 +42,19 @@ test('animator owns normalized pose and bounded run-speed state', () => {
   model.dispose()
 })
 
+test('animator exposes a validated strategy registration contract', () => {
+  const model = new CatModel()
+  let updatedAt = null
+  model.animator.registerStrategy('custom-test', time => { updatedAt = time })
+  assert.equal(model.animator.hasStrategy('custom-test'), true)
+  model.animator.mode = 'custom-test'
+  model.update(1.25)
+  assert.equal(updatedAt, 1.25)
+  assert.throws(() => model.animator.registerStrategy('', () => {}), /Invalid animation strategy/)
+  assert.throws(() => model.animator.registerStrategy('broken', null), /Invalid animation strategy/)
+  model.dispose()
+})
+
 test('lie down and sleep keep the body low while wave raises the right arm', () => {
   const model = new CatModel()
   for (const pose of ['lie-down', 'sleep']) {

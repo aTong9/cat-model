@@ -20,6 +20,16 @@ export class CatAnimator {
     this.runSpeed = THREE.MathUtils.clamp(Number(speed) || 1, 0.25, 2.5)
   }
 
+  registerStrategy(mode, strategy) {
+    if (!mode || typeof strategy !== 'function') throw new Error(`Invalid animation strategy: ${mode}`)
+    this.strategies.set(mode, strategy)
+    return this
+  }
+
+  hasStrategy(mode) {
+    return this.strategies.has(mode)
+  }
+
   update(time) {
     const { body, earLeft, earRight } = this.parts
     if (body) body.position.y = 0

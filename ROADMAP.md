@@ -98,6 +98,7 @@ src/character/
 - [x] 动画系统仅通过 registry joints 合约访问骨骼。
 - [x] 姿势模式、速度、策略分发与站立待机动画迁入独立 `CatAnimator`。
 - [x] registry joints 改用稳定 part ID 作为键，不再使用 `Object3D` 引用作为键。
+- [x] 各姿势关节计算迁入独立 animator strategy 模块，并提供可验证的策略注册合约。
 
 验收：调用方无需直接依赖子模块；现有动画、装备、导出测试不回退。
 
@@ -138,4 +139,4 @@ src/character/
 
 ## 6. 当前下一任务
 
-继续将各姿势的具体关节计算从 `CatModel` 迁入 animator strategy 模块，并为自定义姿势注册增加契约测试。
+将姿势 strategy 的角色引用从 `CatModel` 上下文收敛为显式 animation rig 合约，并增加姿势切换时的基础 pose reset。
