@@ -5,13 +5,17 @@
       <div class="divider"></div>
       <button class="btn export-btn" :disabled="exporting" @click="exportGLB"><span>{{ exporting ? exportLabel : '导出 GLB' }}</span><i v-if="exporting" :style="{ width: `${exportProgress}%` }"></i></button>
       <button class="btn" :disabled="exporting" @click="exportPNG">保存 PNG</button>
-      <button class="btn secondary-action" @click="exportCharacterCard">角色卡</button>
-      <button class="btn secondary-action" @click="exportProfile('transparent')">透明头像</button>
-      <button class="btn secondary-action" @click="exportProfile('social')">社交头像</button>
-      <button class="btn secondary-action" @click="exportTurnaround">三视图</button>
-      <button class="btn secondary-action" @click="copyConfig">{{ copied === 'config' ? '已复制参数' : '复制参数' }}</button>
-      <button class="btn secondary-action" @click="copyShareUrl">{{ copied === 'url' ? '链接已复制' : '分享链接' }}</button>
-      <span class="hint-text">拖动旋转 · 滚轮缩放 · 右键平移</span>
+      <details class="output-menu">
+        <summary class="btn">更多输出</summary>
+        <div class="output-popover glass">
+          <button class="btn" @click="exportCharacterCard">角色卡 SVG</button>
+          <button class="btn" @click="exportProfile('transparent')">透明头像</button>
+          <button class="btn" @click="exportProfile('social')">社交头像</button>
+          <button class="btn" @click="exportTurnaround">正侧背三视图</button>
+          <button class="btn" @click="copyConfig">{{ copied === 'config' ? '已复制参数' : '复制参数 JSON' }}</button>
+          <button class="btn" @click="copyShareUrl">{{ copied === 'url' ? '链接已复制' : '复制分享链接' }}</button>
+        </div>
+      </details>
     </div>
     <Transition name="toast"><div v-if="notice.text" class="export-notice glass" :class="notice.type" role="status" aria-live="polite"><b>{{ notice.type === 'success' ? '导出完成' : notice.type === 'error' ? '操作失败' : '正在处理' }}</b><span>{{ notice.text }}</span></div></Transition>
   </div>
@@ -132,4 +136,5 @@ async function exportTurnaround() {
 .bottom-bar{position:fixed;bottom:max(16px,env(safe-area-inset-bottom));left:50%;z-index:100;transform:translateX(-50%);animation:slideUp .5s ease-out .45s both}.bottom-inner{display:flex;align-items:center;gap:7px;padding:7px;border-radius:13px;box-shadow:0 16px 45px rgba(0,0,0,.28)}.bottom-inner .btn{min-height:36px}.random-btn{background:var(--accent);color:#1a1a2e;border-color:var(--accent);font-weight:800}.divider{width:1px;height:22px;background:var(--border);margin:0 2px}.hint-text{padding:0 8px;color:var(--text-dim);font-size:.67rem;white-space:nowrap}.btn:disabled{cursor:wait;opacity:.55}@media(max-width:760px){.bottom-bar{width:calc(100% - 16px);bottom:max(8px,env(safe-area-inset-bottom));}.bottom-inner{justify-content:center;width:100%}.hint-text,.divider{display:none}.bottom-inner .btn{flex:1;padding-inline:8px}}
 .secondary-action{color:#b8bfd1}@media(max-width:960px){.secondary-action{display:none}}
 .export-btn{position:relative;overflow:hidden}.export-btn span{position:relative;z-index:1}.export-btn i{position:absolute;bottom:0;left:0;height:2px;background:var(--accent);transition:width .2s}.export-notice{position:absolute;right:0;bottom:calc(100% + 9px);display:grid;gap:2px;min-width:230px;padding:9px 11px;border-radius:10px;color:#cbd0df;font-size:.65rem}.export-notice b{color:var(--accent);font-size:.58rem}.export-notice.error{border-color:rgba(255,120,120,.35)}.export-notice.error b{color:#ff9999}.export-notice.success{border-color:rgba(104,211,145,.35)}.export-notice.success b{color:#68d391}.toast-enter-active,.toast-leave-active{transition:opacity .18s,transform .2s}.toast-enter-from,.toast-leave-to{opacity:0;transform:translateY(7px)}@media(max-width:760px){.export-notice{right:8px;left:8px;min-width:0}}
+.output-menu{position:relative}.output-menu summary{min-height:36px;list-style:none}.output-menu summary::-webkit-details-marker{display:none}.output-popover{position:absolute;right:0;bottom:calc(100% + 10px);display:grid;grid-template-columns:1fr 1fr;gap:6px;width:280px;padding:9px;border-radius:12px;box-shadow:0 18px 48px rgba(0,0,0,.35)}.output-popover .btn{justify-content:flex-start;min-height:34px}@media(max-width:760px){.output-menu{flex:1}.output-menu summary{width:100%}.output-popover{right:0;width:min(280px,calc(100vw - 16px))}}
 </style>

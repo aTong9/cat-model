@@ -1,13 +1,27 @@
 *, *::before, *::after { margin: 0; padding: 0; box-sizing: border-box; }
 
 :root {
-  --bg: #11111c;
-  --surface: rgba(20, 21, 34, 0.84);
-  --surface-hover: rgba(42, 42, 62, 0.94);
-  --border: rgba(255, 255, 255, 0.105);
-  --text: #e0e0e0;
-  --text-dim: #8b94ab;
-  --accent: #f5d33d;
+  --color-bg-stage: #0c0d17;
+  --color-surface-1: rgba(18, 20, 33, 0.88);
+  --color-surface-2: rgba(35, 38, 57, 0.94);
+  --color-accent-primary: #f5d33d;
+  --color-status-success: #68d391;
+  --color-status-warning: #f5d33d;
+  --color-status-error: #ff8d8d;
+  --text-primary: #f3f4f8;
+  --text-secondary: #9ba4b8;
+  --space-1: 4px; --space-2: 8px; --space-3: 12px; --space-4: 16px;
+  --space-5: 20px; --space-6: 24px; --space-8: 32px;
+  --radius-control: 8px; --radius-panel: 16px;
+  --motion-fast: 160ms; --motion-panel: 260ms;
+  --z-canvas: 0; --z-global: 100; --z-drawer: 110; --z-modal: 200;
+  --bg: var(--color-bg-stage);
+  --surface: var(--color-surface-1);
+  --surface-hover: var(--color-surface-2);
+  --border: rgba(255, 255, 255, 0.11);
+  --text: var(--text-primary);
+  --text-dim: var(--text-secondary);
+  --accent: var(--color-accent-primary);
   --accent-glow: rgba(245, 211, 61, 0.3);
   --radius: 10px;
   --blur: blur(16px);
@@ -60,6 +74,12 @@ html, body {
   -webkit-backdrop-filter: var(--blur);
   border: 1px solid var(--border);
   border-radius: var(--radius);
+}
+
+button, input, select, textarea { font: inherit; }
+button:disabled { cursor: not-allowed; opacity: .48; }
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after { scroll-behavior: auto !important; animation-duration: .01ms !important; animation-iteration-count: 1 !important; transition-duration: .01ms !important; }
 }
 
 /* ====== 颜色选择器 ====== */

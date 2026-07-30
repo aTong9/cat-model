@@ -16,6 +16,11 @@
           <div><span>LIBERTY CAT GENERATOR</span><h1>角色配置器</h1></div>
           <b>#{{ String(store.tokenId).padStart(4, '0') }}</b>
         </header>
+        <nav class="workspace-modes" aria-label="工作模式">
+          <button type="button" :class="{ active: workspaceMode === 'create' }" @click="workspaceMode = 'create'">创作</button>
+          <button type="button" :class="{ active: workspaceMode === 'verify' }" @click="workspaceMode = 'verify'">验证</button>
+        </nav>
+        <p class="mode-description">{{ workspaceMode === 'create' ? '塑造角色外观、装备、场景和动作。' : '核对原始 Token、Trait 实现状态与 2D / 3D 一致性。' }}</p>
         <div class="editor-tools" aria-label="编辑历史">
           <button class="btn" :disabled="!store.canUndo" @click="store.undo">撤销</button>
           <button class="btn" :disabled="!store.canRedo" @click="store.redo">重做</button>
@@ -36,7 +41,7 @@
           <button class="btn" :disabled="store.tokenLoading" @click="navigateToken(1)">下一只 →</button>
         </div>
 
-        <details class="trait-audit">
+        <details v-if="workspaceMode === 'verify'" class="trait-audit" open>
           <summary><span>当前 Trait 状态</span><b>{{ traitSummary.implemented }} 已实现<span v-if="traitSummary.partial"> · {{ traitSummary.partial }} 部分实现</span></b></summary>
           <ul>
             <li v-for="item in traitSummary.items" :key="`${item.type}:${item.value}`">
@@ -46,7 +51,7 @@
           </ul>
         </details>
 
-        <TraitMatrix />
+        <TraitMatrix v-if="workspaceMode === 'verify'" />
 
         <nav class="section-tabs" aria-label="配置分类">
           <button v-for="tab in tabs" :key="tab.id" :class="{ active: activeTab === tab.id }" @click="activeTab = tab.id">{{ tab.label }}</button>
@@ -114,6 +119,7 @@ import { QUALITY_MODES } from '../three/RenderQualityController.js'
 const store = useCatStore()
 const tokenQuery = ref(String(store.tokenId))
 const activeTab = ref('look')
+const workspaceMode = ref('create')
 const traitQuery = ref('')
 const searchIndex = [
   { id: 'body', tab: 'body', label: '体型与比例' }, { id: 'fur', tab: 'look', label: '毛色外观' },
@@ -150,4 +156,5 @@ const SettingBlock = defineComponent({
 .section-tabs{grid-template-columns:repeat(5,1fr)}
 .section-tabs{grid-template-columns:repeat(6,1fr)}.editor-tools{display:flex;gap:6px;margin-top:10px}.identity-editor input,.identity-editor textarea{width:100%;padding:8px;border:1px solid var(--border);border-radius:7px;background:rgba(255,255,255,.055);color:var(--text)}.identity-editor label{display:grid;gap:5px;color:#9ba4b8;font-size:.68rem}.conflict-note{padding:8px;border:1px solid rgba(245,211,61,.3);border-radius:7px;color:#e7d878;font-size:.65rem}
 .range-control{display:grid;grid-template-columns:1fr 42px 38px;align-items:center;gap:7px}.range-control input{width:100%;accent-color:var(--accent)}.range-control output{color:var(--accent);font:700 .68rem monospace;text-align:right}.lock-control{padding:4px 2px;border:1px solid var(--border);border-radius:5px;background:transparent;color:#7f899f;font-size:.58rem;cursor:pointer}.lock-control.active{border-color:var(--accent);color:var(--accent)}.reset-morphology{margin-left:58px}
+.workspace-modes{display:grid;grid-template-columns:1fr 1fr;gap:4px;margin-top:12px;padding:4px;border-radius:10px;background:rgba(255,255,255,.04)}.workspace-modes button{min-height:34px;border:0;border-radius:7px;background:transparent;color:var(--text-dim);cursor:pointer}.workspace-modes button.active{background:var(--accent);color:#201d14;font-weight:800}.mode-description{margin-top:7px;color:var(--text-dim);font-size:.68rem;line-height:1.5}
 </style>

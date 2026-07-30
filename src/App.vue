@@ -7,12 +7,17 @@
     <MobileControls />
     <ComparisonPanel />
     <div class="brand-lockup">
-      <span class="brand-mark">M</span>
-      <div><strong>MEOWVERSE</strong><small>VR CAT LAB</small></div>
+      <span class="brand-mark">L</span>
+      <div><strong>LIBERTY CAT</strong><small>CHARACTER STUDIO</small></div>
     </div>
     <div class="mascot-note">
       <img :src="catImage" alt="Liberty Cats 像素猫参考" />
       <span>当前角色<br><b>#{{ store.tokenId.toString().padStart(4, '0') }}</b></span>
+    </div>
+    <div class="stage-caption" aria-live="polite">
+      <span>LIVE CHARACTER</span>
+      <strong>{{ store.identity.name || `Liberty Cat #${store.tokenId}` }}</strong>
+      <small>拖动旋转 · 滚轮缩放 · 点击切换姿势</small>
     </div>
     <TopBar />
     <ParamPanel />
@@ -75,5 +80,6 @@ onMounted(() => {
 .brand-lockup strong { display: block; font-size: .74rem; letter-spacing: .16em; }.brand-lockup small { display: block; margin-top: 2px; color: #aeb2cb; font-size: .57rem; letter-spacing: .2em; }
 .mascot-note { position: fixed; z-index: 80; left: 18px; bottom: 20px; display: flex; align-items: center; gap: 9px; color: #d8daea; font-size: .67rem; line-height: 1.45; pointer-events: none; }
 .mascot-note img { width: 42px; height: 42px; border-radius: 13px; object-fit: cover; object-position: 50% 33%; border: 1px solid rgba(255,255,255,.18); }.mascot-note b { color: #f5d33d; font-size: .64rem; letter-spacing: .08em; }
-@media (max-width: 700px) { .mascot-note { display: none; } .brand-lockup { top: 62px; } }
+.stage-caption{position:fixed;z-index:80;left:50%;bottom:76px;display:grid;justify-items:center;gap:3px;transform:translateX(-50%);pointer-events:none;text-align:center;text-shadow:0 2px 12px rgba(0,0,0,.7)}.stage-caption span{color:var(--accent);font-size:.55rem;letter-spacing:.18em}.stage-caption strong{font-size:.82rem}.stage-caption small{color:var(--text-dim);font-size:.65rem}
+@media (max-width: 700px) { .mascot-note,.stage-caption { display: none; } .brand-lockup { top: 62px; } }
 </style>
