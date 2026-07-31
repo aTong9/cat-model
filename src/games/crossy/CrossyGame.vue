@@ -20,7 +20,7 @@
 import { computed, onMounted, onUnmounted, ref } from 'vue'
 import * as THREE from 'three'
 import { useCatStore } from '../../stores/cat.js'
-import { createCatAssembly } from '../../core/createCatAssembly.js'
+import { createCharacterRuntime } from '../../character/runtime/CharacterRuntime.js'
 import { createGear } from '../../three/EquipmentFactory.js'
 import { GridHopController } from './GridHopController.js'
 import { createLaneWindow } from './laneGenerator.js'
@@ -135,7 +135,7 @@ onMounted(() => {
   const lanes = buildWorld()
   const blocked = new Set(lanes.flatMap(lane => lane.blocked.map(x => `${x}:${lane.index}`)))
   controller = new GridHopController({ columns: COLUMNS, isBlocked: (x, z) => blocked.has(`${x}:${z}`) })
-  character = createCatAssembly({
+  character = createCharacterRuntime({
     tokenId: store.tokenId, fur: store.furStyle, furColor: store.furColor,
     eyes: store.eyeStyle, face: store.faceExpression, gear: store.gearType,
     background: store.background, special: store.special,
@@ -156,7 +156,7 @@ onMounted(() => {
     const pose = controller.update(dt)
     character.root.position.set(pose.x * GRID, pose.y + 0.02, pose.z * GRID)
     character.root.rotation.y = pose.yaw
-    character.setAnimation(controller.active ? 'jump' : 'idle')
+    character.setState(controller.active ? 'jump' : 'idle')
     character.update(elapsed)
     score.value = controller.maxForward
     target.set(character.root.position.x, 0, character.root.position.z + 3.4)

@@ -1,5 +1,7 @@
 import { CatModel } from '../three/CatModel.js'
 import { createCatTraits, validateCatTraits } from './catTraits.js'
+import { BASE_CAT_CONTRACT_VERSION, BASE_CAT_COORDINATE_CONTRACT } from '../character/baseCatContract.js'
+import { resolveCharacterConfig } from './resolveCharacterConfig.js'
 
 const DEFAULT_MOVEMENT = Object.freeze({ controls: 'WASD', enabled: true, walkSpeed: 1.1, runSpeed: 2.4, sneakSpeed: 0.55, jumpVelocity: 3.4 })
 
@@ -10,6 +12,11 @@ export function createCatAssembly(input, options = {}) {
   root.name = 'LibertyCat'
   root.userData.exportable = true
   root.userData.movement = { ...DEFAULT_MOVEMENT, ...options.movement }
+  const characterManifest = model.registry.createManifest({
+    contractVersion: BASE_CAT_CONTRACT_VERSION,
+    coordinates: BASE_CAT_COORDINATE_CONTRACT,
+  })
+  root.userData.characterContract = characterManifest
 
   function apply(nextInput) {
     const nextTraits = createCatTraits({ ...traits, ...nextInput })
@@ -22,6 +29,7 @@ export function createCatAssembly(input, options = {}) {
     if (!traits || Object.keys(nextTraits.morphology).some(key => traits.morphology[key] !== nextTraits.morphology[key])) model.setMorphology(nextTraits.morphology)
     traits = nextTraits
     root.userData.catTraits = { ...traits }
+    root.userData.resolvedConfig = resolveCharacterConfig(traits)
     return { ...traits }
   }
 
@@ -30,9 +38,11 @@ export function createCatAssembly(input, options = {}) {
   return {
     root, model,
     registry: model.registry,
+    characterManifest,
     get parts() { return Object.fromEntries(model.registry.partNames.map(name => [name, model.registry.getPart(name)])) },
     get sockets() { return Object.fromEntries(model.registry.socketNames.map(name => [name, model.registry.getSocket(name)])) },
     get traits() { return { ...traits } },
+    get resolvedConfig() { return root.userData.resolvedConfig },
     apply,
     update: time => model.update(time),
     setAnimation: mode => model.setAnimation(mode),

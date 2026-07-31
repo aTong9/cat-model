@@ -45,7 +45,7 @@
           <SettingBlock title="基础体型"><div class="choice-grid two morphology-presets"><button v-for="preset in MORPHOLOGY_PRESETS" :key="preset.id" class="choice" :class="{ active: matchesMorphologyPreset(preset) }" type="button" @click="store.applyMorphologyPreset(preset.values)">{{ preset.label }}</button></div></SettingBlock>
           <SettingBlock v-for="control in MORPHOLOGY_CONTROLS" :key="control.key" :title="control.label">
             <div class="range-control">
-              <input type="range" :min="control.min" :max="control.max" step="0.01" :value="store.morphology[control.key]" @input="store.setMorphology(control.key, $event.target.value)" />
+              <input type="range" :min="control.min" :max="control.max" :step="control.step" :value="store.morphology[control.key]" @input="store.setMorphology(control.key, $event.target.value)" />
               <output>{{ store.morphology[control.key].toFixed(2) }}</output>
               <button class="lock-control" :class="{ active: store.morphologyLocks[control.key] }" :title="store.morphologyLocks[control.key] ? '随机时保留此参数' : '锁定后随机不会改变'" @click="store.toggleMorphologyLock(control.key)">{{ store.morphologyLocks[control.key] ? '已锁' : '锁定' }}</button>
             </div>

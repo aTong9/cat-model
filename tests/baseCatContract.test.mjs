@@ -5,6 +5,9 @@ import { MORPHOLOGY_DEFINITIONS } from '../src/core/catTraits.js'
 import { createCatAssembly } from '../src/core/createCatAssembly.js'
 import {
   auditEmbeddedAttachments,
+  BASE_CAT_CONTRACT_VERSION,
+  BASE_CAT_COORDINATE_CONTRACT,
+  BASE_CAT_JOINT_IDS,
   BASE_CAT_CAMERA_CONTRACT,
   BASE_CAT_PART_IDS,
   BASE_CAT_PERFORMANCE_BUDGET,
@@ -25,6 +28,15 @@ test('base cat exposes the complete stable part, joint and socket contract', () 
   try {
     assert.deepEqual(assembly.registry.partNames, BASE_CAT_PART_IDS)
     assert.deepEqual(assembly.registry.socketNames, BASE_CAT_SOCKET_IDS)
+    assert.equal(assembly.characterManifest.contractVersion, BASE_CAT_CONTRACT_VERSION)
+    assert.deepEqual(assembly.characterManifest.coordinates, BASE_CAT_COORDINATE_CONTRACT)
+    assert.deepEqual(Object.keys(assembly.characterManifest.parts), BASE_CAT_PART_IDS)
+    assert.deepEqual(Object.keys(assembly.characterManifest.sockets), BASE_CAT_SOCKET_IDS)
+    assert.deepEqual(
+      Object.fromEntries(Object.entries(assembly.characterManifest.joints).map(([partId, joints]) => [partId, Object.keys(joints)])),
+      BASE_CAT_JOINT_IDS,
+    )
+    assert.equal(assembly.root.userData.characterContract, assembly.characterManifest)
     for (const partId of ['arm-left', 'arm-right']) {
       assert.deepEqual(Object.keys(assembly.registry.getJoints(partId)), [
         'elbow', 'wrist',

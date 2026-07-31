@@ -2,6 +2,7 @@ import { defineStore } from 'pinia'
 import { computed, ref } from 'vue'
 import { getAdjacentToken, getTokenById } from '../data/tokenCatalog.js'
 import { createCatTraits, MORPHOLOGY_DEFINITIONS } from '../core/catTraits.js'
+import { MORPHOLOGY_PARAMETER_REGISTRY } from '../core/characterParameterRegistry.js'
 import { generateCatTraits } from '../core/generateCatTraits.js'
 import { generateCatIdentity } from '../core/generateCatIdentity.js'
 import { EditorHistory } from '../core/EditorHistory.js'
@@ -29,24 +30,7 @@ export const GEAR_LIST = GEAR_TRAITS
 export const BACKGROUNDS = BACKGROUND_TRAITS
 export const SPECIALS = SPECIAL_TRAITS
 export const ACTIONS = POSE_CONFIGS
-export const MORPHOLOGY_CONTROLS = Object.freeze([
-  { key: 'bodyScale', label: '身体胖瘦', ...MORPHOLOGY_DEFINITIONS.bodyScale },
-  { key: 'bodyWidth', label: '身体宽度', ...MORPHOLOGY_DEFINITIONS.bodyWidth },
-  { key: 'bodyHeight', label: '身体高度', ...MORPHOLOGY_DEFINITIONS.bodyHeight },
-  { key: 'bodyDepth', label: '身体厚度', ...MORPHOLOGY_DEFINITIONS.bodyDepth },
-  { key: 'headScale', label: '头部比例', ...MORPHOLOGY_DEFINITIONS.headScale },
-  { key: 'eyeScale', label: '眼睛大小', ...MORPHOLOGY_DEFINITIONS.eyeScale },
-  { key: 'eyeSpacing', label: '眼睛间距', ...MORPHOLOGY_DEFINITIONS.eyeSpacing },
-  { key: 'mouthScale', label: '嘴部大小', ...MORPHOLOGY_DEFINITIONS.mouthScale },
-  { key: 'earScale', label: '耳朵大小', ...MORPHOLOGY_DEFINITIONS.earScale },
-  { key: 'earWidth', label: '耳朵宽度', ...MORPHOLOGY_DEFINITIONS.earWidth },
-  { key: 'earHeight', label: '耳朵高度', ...MORPHOLOGY_DEFINITIONS.earHeight },
-  { key: 'pawScale', label: '手掌比例', ...MORPHOLOGY_DEFINITIONS.pawScale },
-  { key: 'footScale', label: '脚掌比例', ...MORPHOLOGY_DEFINITIONS.footScale },
-  { key: 'legLength', label: '腿部长度', ...MORPHOLOGY_DEFINITIONS.legLength },
-  { key: 'tailLength', label: '尾巴长度', ...MORPHOLOGY_DEFINITIONS.tailLength },
-  { key: 'tailCurl', label: '尾巴卷曲', ...MORPHOLOGY_DEFINITIONS.tailCurl },
-])
+export const MORPHOLOGY_CONTROLS = MORPHOLOGY_PARAMETER_REGISTRY
 export const MORPHOLOGY_PRESETS = Object.freeze([
   { id: 'pack5', label: 'Pack5 标准', values: { bodyScale: 1, bodyWidth: 1, bodyHeight: 1, bodyDepth: 1, headScale: 1, earScale: 1, legLength: 1, tailLength: 1, tailCurl: 0 } },
   { id: 'classic', label: '经典长身', values: { bodyScale: .96, bodyWidth: .90, bodyHeight: 1.10, bodyDepth: 1.05, headScale: .96, earScale: 1, legLength: 1.08, tailLength: 1, tailCurl: 0 } },

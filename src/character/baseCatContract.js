@@ -1,5 +1,15 @@
 import * as THREE from 'three'
 
+export const BASE_CAT_CONTRACT_VERSION = 1
+export const BASE_CAT_COORDINATE_CONTRACT = Object.freeze({
+  units: 'meters',
+  upAxis: 'Y',
+  forwardAxis: '+Z',
+  handedness: 'right',
+  origin: 'center-of-feet',
+  floorY: -0.52,
+})
+
 export const BASE_CAT_PART_IDS = Object.freeze([
   'body', 'arm-left', 'arm-right', 'leg-left', 'leg-right', 'tail',
   'head', 'face', 'ear-left', 'ear-right', 'gear-root', 'motion-root',
@@ -9,6 +19,17 @@ export const BASE_CAT_SOCKET_IDS = Object.freeze([
   'head-top', 'face-eyes', 'face-mouth', 'chest-front', 'back', 'paw-left',
   'shoulder-left', 'shoulder-right', 'hip-left', 'hip-right', 'tail-base',
 ])
+
+export const BASE_CAT_JOINT_IDS = Object.freeze({
+  'arm-left': Object.freeze(['elbow', 'wrist', 'thumb', 'thumbDistal', 'index', 'indexDistal', 'middle', 'middleDistal', 'ring', 'ringDistal', 'little', 'littleDistal']),
+  'arm-right': Object.freeze(['elbow', 'wrist', 'thumb', 'thumbDistal', 'index', 'indexDistal', 'middle', 'middleDistal', 'ring', 'ringDistal', 'little', 'littleDistal']),
+  'leg-left': Object.freeze(['knee', 'ankle', 'toe1', 'toe2', 'toe3', 'toe4', 'toe5']),
+  'leg-right': Object.freeze(['knee', 'ankle', 'toe1', 'toe2', 'toe3', 'toe4', 'toe5']),
+  face: Object.freeze([
+    'eyeLeft', 'eyeRight', 'actionEyeLeft', 'actionEyeRight', 'eyeStarLeft', 'eyeStarRight',
+    'eyelidLeft', 'eyelidRight', 'browLeft', 'browRight', 'cheekLeft', 'cheekRight', 'jaw',
+  ]),
+})
 
 export const BASE_CAT_CAMERA_CONTRACT = Object.freeze({
   target: Object.freeze([0, 0.72, 0]),

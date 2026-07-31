@@ -20,6 +20,7 @@ import { applyFurRecipeToGeometry } from '../character/appearance/furRecipes.js'
 import { resolveFaceEquipmentPolicy } from '../character/appearance/faceCompositionContract.js'
 import { bakeProceduralAnimationClips } from '../character/animation/poseAuthoring.js'
 import { ActionPropController } from '../character/animation/ActionPropController.js'
+import { adaptActionParametersToMorphology } from '../character/animation/actionParameters.js'
 
 // ===== Toon 渐变贴图（参考 Meow-Generator MeshToonMaterial） =====
 let _sharedToonMap = null
@@ -211,7 +212,10 @@ export class CatModel {
       updateTail: animatorOptions.updateTail,
       actionProps: this.actionProps,
       getRunSpeed: () => this.animator.runSpeed,
-      getActionParameters: actionId => this.animator.getActionParameters(actionId),
+      getActionParameters: actionId => adaptActionParametersToMorphology(
+        this.animator.getActionParameters(actionId),
+        this.root.userData.morphology,
+      ),
     })
     for (const [mode, strategy] of Object.entries(createCatPoseStrategies(this.animationRig))) {
       this.animator.registerStrategy(mode, strategy)

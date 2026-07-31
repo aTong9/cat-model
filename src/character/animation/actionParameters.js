@@ -21,3 +21,18 @@ export function normalizeActionParameters(parameters = {}) {
     return [key, THREE.MathUtils.clamp(Number.isFinite(value) ? value : fallback, definition.min, definition.max)]
   }))
 }
+
+export function adaptActionParametersToMorphology(parameters = {}, morphology = {}) {
+  const normalized = normalizeActionParameters(parameters)
+  const legLength = Number(morphology.legLength) || 1
+  const bodyScale = Number(morphology.bodyScale) || 1
+  const headScale = Number(morphology.headScale) || 1
+  const reachScale = THREE.MathUtils.clamp(1 / Math.sqrt(legLength * bodyScale), 0.82, 1.18)
+  const balanceScale = THREE.MathUtils.clamp(1 / Math.sqrt(headScale), 0.88, 1.12)
+  return Object.freeze({
+    ...normalized,
+    intensity: normalized.intensity * reachScale,
+    rootMotion: normalized.rootMotion * balanceScale,
+    morphologyScale: Object.freeze({ reach: reachScale, balance: balanceScale }),
+  })
+}

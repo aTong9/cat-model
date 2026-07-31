@@ -96,10 +96,13 @@ async function exportGLB(request = createExportRequest(exportConfig.value)) {
       include: request.includeBuiltInAnimations ? undefined : [],
       customDocuments,
     }) ?? []
-    const { arrayBuffer, report } = await exportCharacterGlb(character, { animations, onProgress: ({ stage, percent }) => {
+    const { arrayBuffer, report } = await exportCharacterGlb(character, { animations, optimize: request.optimize, meshopt: request.meshopt, onProgress: ({ stage, percent }) => {
       exportProgress.value = percent
       exportLabel.value = stageLabels[stage] || '正在导出…'
     } })
+    const { validateExportBudget } = await import('../export/exportRequest.js')
+    const budget = validateExportBudget(report, request)
+    if (!budget.valid) throw new Error(`导出超出 ${budget.preset} 预算：${budget.failures.join(', ')}`)
     console.info('GLB export verified', report)
     downloadGlb(arrayBuffer, request.filename || `liberty-cat-${store.tokenId}.glb`)
     showNotice('success', summarizeExportReport(report))

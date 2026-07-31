@@ -46,6 +46,24 @@ export class CharacterPartRegistry {
     return this._joints.get(partId)
   }
   getJoints(partId) { return this._joints.get(partId) ?? EMPTY_JOINTS }
+  createManifest({ contractVersion = 1, coordinates = null } = {}) {
+    const transform = object => Object.freeze({
+      name: object.name,
+      position: Object.freeze(object.position.toArray()),
+      rotation: Object.freeze(object.rotation.toArray().slice(0, 3)),
+      scale: Object.freeze(object.scale.toArray()),
+    })
+    return Object.freeze({
+      contractVersion,
+      coordinates: coordinates ? Object.freeze({ ...coordinates }) : null,
+      parts: Object.freeze(Object.fromEntries([...this._parts].map(([id, object]) => [id, transform(object)]))),
+      joints: Object.freeze(Object.fromEntries([...this._joints].map(([partId, joints]) => [
+        partId,
+        Object.freeze(Object.fromEntries(Object.entries(joints).map(([id, object]) => [id, transform(object)]))),
+      ]))),
+      sockets: Object.freeze(Object.fromEntries([...this._sockets].map(([id, object]) => [id, transform(object)]))),
+    })
+  }
   hasPart(name) { return this._parts.has(name) }
   hasSocket(name) { return this._sockets.has(name) }
   get partNames() { return [...this._parts.keys()] }

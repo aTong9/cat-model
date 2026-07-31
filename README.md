@@ -58,6 +58,8 @@ tests/               数据规范与角色工厂测试
 
 应用入口是 `index.html`，随后加载 `src/main.js` 和 `src/App.vue`。
 
+当前开发以“唯一基础猫、Trait 配方、参数化姿势与动作、可复用游戏运行时”为目标，执行路线见 [`docs/PARAMETERIZED_CHARACTER_ROADMAP.md`](docs/PARAMETERIZED_CHARACTER_ROADMAP.md)。
+
 ## 导出
 
 页面底部提供：

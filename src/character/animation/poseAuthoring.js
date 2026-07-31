@@ -1,64 +1,16 @@
 import * as THREE from 'three'
+import { ANIMATION_DOCUMENT_VERSION, animationDocumentToClip } from './animationDocument.js'
+import { POSE_CHANNELS, resolvePoseChannel } from './poseChannels.js'
+
+export { POSE_CHANNELS, resolvePoseChannel } from './poseChannels.js'
 
 export const POSE_DOCUMENT_VERSION = 1
-const HAND_CHANNELS = ['thumb', 'index', 'middle', 'ring', 'little']
-  .flatMap(joint => ['left', 'right'].flatMap(side => [
-    {
-      id: `arm-${side}/${joint}`,
-      label: `${side === 'left' ? '左' : '右'}手${joint}`,
-      part: `arm-${side}`,
-      joint,
-    },
-    {
-      id: `arm-${side}/${joint}-distal`,
-      label: `${side === 'left' ? '左' : '右'}手${joint}末节`,
-      part: `arm-${side}`,
-      joint: `${joint}Distal`,
-    },
-  ]))
-
-const FOOT_CHANNELS = ['toe1', 'toe2', 'toe3', 'toe4', 'toe5']
-  .flatMap(joint => ['left', 'right'].map(side => ({
-    id: `leg-${side}/${joint}`,
-    label: `${side === 'left' ? '左' : '右'}脚${joint}`,
-    part: `leg-${side}`,
-    joint,
-  })))
-
-export const POSE_CHANNELS = Object.freeze([
-  { id: 'motion-root', label: '角色根运动', part: 'motion-root' },
-  { id: 'head', label: '头部', part: 'head' },
-  { id: 'ear-left', label: '左耳', part: 'ear-left' },
-  { id: 'ear-right', label: '右耳', part: 'ear-right' },
-  { id: 'arm-left', label: '左臂', part: 'arm-left' },
-  { id: 'arm-left/elbow', label: '左肘', part: 'arm-left', joint: 'elbow' },
-  { id: 'arm-left/wrist', label: '左腕', part: 'arm-left', joint: 'wrist' },
-  { id: 'arm-right', label: '右臂', part: 'arm-right' },
-  { id: 'arm-right/elbow', label: '右肘', part: 'arm-right', joint: 'elbow' },
-  { id: 'arm-right/wrist', label: '右腕', part: 'arm-right', joint: 'wrist' },
-  { id: 'leg-left', label: '左腿', part: 'leg-left' },
-  { id: 'leg-left/knee', label: '左膝', part: 'leg-left', joint: 'knee' },
-  { id: 'leg-left/ankle', label: '左踝', part: 'leg-left', joint: 'ankle' },
-  { id: 'leg-right', label: '右腿', part: 'leg-right' },
-  { id: 'leg-right/knee', label: '右膝', part: 'leg-right', joint: 'knee' },
-  { id: 'leg-right/ankle', label: '右踝', part: 'leg-right', joint: 'ankle' },
-  { id: 'face/eye-left', label: '左眼视线', part: 'face', joint: 'eyeLeft' },
-  { id: 'face/eye-right', label: '右眼视线', part: 'face', joint: 'eyeRight' },
-  { id: 'face/eyelid-left', label: '左眼睑', part: 'face', joint: 'eyelidLeft' },
-  { id: 'face/eyelid-right', label: '右眼睑', part: 'face', joint: 'eyelidRight' },
-  { id: 'face/brow-left', label: '左眉', part: 'face', joint: 'browLeft' },
-  { id: 'face/brow-right', label: '右眉', part: 'face', joint: 'browRight' },
-  { id: 'face/jaw', label: '下巴', part: 'face', joint: 'jaw' },
-  ...HAND_CHANNELS,
-  ...FOOT_CHANNELS,
-])
-
-export function resolvePoseChannel(registry, channelId) {
-  const channel = POSE_CHANNELS.find(item => item.id === channelId)
-  if (!channel) return null
-  return channel.joint ? registry.getJoints(channel.part)[channel.joint] ?? null : registry.getPart(channel.part)
-}
-
+export const STATIC_POSE_DOCUMENT_VERSION = 1
+export const POSE_CHANNEL_LIMITS = Object.freeze({
+  rotation: Object.freeze([-Math.PI, Math.PI]),
+  position: Object.freeze([-5, 5]),
+  scale: Object.freeze([0.1, 4]),
+})
 export function createPoseDocument({ id = 'custom-action', label = '自定义动作', duration = 1.5, loop = true } = {}) {
   return { schemaVersion: POSE_DOCUMENT_VERSION, id, label, duration, loop, keyframes: [] }
 }
@@ -75,6 +27,88 @@ export function applyPose(registry, pose = {}) {
     const object = resolvePoseChannel(registry, channelId)
     if (object && Array.isArray(rotation)) object.rotation.set(...rotation.slice(0, 3))
   }
+}
+
+function finiteVector(value, [min, max], fallback = [0, 0, 0]) {
+  return Array.isArray(value) && value.length >= 3 && value.slice(0, 3).every(Number.isFinite)
+    ? value.slice(0, 3).map(component => THREE.MathUtils.clamp(component, min, max))
+    : [...fallback]
+}
+
+function normalizePoseTransform(value) {
+  const source = Array.isArray(value) ? { rotation: value } : value ?? {}
+  return Object.freeze({
+    rotation: Object.freeze(finiteVector(source.rotation, POSE_CHANNEL_LIMITS.rotation)),
+    position: Array.isArray(source.position) ? Object.freeze(finiteVector(source.position, POSE_CHANNEL_LIMITS.position)) : null,
+    scale: Array.isArray(source.scale) ? Object.freeze(finiteVector(source.scale, POSE_CHANNEL_LIMITS.scale, [1, 1, 1])) : null,
+  })
+}
+
+export function createStaticPoseDocument({ id = 'custom-pose', label = '自定义姿势', channels = {} } = {}) {
+  const known = new Set(POSE_CHANNELS.map(channel => channel.id))
+  return Object.freeze({
+    schemaVersion: STATIC_POSE_DOCUMENT_VERSION,
+    id: String(id || 'custom-pose'),
+    label: String(label || '自定义姿势'),
+    channels: Object.freeze(Object.fromEntries(Object.entries(channels)
+      .filter(([channelId]) => known.has(channelId))
+      .map(([channelId, transform]) => [channelId, normalizePoseTransform(transform)]))),
+  })
+}
+
+export function captureStaticPoseDocument(registry, options = {}) {
+  return createStaticPoseDocument({ ...options, channels: Object.fromEntries(POSE_CHANNELS.map(channel => {
+    const object = resolvePoseChannel(registry, channel.id)
+    return [channel.id, object ? {
+      rotation: object.rotation.toArray().slice(0, 3),
+      position: object.position.toArray(),
+      scale: object.scale.toArray(),
+    } : {}]
+  })) })
+}
+
+export function applyStaticPoseDocument(registry, document) {
+  for (const [channelId, transform] of Object.entries(createStaticPoseDocument(document).channels)) {
+    const object = resolvePoseChannel(registry, channelId)
+    if (!object) continue
+    object.rotation.set(...transform.rotation)
+    if (transform.position) object.position.set(...transform.position)
+    if (transform.scale) object.scale.set(...transform.scale)
+  }
+}
+
+export function mirrorStaticPoseDocument(document) {
+  const source = createStaticPoseDocument(document)
+  const channels = {}
+  for (const [channelId, transform] of Object.entries(source.channels)) {
+    const mirroredId = channelId.includes('-left')
+      ? channelId.replace('-left', '-right')
+      : channelId.includes('-right') ? channelId.replace('-right', '-left') : channelId
+    channels[mirroredId] = {
+      rotation: [-transform.rotation[0], transform.rotation[1], -transform.rotation[2]],
+      position: transform.position ? [-transform.position[0], transform.position[1], transform.position[2]] : null,
+      scale: transform.scale,
+    }
+  }
+  return createStaticPoseDocument({ id: `${source.id}-mirrored`, label: `${source.label}（镜像）`, channels })
+}
+
+export function blendStaticPoseDocuments(from, to, alpha = 0.5) {
+  const left = createStaticPoseDocument(from)
+  const right = createStaticPoseDocument(to)
+  const amount = THREE.MathUtils.clamp(Number(alpha) || 0, 0, 1)
+  const channelIds = new Set([...Object.keys(left.channels), ...Object.keys(right.channels)])
+  const channels = Object.fromEntries([...channelIds].map(channelId => {
+    const a = left.channels[channelId] ?? normalizePoseTransform({})
+    const b = right.channels[channelId] ?? normalizePoseTransform({})
+    const lerp = (from, to) => from.map((value, index) => THREE.MathUtils.lerp(value, to[index], amount))
+    return [channelId, {
+      rotation: lerp(a.rotation, b.rotation),
+      position: a.position || b.position ? lerp(a.position ?? [0, 0, 0], b.position ?? [0, 0, 0]) : null,
+      scale: a.scale || b.scale ? lerp(a.scale ?? [1, 1, 1], b.scale ?? [1, 1, 1]) : null,
+    }]
+  }))
+  return createStaticPoseDocument({ id: `${left.id}-${right.id}-blend`, label: `${left.label} / ${right.label}`, channels })
 }
 
 export function upsertPoseKeyframe(document, time, pose) {
@@ -249,7 +283,8 @@ export function bakeProceduralAnimationClips(model, { fps = 30, include = BUILTI
     clips.push(appendObjectTransformTracks(clip, actionPropSamples).optimize())
   }
   for (const document of customDocuments) {
-    if (document?.keyframes?.length) clips.push(poseDocumentToClip(document, model.registry))
+    if (document?.schemaVersion === ANIMATION_DOCUMENT_VERSION && document?.tracks?.length) clips.push(animationDocumentToClip(document, model.registry))
+    else if (document?.keyframes?.length) clips.push(poseDocumentToClip(document, model.registry))
   }
   model.setAnimation(previousMode)
   model.update(0)

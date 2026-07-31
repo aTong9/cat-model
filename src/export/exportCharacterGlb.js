@@ -1,6 +1,7 @@
 import * as THREE from 'three'
 import { clone as cloneSkeleton } from 'three/addons/utils/SkeletonUtils.js'
 import { disposeObject3DResources } from '../character/resources/disposeObject3DResources.js'
+import { optimizeStandardGlb, validateStandardGlb } from './gltfStandardPipeline.js'
 
 function toSerializable(value, seen = new WeakSet()) {
   if (value == null || typeof value === 'string' || typeof value === 'number' || typeof value === 'boolean') return value
@@ -143,6 +144,7 @@ function inspectRoundTrip(gltf, expectedTraits, expectedAnimations = []) {
   const traits = gltf.scene.getObjectByName('LibertyCat')?.userData?.catTraits ?? gltf.scene.userData?.catTraits
   const character = gltf.scene.getObjectByName('LibertyCat') ?? gltf.scene
   const socketNames = character.userData?.socketNames ?? []
+  const characterContract = character.userData?.characterContract ?? null
   let equipmentAttachment = null
   character.traverse(object => { if (!equipmentAttachment && object.userData?.attachment?.socket) equipmentAttachment = object.userData.attachment })
   const errors = []
@@ -154,6 +156,9 @@ function inspectRoundTrip(gltf, expectedTraits, expectedAnimations = []) {
   else if (JSON.stringify(traits.morphology) !== JSON.stringify(expectedTraits?.morphology)) errors.push('roundtrip-morphology-mismatch')
   else if (JSON.stringify(traits.identity) !== JSON.stringify(expectedTraits?.identity)) errors.push('roundtrip-identity-mismatch')
   if (!Array.isArray(socketNames) || !socketNames.length) errors.push('roundtrip-missing-socket-metadata')
+  if (!characterContract?.contractVersion) errors.push('roundtrip-missing-character-contract')
+  if (characterContract?.coordinates?.units !== 'meters') errors.push('roundtrip-invalid-character-units')
+  if (characterContract?.coordinates?.origin !== 'center-of-feet') errors.push('roundtrip-invalid-character-origin')
   if (expectedTraits?.gear && !equipmentAttachment) errors.push('roundtrip-missing-equipment-attachment')
   if (equipmentAttachment && !socketNames.includes(equipmentAttachment.socket)) errors.push('roundtrip-invalid-equipment-socket')
   const animationNames = gltf.animations.map(clip => clip.name)
@@ -168,7 +173,7 @@ function inspectRoundTrip(gltf, expectedTraits, expectedAnimations = []) {
     unity: { valid: expectedAnimations.every(name => animationNames.includes(name)), profile: 'Generic rig clips' },
     unreal: { valid: expectedAnimations.every(name => animationNames.includes(name)), profile: 'skeletal/node animation sequences' },
   }
-  return { valid: errors.length === 0, errors, animationNames, animationTracks, compatibility, schemaVersion: traits?.schemaVersion, generatorVersion: traits?.generatorVersion, seed: traits?.seed, morphology: traits?.morphology ?? null, identity: traits?.identity ?? null, socketNames, equipmentAttachment, stats: { meshes, materials, animations: gltf.animations.length } }
+  return { valid: errors.length === 0, errors, animationNames, animationTracks, compatibility, schemaVersion: traits?.schemaVersion, generatorVersion: traits?.generatorVersion, seed: traits?.seed, morphology: traits?.morphology ?? null, identity: traits?.identity ?? null, characterContract, socketNames, equipmentAttachment, stats: { meshes, materials, animations: gltf.animations.length } }
 }
 
 function disposeGltf(gltf) {
@@ -198,6 +203,15 @@ export async function exportCharacterGlb(root, options = {}) {
   }
   if (!(arrayBuffer instanceof ArrayBuffer) || arrayBuffer.byteLength === 0) throw new Error('GLB 导出结果为空')
 
+  let optimization = null
+  if (options.optimize) {
+    const beforeBytes = arrayBuffer.byteLength
+    arrayBuffer = await optimizeStandardGlb(arrayBuffer, { meshopt: options.meshopt !== false })
+    optimization = { beforeBytes, afterBytes: arrayBuffer.byteLength, meshopt: options.meshopt !== false }
+  }
+  const standardValidation = await validateStandardGlb(arrayBuffer)
+  if (!standardValidation.valid) throw new Error(`glTF 标准验证失败：${standardValidation.messages.filter(message => message.severity === 0).map(message => message.code).join(', ')}`)
+
   progress('verify', 76)
   const { GLTFLoader } = await import('three/addons/loaders/GLTFLoader.js')
   const gltf = await new GLTFLoader().parseAsync(arrayBuffer, '')
@@ -205,7 +219,7 @@ export async function exportCharacterGlb(root, options = {}) {
   disposeGltf(gltf)
   if (!roundTrip.valid) throw new Error(`GLB 回读检查失败：${roundTrip.errors.join(', ')}`)
   progress('complete', 100)
-  return { arrayBuffer, report: { audit, exportAudit, materialProfile: exportClone.report, roundTrip, bytes: arrayBuffer.byteLength } }
+  return { arrayBuffer, report: { audit, exportAudit, materialProfile: exportClone.report, standardValidation, optimization, roundTrip, bytes: arrayBuffer.byteLength } }
 }
 
 export function summarizeExportReport(report) {

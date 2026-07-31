@@ -1,5 +1,7 @@
 # 参数化 Liberty Cats 3D 生成器开发路线图
 
+> 历史状态：本文保留已完成工作的背景记录。当前“统一基础猫 + 全参数化 Trait/Pose/Animation + 游戏运行时”的唯一执行路线请见 [`docs/PARAMETERIZED_CHARACTER_ROADMAP.md`](docs/PARAMETERIZED_CHARACTER_ROADMAP.md)。
+
 > 本文是面向开发者与 AI 编码代理的执行文档。开始任务前先阅读本文件、`README.md`、相关测试和目标模块；一次只推进一个可验证切片，不得绕过 `createCatAssembly()` 建立第二套角色生成逻辑。
 
 ## 1. 产品目标

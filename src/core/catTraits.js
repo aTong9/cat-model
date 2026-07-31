@@ -2,28 +2,13 @@ import {
   BACKGROUND_TRAITS, DEFAULT_TRAITS, EYE_STYLES, FACE_EXPRESSIONS,
   FUR_TRAITS, GEAR_TRAITS, SPECIAL_TRAITS, getFurTrait,
 } from '../config/traits.js'
+import { MORPHOLOGY_DEFINITIONS, normalizeMorphologyParameters } from './characterParameterRegistry.js'
+
+export { MORPHOLOGY_DEFINITIONS } from './characterParameterRegistry.js'
 
 export const CAT_TRAITS_SCHEMA_VERSION = 2
 export const CAT_GENERATOR_VERSION = '3.0.0'
 export const DEFAULT_IDENTITY = Object.freeze({ name: '', personality: [], occupation: '', theme: '', story: '', catchphrase: '' })
-export const MORPHOLOGY_DEFINITIONS = Object.freeze({
-  bodyScale: Object.freeze({ min: 0.8, max: 1.25, default: 1 }),
-  bodyWidth: Object.freeze({ min: 0.78, max: 1.28, default: 1 }),
-  bodyHeight: Object.freeze({ min: 0.78, max: 1.2, default: 1 }),
-  bodyDepth: Object.freeze({ min: 0.8, max: 1.25, default: 1 }),
-  headScale: Object.freeze({ min: 0.8, max: 1.25, default: 1 }),
-  eyeScale: Object.freeze({ min: 0.8, max: 1.4, default: 1 }),
-  eyeSpacing: Object.freeze({ min: 0.8, max: 1.25, default: 1 }),
-  mouthScale: Object.freeze({ min: 0.8, max: 1.4, default: 1 }),
-  earScale: Object.freeze({ min: 0.7, max: 1.35, default: 1 }),
-  earWidth: Object.freeze({ min: 0.75, max: 1.3, default: 1 }),
-  earHeight: Object.freeze({ min: 0.75, max: 1.3, default: 1 }),
-  pawScale: Object.freeze({ min: 0.75, max: 1.35, default: 1 }),
-  footScale: Object.freeze({ min: 0.8, max: 1.35, default: 1 }),
-  legLength: Object.freeze({ min: 0.8, max: 1.25, default: 1 }),
-  tailLength: Object.freeze({ min: 0.7, max: 1.4, default: 1 }),
-  tailCurl: Object.freeze({ min: -0.6, max: 0.8, default: 0 }),
-})
 export const EXCLUDED_TOKEN_IDS = new Set([
   '4768',
   '4188087532617125273825521422781690267136463389660746064323733694581280079873',
@@ -57,11 +42,7 @@ function normalizeValue(key, value) {
 
 function normalizeMorphology(input = {}) {
   const source = input.morphology ?? input
-  return Object.fromEntries(Object.entries(MORPHOLOGY_DEFINITIONS).map(([key, definition]) => {
-    const value = Number(source?.[key])
-    const normalized = Number.isFinite(value) ? Math.min(definition.max, Math.max(definition.min, value)) : definition.default
-    return [key, Math.round(normalized * 1000) / 1000]
-  }))
+  return normalizeMorphologyParameters(source)
 }
 
 function normalizeIdentity(value = {}) {

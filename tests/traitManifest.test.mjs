@@ -39,7 +39,10 @@ test('coverage matrix records observed and missing Eyes × Face combinations', (
 })
 
 test('properties, manifest and runtime metadata enums agree bidirectionally', () => {
-  const properties = fs.readFileSync(new URL('../liberty_cats_download/properties.md', import.meta.url), 'utf8')
+  const source = fs.existsSync(new URL('../liberty_cats_download/properties.md', import.meta.url))
+    ? new URL('../liberty_cats_download/properties.md', import.meta.url)
+    : new URL('../pixel_cat_3d/properties.md', import.meta.url)
+  const properties = fs.readFileSync(source, 'utf8')
   assert.equal(METADATA_TRAIT_COUNT, 44)
   for (const [domainId, expectedValues] of Object.entries(METADATA_TRAIT_VALUES)) {
     const manifestValues = manifest.domains[domainId].traits.map(item => item.id)
