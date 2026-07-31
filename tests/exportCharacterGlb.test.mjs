@@ -71,3 +71,16 @@ test('GLB round-trip preserves versioned morphology and identity metadata', asyn
     assembly.dispose()
   }
 })
+
+test('GLB round-trip preserves named animation clips for DCC and game engines', async () => {
+  const assembly = createCatAssembly({ tokenId: '414', fur: 'Calico', eyes: 'Blue Ring', face: 'Wow' })
+  try {
+    const animations = assembly.model.createExportAnimationClips({ fps: 12 })
+    const { report } = await exportCharacterGlb(assembly.root, { animations })
+    assert.deepEqual(report.roundTrip.animationNames, ['Idle', 'Run', 'Jump', 'Wave'])
+    assert.equal(report.roundTrip.stats.animations, 4)
+    assert.equal(report.roundTrip.compatibility.blender.valid, true)
+    assert.equal(report.roundTrip.compatibility.unity.valid, true)
+    assert.equal(report.roundTrip.compatibility.unreal.valid, true)
+  } finally { assembly.dispose() }
+})

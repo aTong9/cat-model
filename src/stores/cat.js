@@ -18,6 +18,8 @@ import {
   getFurTrait,
 } from '../config/traits.js'
 import { POSE_CONFIGS } from '../config/poses.js'
+import { POSE_CHANNELS, createPoseDocument, upsertPoseKeyframe } from '../character/animation/poseAuthoring.js'
+import { createEquipmentAnimationDocument, upsertEquipmentKeyframe } from '../character/equipment/equipmentAnimation.js'
 
 export const FUR_PRESETS = FUR_TRAITS
 export { EYE_STYLES, FACE_EXPRESSIONS, PRESET_CATS }
@@ -59,6 +61,17 @@ export const useCatStore = defineStore('cat', () => {
   const seed = ref(Date.now())
   const activePreset = ref(null)
   const actionMode = ref('standing')
+  const poseAuthoringEnabled = ref(false)
+  const selectedPoseChannel = ref('head')
+  const poseCursor = ref(0)
+  const customPose = ref(Object.fromEntries(POSE_CHANNELS.map(channel => [channel.id, [0, 0, 0]])))
+  const poseDocument = ref(createPoseDocument())
+  const equipmentAuthoringEnabled = ref(false)
+  const selectedEquipmentId = ref(null)
+  const equipmentAnimation = ref('Semantic')
+  const equipmentCursor = ref(0)
+  const equipmentTransform = ref({ position: [0, 0, 0], rotation: [0, 0, 0], scale: [1, 1, 1] })
+  const equipmentPoseDocument = ref(createEquipmentAnimationDocument())
   const qualityMode = ref('auto')
   const stageStyle = ref('minimal')
   const stageScale = ref(1)
@@ -270,6 +283,36 @@ export const useCatStore = defineStore('cat', () => {
     if (workspaceMode.value === 'verify' && referenceImage.value) comparisonOpen.value = true
   }
   const setLanguage = lang => { language.value = lang }
+  function setPoseRotation(channelId, axis, value) {
+    if (!customPose.value[channelId] || !['x', 'y', 'z'].includes(axis)) return
+    const index = { x: 0, y: 1, z: 2 }[axis]
+    const next = [...customPose.value[channelId]]
+    next[index] = Math.min(Math.PI, Math.max(-Math.PI, Number(value) || 0))
+    customPose.value = { ...customPose.value, [channelId]: next }
+  }
+  function setPoseChannelRotation(channelId, rotation) {
+    if (!customPose.value[channelId] || !Array.isArray(rotation)) return
+    customPose.value = { ...customPose.value, [channelId]: rotation.slice(0, 3).map(value => Number(value) || 0) }
+  }
+  function addPoseKeyframe() { poseDocument.value = upsertPoseKeyframe(poseDocument.value, poseCursor.value, customPose.value) }
+  function resetCustomPose() { customPose.value = Object.fromEntries(POSE_CHANNELS.map(channel => [channel.id, [0, 0, 0]])) }
+  function setEquipmentTransform(transform) {
+    equipmentTransform.value = {
+      position: [...(transform?.position ?? [0, 0, 0])],
+      rotation: [...(transform?.rotation ?? [0, 0, 0])],
+      scale: [...(transform?.scale ?? [1, 1, 1])],
+    }
+  }
+  function setEquipmentRotation(axis, value) {
+    const index = { x: 0, y: 1, z: 2 }[axis]
+    if (index == null) return
+    const rotation = [...equipmentTransform.value.rotation]
+    rotation[index] = Math.min(Math.PI, Math.max(-Math.PI, Number(value) || 0))
+    setEquipmentTransform({ ...equipmentTransform.value, rotation })
+  }
+  function addEquipmentKeyframe() {
+    equipmentPoseDocument.value = upsertEquipmentKeyframe(equipmentPoseDocument.value, equipmentCursor.value, equipmentTransform.value)
+  }
   function setStageTexture(file) {
     if (stageTextureUrl.value?.startsWith?.('blob:')) URL.revokeObjectURL(stageTextureUrl.value)
     stageTextureUrl.value = file ? URL.createObjectURL(file) : null
@@ -294,11 +337,11 @@ export const useCatStore = defineStore('cat', () => {
   }
 
   return {
-    furStyle, furColor, eyeStyle, gearType, faceExpression, background, special, actionMode, qualityMode, stageStyle, stageScale, stageHeight, stageTextureUrl, morphology, morphologyLocks, identity,
+    furStyle, furColor, eyeStyle, gearType, faceExpression, background, special, actionMode, poseAuthoringEnabled, selectedPoseChannel, poseCursor, customPose, poseDocument, equipmentAuthoringEnabled, selectedEquipmentId, equipmentAnimation, equipmentCursor, equipmentTransform, equipmentPoseDocument, qualityMode, stageStyle, stageScale, stageHeight, stageTextureUrl, morphology, morphologyLocks, identity,
     tokenId, seed, activePreset, weather, lightIntensity, rainAmount, cloudAmount,
     fishAmount, musicOn, language, loading, loadingProgress, panelExpanded, workspaceMode, showHints,
     tokenLoading, tokenError, referenceImage, referenceImageFallback, referenceImageSource, comparisonOpen,
     isSpecialFullScene, currentTraits, canUndo, canRedo, undo, redo, setIdentity, generateIdentity, applyTraits, randomize, setFromSeed, cycleWeather, togglePanel, setWorkspaceMode, setLanguage,
-    applyPreset, setFurStyle, setCustomFurColor, setBackground, setSpecial, setStageTexture, setMorphology, resetMorphology, applyMorphologyPreset, toggleMorphologyLock, loadToken, loadAdjacent,
+    applyPreset, setFurStyle, setCustomFurColor, setBackground, setSpecial, setStageTexture, setPoseRotation, setPoseChannelRotation, addPoseKeyframe, resetCustomPose, setEquipmentTransform, setEquipmentRotation, addEquipmentKeyframe, setMorphology, resetMorphology, applyMorphologyPreset, toggleMorphologyLock, loadToken, loadAdjacent,
   }
 })

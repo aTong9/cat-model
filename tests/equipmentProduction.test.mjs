@@ -31,11 +31,15 @@ test('ten production equipment recipes classify evidence and fallback behavior',
   }
 })
 
-test('the six handheld traits use the left paw contract', () => {
-  const handheld = ['Good Luck Gold Bar', 'Wealth Gold Bar', 'Hot Coffee', 'Investment Book', 'Ramen', 'Sake']
+test('gold bars use the left paw while food and drink balance on the head', () => {
+  const handheld = ['Good Luck Gold Bar', 'Wealth Gold Bar']
   for (const id of handheld) {
     assert.equal(EQUIPMENT_RECIPES[id].attachment.socket, 'paw-left', id)
     assert.equal(EQUIPMENT_RECIPES[id].attachment.handedness, 'left', id)
+  }
+  for (const id of ['Hot Coffee', 'Investment Book', 'Ramen', 'Sake']) {
+    assert.equal(EQUIPMENT_RECIPES[id].attachment.socket, 'head-top', id)
+    assert.equal(EQUIPMENT_RECIPES[id].attachment.handedness, 'none', id)
   }
 })
 

@@ -18,6 +18,7 @@ import { createCatPoseStrategies } from '../character/animation/catPoseStrategie
 import { createCatAnimationRig } from '../character/animation/createCatAnimationRig.js'
 import { applyFurRecipeToGeometry } from '../character/appearance/furRecipes.js'
 import { resolveFaceEquipmentPolicy } from '../character/appearance/faceCompositionContract.js'
+import { bakeProceduralAnimationClips } from '../character/animation/poseAuthoring.js'
 
 // ===== Toon 渐变贴图（参考 Meow-Generator MeshToonMaterial） =====
 let _sharedToonMap = null
@@ -209,6 +210,10 @@ export class CatModel {
     if (this._gearType) this.setGear(this._gearType)
   }
 
+  createExportAnimationClips(options = {}) {
+    return bakeProceduralAnimationClips(this, options)
+  }
+
   setFaceExpression(expr) {
     this._faceExpression = expr
     this._rebuildMouth()
@@ -334,6 +339,7 @@ export class CatModel {
 
     // -- 头部组（面特征容器） --
     const headGroup = new THREE.Group()
+    headGroup.name = 'Head'
     headGroup.position.copy(headCenter)
     this.root.add(headGroup)
     this._headGroup = headGroup

@@ -34,9 +34,8 @@
         <div class="token-nav" aria-label="切换 Token">
           <button class="btn" :disabled="store.tokenLoading" @click="navigateToken(-1)">← 上一只</button>
           <button class="btn" :disabled="store.tokenLoading" @click="navigateToken(1)">下一只 →</button>
-          <button class="btn compare-inline" :class="{ active: store.comparisonOpen }" :disabled="!store.referenceImage" @click="store.comparisonOpen = !store.comparisonOpen">2D/3D 核对</button>
         </div>
-        <ComparisonPanel v-if="store.comparisonOpen" embedded />
+        <ComparisonPanel v-if="store.referenceImage" />
 
         <nav class="section-tabs" aria-label="配置分类">
           <button v-for="tab in tabs" :key="tab.id" :class="{ active: activeTab === tab.id }" @click="activeTab = tab.id">{{ tab.label }}</button>
@@ -67,6 +66,16 @@
           <SettingBlock title="装备">
             <div class="choice-grid two"><button class="choice" :class="{ active: store.gearType === null }" @click="store.gearType = null">无装备</button><button v-for="gear in GEAR_LIST" :key="gear.id" class="choice" :class="{ active: store.gearType === gear.id }" @click="store.gearType = gear.id">{{ gear.label }}</button></div>
           </SettingBlock>
+          <div class="pose-authoring equipment-authoring">
+            <header><div><b>装备骨骼动画</b><small>{{ store.selectedEquipmentId ? `已选择：${store.selectedEquipmentId}` : '点击地面装备后开始编辑' }}</small></div><button class="btn" :disabled="!store.selectedEquipmentId" :class="{ active: store.equipmentAuthoringEnabled }" @click="store.equipmentAuthoringEnabled = !store.equipmentAuthoringEnabled">{{ store.equipmentAuthoringEnabled ? '退出编辑' : '编辑装备' }}</button></header>
+            <div class="choice-grid two"><button v-for="item in equipmentAnimations" :key="item.id" class="choice" :class="{ active: store.equipmentAnimation === item.id }" @click="store.equipmentAnimation = item.id">{{ item.label }}</button></div>
+            <template v-if="store.equipmentAuthoringEnabled">
+              <label v-for="(axis, index) in ['X','Y','Z']" :key="axis">骨骼旋转 {{ axis }}<input type="range" min="-180" max="180" step="1" :value="equipmentRotationDegrees(index)" @input="setEquipmentRotationDegrees(index, $event.target.value)" /><output>{{ equipmentRotationDegrees(index) }}°</output></label>
+              <div class="timeline-row"><label>时间<input v-model.number="store.equipmentCursor" type="range" min="0" :max="store.equipmentPoseDocument.duration" step="0.05" /></label><output>{{ store.equipmentCursor.toFixed(2) }}s</output><button class="btn" @click="store.addEquipmentKeyframe">记录关键帧</button></div>
+              <div class="keyframe-strip"><i v-for="frame in store.equipmentPoseDocument.keyframes" :key="frame.time" :style="{ left: `${frame.time / store.equipmentPoseDocument.duration * 100}%` }"></i></div>
+              <div class="authoring-actions"><span>{{ store.equipmentPoseDocument.keyframes.length }} 个装备关键帧</span></div>
+            </template>
+          </div>
         </section>
 
         <section v-else-if="activeTab === 'scene'" class="settings-section">
@@ -92,6 +101,16 @@
 
         <section v-else class="settings-section">
           <SettingBlock title="姿势"><div class="choice-grid two"><button v-for="item in ACTIONS" :key="item.id" class="choice pose-choice" :class="{ active: store.actionMode === item.id }" :title="item.description" @click="store.actionMode = item.id"><b>{{ item.label }}</b><small>{{ item.description }}</small></button></div></SettingBlock>
+          <div class="pose-authoring">
+            <header><div><b>动作编辑 API</b><small>拖动视口旋转环，或精确调整参数</small></div><button class="btn" :class="{ active: store.poseAuthoringEnabled }" @click="store.poseAuthoringEnabled = !store.poseAuthoringEnabled">{{ store.poseAuthoringEnabled ? '退出编辑' : '开始编辑' }}</button></header>
+            <template v-if="store.poseAuthoringEnabled">
+              <label>编辑部位<select v-model="store.selectedPoseChannel"><option v-for="channel in POSE_CHANNELS" :key="channel.id" :value="channel.id">{{ channel.label }}</option></select></label>
+              <label v-for="(axis, index) in ['X','Y','Z']" :key="axis">旋转 {{ axis }}<input type="range" min="-180" max="180" step="1" :value="rotationDegrees(index)" @input="setRotationDegrees(index, $event.target.value)" /><output>{{ rotationDegrees(index) }}°</output></label>
+              <div class="timeline-row"><label>时间<input v-model.number="store.poseCursor" type="range" min="0" :max="store.poseDocument.duration" step="0.05" /></label><output>{{ store.poseCursor.toFixed(2) }}s</output><button class="btn" @click="store.addPoseKeyframe">记录关键帧</button></div>
+              <div class="keyframe-strip"><i v-for="frame in store.poseDocument.keyframes" :key="frame.time" :style="{ left: `${frame.time / store.poseDocument.duration * 100}%` }" :title="`${frame.time.toFixed(2)}s`"></i></div>
+              <div class="authoring-actions"><button class="btn" @click="store.resetCustomPose">归零姿势</button><span>{{ store.poseDocument.keyframes.length }} 个关键帧</span></div>
+            </template>
+          </div>
           <p class="pose-hint">点击画面中的猫，可依次切换四种姿势</p>
           <div class="keyboard-help"><span><kbd>WASD</kbd>移动</span><span><kbd>Shift</kbd>奔跑</span><span><kbd>Space</kbd>跳跃</span><span><kbd>Ctrl</kbd>潜行</span></div>
         </section>
@@ -105,11 +124,13 @@ import { computed, defineComponent, h, ref } from 'vue'
 import { useCatStore, FUR_PRESETS, EYE_STYLES, FACE_EXPRESSIONS, GEAR_LIST, BACKGROUNDS, SPECIALS, ACTIONS, MORPHOLOGY_CONTROLS, MORPHOLOGY_PRESETS } from '../stores/cat.js'
 import ComparisonPanel from './ComparisonPanel.vue'
 import { QUALITY_MODES } from '../three/RenderQualityController.js'
+import { POSE_CHANNELS } from '../character/animation/poseAuthoring.js'
 const store = useCatStore()
 const tokenQuery = ref(String(store.tokenId))
 const activeTab = ref('look')
 const traitQuery = ref('')
 const stageTextureName = ref('')
+const equipmentAnimations = [{ id: 'Semantic', label: '语义专属' }, { id: 'Hover', label: '悬浮' }, { id: 'Spin', label: '旋转' }, { id: 'Pulse', label: '脉冲' }]
 const searchIndex = [
   { id: 'body', tab: 'body', label: '体型与比例' }, { id: 'fur', tab: 'look', label: '毛色外观' },
   { id: 'eyes', tab: 'look', label: '眼睛表情' }, { id: 'gear', tab: 'gear', label: '装备饰品' },
@@ -123,6 +144,10 @@ const searchToken = async () => { if (await store.loadToken(tokenQuery.value)) t
 tabs.splice(4, 0, { id: 'ip', label: 'IP' })
 const navigateToken = async direction => { if (await store.loadAdjacent(direction)) tokenQuery.value = String(store.tokenId) }
 const onStageTexture = event => { const file = event.target.files?.[0]; if (!file) return; stageTextureName.value = file.name; store.setStageTexture(file) }
+const rotationDegrees = index => Math.round((store.customPose[store.selectedPoseChannel]?.[index] ?? 0) * 180 / Math.PI)
+const setRotationDegrees = (index, degrees) => store.setPoseRotation(store.selectedPoseChannel, ['x', 'y', 'z'][index], Number(degrees) * Math.PI / 180)
+const equipmentRotationDegrees = index => Math.round((store.equipmentTransform.rotation[index] ?? 0) * 180 / Math.PI)
+const setEquipmentRotationDegrees = (index, degrees) => store.setEquipmentRotation(['x', 'y', 'z'][index], Number(degrees) * Math.PI / 180)
 const furDotStyle = preset => ({ background: preset.pattern === 'solid' ? preset.color : `linear-gradient(135deg,${preset.color} 0 46%,${preset.accent} 47% 65%,#f4f0e4 66%)` })
 const matchesMorphologyPreset = preset => Object.entries(preset.values).every(([key, value]) => Math.abs(store.morphology[key] - value) < 0.001)
 const SettingBlock = defineComponent({
@@ -149,4 +174,6 @@ const SettingBlock = defineComponent({
 .override-note{margin-top:7px;color:var(--text-dim);font-size:.62rem;line-height:1.45}.override-note button{margin-left:3px;border:0;background:transparent;color:var(--accent);font-size:inherit;cursor:pointer;text-decoration:underline;text-underline-offset:2px}
 .setting-block h2{font-size:.59rem;line-height:1.35}.editor-tools input::placeholder,.token-search input::placeholder{font-size:.58rem}.texture-upload{display:flex;align-items:center;gap:10px;padding:9px;border:1px dashed rgba(245,211,61,.45);border-radius:9px;background:rgba(245,211,61,.055);color:#aeb5c8;cursor:pointer;transition:.18s}.texture-upload:hover{border-color:var(--accent);background:rgba(245,211,61,.1)}.texture-upload input{position:absolute;width:1px;height:1px;overflow:hidden;opacity:0}.texture-upload>span:last-child{display:grid;gap:2px;min-width:0}.texture-upload b{overflow:hidden;color:var(--text);font-size:.62rem;text-overflow:ellipsis;white-space:nowrap}.texture-upload small{color:#7f899f;font-size:.54rem}.upload-icon{display:grid;place-items:center;flex:0 0 28px;height:28px;border-radius:8px;background:var(--accent);color:#211d13;font-size:1rem;font-weight:800}
 .token-nav{grid-template-columns:1fr 1fr 1fr}.compare-inline.active{border-color:var(--accent);color:var(--accent)}
+.pose-authoring{display:grid;gap:10px;margin-left:58px;padding:10px;border:1px solid var(--border);border-radius:10px;background:rgba(255,255,255,.025)}.pose-authoring header,.authoring-actions{display:flex;align-items:center;justify-content:space-between;gap:8px}.pose-authoring header div{display:grid;gap:2px}.pose-authoring header b{font-size:.68rem}.pose-authoring header small,.authoring-actions span{color:var(--text-dim);font-size:.56rem}.pose-authoring label{display:grid;grid-template-columns:54px 1fr 38px;align-items:center;gap:6px;color:#8f98ad;font-size:.58rem}.pose-authoring select{grid-column:2/4;padding:6px;border:1px solid var(--border);border-radius:6px;background:#242438;color:var(--text);font-size:.62rem}.pose-authoring input{width:100%;accent-color:var(--accent)}.pose-authoring output{color:var(--accent);font:600 .58rem monospace;text-align:right}.timeline-row{display:grid;grid-template-columns:1fr 40px auto;align-items:end;gap:6px}.timeline-row label{display:grid;grid-template-columns:1fr;gap:4px}.keyframe-strip{position:relative;height:6px;border-radius:4px;background:rgba(255,255,255,.08)}.keyframe-strip i{position:absolute;top:-3px;width:4px;height:12px;border-radius:2px;background:var(--accent);transform:translateX(-2px)}
+.panel-body{width:min(430px,calc(100vw - 28px));padding:16px}.token-nav{grid-template-columns:1fr 1fr}.section-tabs{position:sticky;z-index:3;top:-16px;background:#242438;box-shadow:0 7px 14px rgba(20,20,32,.5)}.settings-section{padding:2px 1px 8px}.setting-block{padding:9px;border:1px solid rgba(255,255,255,.045);border-radius:9px;background:rgba(255,255,255,.018)}
 </style>

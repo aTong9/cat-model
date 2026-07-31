@@ -128,7 +128,7 @@ function prepareExportClone(root) {
   }
 }
 
-function inspectRoundTrip(gltf, expectedTraits) {
+function inspectRoundTrip(gltf, expectedTraits, expectedAnimations = []) {
   let meshes = 0
   let materials = 0
   const materialSet = new Set()
@@ -156,7 +156,18 @@ function inspectRoundTrip(gltf, expectedTraits) {
   if (!Array.isArray(socketNames) || !socketNames.length) errors.push('roundtrip-missing-socket-metadata')
   if (expectedTraits?.gear && !equipmentAttachment) errors.push('roundtrip-missing-equipment-attachment')
   if (equipmentAttachment && !socketNames.includes(equipmentAttachment.socket)) errors.push('roundtrip-invalid-equipment-socket')
-  return { valid: errors.length === 0, errors, schemaVersion: traits?.schemaVersion, generatorVersion: traits?.generatorVersion, seed: traits?.seed, morphology: traits?.morphology ?? null, identity: traits?.identity ?? null, socketNames, equipmentAttachment, stats: { meshes, materials, animations: gltf.animations.length } }
+  const animationNames = gltf.animations.map(clip => clip.name)
+  for (const name of expectedAnimations) {
+    const clip = THREE.AnimationClip.findByName(gltf.animations, name)
+    if (!clip) errors.push(`roundtrip-missing-animation:${name}`)
+    else if (!clip.tracks.length || !(clip.duration > 0)) errors.push(`roundtrip-invalid-animation:${name}`)
+  }
+  const compatibility = {
+    blender: { valid: expectedAnimations.every(name => animationNames.includes(name)), profile: 'glTF 2.0 actions' },
+    unity: { valid: expectedAnimations.every(name => animationNames.includes(name)), profile: 'Generic rig clips' },
+    unreal: { valid: expectedAnimations.every(name => animationNames.includes(name)), profile: 'skeletal/node animation sequences' },
+  }
+  return { valid: errors.length === 0, errors, animationNames, compatibility, schemaVersion: traits?.schemaVersion, generatorVersion: traits?.generatorVersion, seed: traits?.seed, morphology: traits?.morphology ?? null, identity: traits?.identity ?? null, socketNames, equipmentAttachment, stats: { meshes, materials, animations: gltf.animations.length } }
 }
 
 function disposeGltf(gltf) {
@@ -180,7 +191,7 @@ export async function exportCharacterGlb(root, options = {}) {
   progress('encode', 42)
   let arrayBuffer
   try {
-    arrayBuffer = await new GLTFExporter().parseAsync(exportClone.root, { binary: true, onlyVisible: true, trs: false })
+    arrayBuffer = await new GLTFExporter().parseAsync(exportClone.root, { binary: true, onlyVisible: true, trs: false, animations: options.animations ?? [] })
   } finally {
     exportClone.dispose()
   }
@@ -189,7 +200,7 @@ export async function exportCharacterGlb(root, options = {}) {
   progress('verify', 76)
   const { GLTFLoader } = await import('three/addons/loaders/GLTFLoader.js')
   const gltf = await new GLTFLoader().parseAsync(arrayBuffer, '')
-  const roundTrip = inspectRoundTrip(gltf, root.userData.catTraits)
+  const roundTrip = inspectRoundTrip(gltf, root.userData.catTraits, (options.animations ?? []).map(clip => clip.name))
   disposeGltf(gltf)
   if (!roundTrip.valid) throw new Error(`GLB 回读检查失败：${roundTrip.errors.join(', ')}`)
   progress('complete', 100)

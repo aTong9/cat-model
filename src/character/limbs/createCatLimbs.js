@@ -8,7 +8,7 @@ function createFurJointCover(radius, material, name, scale = [1, 1, 1]) {
   return cover
 }
 
-function createSkinnedLimb({ name, upperVector, lowerVector, radii, material, radialSegments = 16 }) {
+function createSkinnedLimb({ name, upperVector, lowerVector, radii, material, jointNames = ['Shoulder', 'Elbow', 'Wrist'], radialSegments = 16 }) {
   const ringCount = 19
   const centers = [new THREE.Vector3(), upperVector.clone(), upperVector.clone().add(lowerVector)]
   const centerCurve = new THREE.CatmullRomCurve3(centers, false, 'catmullrom', 0.5)
@@ -64,12 +64,12 @@ function createSkinnedLimb({ name, upperVector, lowerVector, radii, material, ra
   geometry.computeBoundingSphere()
 
   const rootBone = new THREE.Bone()
-  rootBone.name = `${name}ShoulderBone`
+  rootBone.name = `${name}${jointNames[0]}Bone`
   const middleBone = new THREE.Bone()
-  middleBone.name = `${name}ElbowBone`
+  middleBone.name = `${name}${jointNames[1]}Bone`
   middleBone.position.copy(upperVector)
   const endBone = new THREE.Bone()
-  endBone.name = `${name}WristBone`
+  endBone.name = `${name}${jointNames[2]}Bone`
   endBone.position.copy(lowerVector)
   rootBone.add(middleBone)
   middleBone.add(endBone)
@@ -188,6 +188,7 @@ export function createFoot(side, { gradientMap, createHeart }) {
     lowerVector: shinVector,
     radii: [0.122, 0.098, 0.080],
     material: fur,
+    jointNames: ['Hip', 'Knee', 'Ankle'],
     radialSegments: 14,
   })
   hip.add(limb.surface)

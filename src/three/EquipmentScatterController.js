@@ -1,5 +1,6 @@
 import * as THREE from 'three'
 import { createEquipmentEffect } from '../character/equipment/EquipmentEffects.js'
+import { createEquipmentAnimationClips } from '../character/equipment/equipmentAnimation.js'
 
 const GROUND_Y = -0.52
 const GRAVITY = -9.8
@@ -38,6 +39,7 @@ export function createEquipmentScatterController({
   setControlsEnabled = () => {},
   dropTarget = null,
   onEquip = () => {},
+  onSelect = () => {},
   seed = 'liberty-cats-equipment-v1',
   now = () => performance.now(),
 }) {
@@ -52,8 +54,11 @@ export function createEquipmentScatterController({
   let draggedEntry = null
   let pointerDownAt = null
   let suppressClick = false
+  let selectedEntry = null
 
   function disposeEntry(entry) {
+    entry.mixer?.stopAllAction()
+    entry.mixer?.uncacheRoot(entry.group)
     entry.group.traverse(object => {
       object.geometry?.dispose?.()
       if (Array.isArray(object.material)) object.material.forEach(material => material.dispose?.())
@@ -63,6 +68,7 @@ export function createEquipmentScatterController({
   }
 
   function createAll() {
+    selectedEntry = null
     entries.forEach(disposeEntry)
     entries.length = 0
     const layoutRandom = createSeededRandom(seed)
@@ -99,7 +105,11 @@ export function createEquipmentScatterController({
         velocity: new THREE.Vector3(),
         angularVel: new THREE.Vector3(),
         effect: null,
+        animations: createEquipmentAnimationClips(group, id),
+        mixer: new THREE.AnimationMixer(group),
       })
+      const entry = entries.at(-1)
+      entry.mixer.clipAction(THREE.AnimationClip.findByName(entry.animations, group.userData.animationRig.defaultClip)).play()
     })
   }
 
@@ -129,6 +139,7 @@ export function createEquipmentScatterController({
     const hit = raycaster.intersectObjects(meshes, false)[0]
     const entry = entries[hit?.object.userData.__scatterEntryIndex]
     if (!entry) return false
+    selectEntry(entry)
     triggerEffect(entry)
     return true
   }
@@ -153,6 +164,7 @@ export function createEquipmentScatterController({
     const entry = pick(clientX, clientY)
     if (!entry || !raycaster.ray.intersectPlane(groundPlane, dragPoint)) return false
     draggedEntry = entry
+    selectEntry(entry)
     pointerDownAt = { x: clientX, y: clientY }
     dragOffset.copy(entry.group.position).sub(dragPoint)
     entry.velocity.set(0, 0, 0)
@@ -218,9 +230,28 @@ export function createEquipmentScatterController({
     return true
   }
 
+  function selectEntry(entry) {
+    selectedEntry = entry ?? null
+    onSelect(selectedEntry)
+    return selectedEntry
+  }
+
+  function getSelectedEntry() { return selectedEntry }
+
+  function playAnimation(name = 'Semantic') {
+    if (!selectedEntry) return false
+    const resolvedName = name === 'Semantic' ? selectedEntry.group.userData.animationRig.defaultClip : name
+    const clip = THREE.AnimationClip.findByName(selectedEntry.animations, resolvedName)
+    if (!clip) return false
+    selectedEntry.mixer.stopAllAction()
+    selectedEntry.mixer.clipAction(clip).reset().play()
+    return true
+  }
+
   function update(deltaSeconds) {
     const dt = Math.min(deltaSeconds, 0.1)
     entries.forEach(entry => {
+      entry.mixer.update(dt)
       if (entry === draggedEntry) return
       if (entry.effect?.update(dt)) { entry.effect.dispose(); entry.effect = null }
       const speed = entry.velocity.length()
@@ -253,5 +284,5 @@ export function createEquipmentScatterController({
     entries.length = 0
   }
 
-  return Object.freeze({ createAll, cast, kickById, startDrag, moveDrag, endDrag, setEquippedId, consumeSuppressedClick, triggerEffect, update, dispose, entries })
+  return Object.freeze({ createAll, cast, kickById, startDrag, moveDrag, endDrag, setEquippedId, consumeSuppressedClick, triggerEffect, selectEntry, getSelectedEntry, playAnimation, update, dispose, entries })
 }

@@ -17,6 +17,9 @@ import { createRenderQualityController } from '../three/RenderQualityController.
 import { createEquipmentScatterController } from '../three/EquipmentScatterController.js'
 import * as THREE from 'three'
 import { getNextPoseId } from '../config/poses.js'
+import { TransformControls } from 'three/addons/controls/TransformControls.js'
+import { applyPose, resolvePoseChannel } from '../character/animation/poseAuthoring.js'
+import { applyEquipmentTransform, captureEquipmentTransform } from '../character/equipment/equipmentAnimation.js'
 
 const store = useCatStore()
 const canvasRef = ref(null)
@@ -27,6 +30,7 @@ let qualityController
 let equipmentScatterController
 let catAssembly
 let catModel
+let poseTransformControls
 let clock
 let animId
 let specialGroup
@@ -115,6 +119,22 @@ onMounted(async () => {
   canvas.__catAssembly = catAssembly
   canvas.__beginCharacterCapture = beginCharacterCapture
   scene.add(catAssembly.root)
+  poseTransformControls = new TransformControls(camera, canvas)
+  poseTransformControls.setMode('rotate')
+  poseTransformControls.setSize(.72)
+  poseTransformControls.visible = store.poseAuthoringEnabled
+  poseTransformControls.addEventListener('dragging-changed', event => { controls.enabled = !event.value })
+  poseTransformControls.addEventListener('objectChange', () => {
+    const object = poseTransformControls.object
+    if (!object) return
+    if (store.equipmentAuthoringEnabled) {
+      const entry = equipmentScatterController?.getSelectedEntry()
+      const transform = captureEquipmentTransform(entry?.group)
+      if (transform) store.setEquipmentTransform(transform)
+    } else store.setPoseChannelRotation(store.selectedPoseChannel, object.rotation.toArray().slice(0, 3))
+  })
+  scene.add(poseTransformControls)
+  if (store.poseAuthoringEnabled) poseTransformControls.attach(resolvePoseChannel(catModel.registry, store.selectedPoseChannel))
   specialGroup = new THREE.Group()
   scene.add(specialGroup)
   applyBackground(store.background)
@@ -129,9 +149,16 @@ onMounted(async () => {
     setControlsEnabled: enabled => { if (controls) controls.enabled = enabled },
     dropTarget: catModel.group,
     onEquip: id => { store.gearType = id },
+    onSelect: entry => {
+      store.selectedEquipmentId = entry?.id ?? null
+      const transform = captureEquipmentTransform(entry?.group)
+      if (transform) store.setEquipmentTransform(transform)
+      syncTransformControls()
+    },
   })
   equipmentScatterController.createAll()
   equipmentScatterController.setEquippedId(store.gearType)
+  canvas.__equipmentScatterController = equipmentScatterController
 
   clock = new THREE.Clock()
   window.addEventListener('cat:set-camera-view', onCameraView)
@@ -162,8 +189,11 @@ onUnmounted(() => {
   catAssembly?.dispose()
   renderer?.dispose()
   controls?.dispose()
+  poseTransformControls?.dispose?.()
+  poseTransformControls?.removeFromParent?.()
   weatherController?.dispose()
   equipmentScatterController?.dispose()
+  if (canvasRef.value) delete canvasRef.value.__equipmentScatterController
   disposeObject3DResources(specialGroup)
   specialGroup?.removeFromParent()
   specialGroup = null
@@ -249,6 +279,35 @@ watch(() => store.qualityMode, (value) => {
   updateSize?.()
 })
 watch(() => [store.stageStyle, store.stageScale, store.stageHeight, store.stageTextureUrl], ([style, scale, height, textureUrl]) => setStage?.({ style, scale, height, textureUrl }))
+watch(() => [store.poseAuthoringEnabled, store.selectedPoseChannel], ([enabled, channelId]) => {
+  if (enabled) store.equipmentAuthoringEnabled = false
+  syncTransformControls()
+})
+watch(() => store.equipmentAuthoringEnabled, enabled => {
+  if (enabled) store.poseAuthoringEnabled = false
+  syncTransformControls()
+})
+watch(() => store.equipmentAnimation, name => equipmentScatterController?.playAnimation(name))
+watch(() => store.equipmentTransform, transform => {
+  if (!store.equipmentAuthoringEnabled) return
+  applyEquipmentTransform(equipmentScatterController?.getSelectedEntry()?.group, transform)
+}, { deep: true })
+
+function syncTransformControls() {
+  if (!poseTransformControls || !catModel) return
+  if (store.equipmentAuthoringEnabled) {
+    const bone = equipmentScatterController?.getSelectedEntry()?.group?.equipmentAnimationRig?.motionBone
+    poseTransformControls.visible = Boolean(bone)
+    if (bone) poseTransformControls.attach(bone)
+    else poseTransformControls.detach()
+  } else if (store.poseAuthoringEnabled) {
+    poseTransformControls.visible = true
+    poseTransformControls.attach(resolvePoseChannel(catModel.registry, store.selectedPoseChannel))
+  } else {
+    poseTransformControls.visible = false
+    poseTransformControls.detach()
+  }
+}
 
 function applyBackground(name) {
   environmentController?.setBackground(name)
@@ -398,6 +457,7 @@ function animate() {
 
   updateCharacterMovement(dt)
   catModel?.update(t)
+  if (store.poseAuthoringEnabled && catModel) applyPose(catModel.registry, store.customPose)
   if (cameraTransition) {
     const blend = 1 - Math.exp(-8 * dt)
     camera.position.lerp(cameraTransition.position, blend)
@@ -413,6 +473,7 @@ function animate() {
 
   // 装备物理
   equipmentScatterController?.update(dt)
+  if (store.equipmentAuthoringEnabled) applyEquipmentTransform(equipmentScatterController?.getSelectedEntry()?.group, store.equipmentTransform)
   weatherController?.update(dt)
 
   // 雨滴动画

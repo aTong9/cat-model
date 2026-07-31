@@ -1,5 +1,6 @@
 import * as THREE from 'three'
 import { RoundedBoxGeometry } from 'three/addons/geometries/RoundedBoxGeometry.js'
+import { installEquipmentAnimationRig } from '../character/equipment/equipmentAnimation.js'
 
 const loader = new THREE.TextureLoader()
 const cache = {}
@@ -53,10 +54,10 @@ export const GEAR_MODEL_SPECS = {
   'Gold Round Glasses': { reference: '/equipment/GoldRoundGlasses.png', socket: 'face-eyes', collider: { type: 'box', size: [0.48, 0.22, 0.06] } },
   'Good Luck Gold Bar': { reference: '/equipment/GoodLuckGoldBar.png', socket: 'paw-left', collider: { type: 'box', size: [0.21, 0.36, 0.08] } },
   'Hiking Backpack': { reference: '/equipment/HikingBackpack.png', socket: 'back', collider: { type: 'box', size: [0.30, 0.42, 0.16] } },
-  'Hot Coffee': { reference: '/equipment/HotCoffee.png', socket: 'paw-left', collider: { type: 'cylinder', radius: 0.08, height: 0.25 } },
-  'Investment Book': { reference: '/equipment/InvestmentBook.png', socket: 'paw-left', collider: { type: 'box', size: [0.30, 0.06, 0.24] } },
-  'Ramen': { reference: '/equipment/Ramen.png', socket: 'paw-left', collider: { type: 'cylinder', radius: 0.16, height: 0.22 } },
-  'Sake': { reference: '/equipment/Sake.png', socket: 'paw-left', collider: { type: 'compound', parts: ['bottle', 'cup'] } },
+  'Hot Coffee': { reference: '/equipment/HotCoffee.png', socket: 'head-top', collider: { type: 'cylinder', radius: 0.08, height: 0.25 } },
+  'Investment Book': { reference: '/equipment/InvestmentBook.png', socket: 'head-top', collider: { type: 'box', size: [0.30, 0.06, 0.24] } },
+  'Ramen': { reference: '/equipment/Ramen.png', socket: 'head-top', collider: { type: 'cylinder', radius: 0.16, height: 0.22 } },
+  'Sake': { reference: '/equipment/Sake.png', socket: 'head-top', collider: { type: 'compound', parts: ['bottle', 'cup'] } },
   'Wealth Gold Bar': { reference: '/equipment/WealthGoldBar.png', socket: 'paw-left', collider: { type: 'box', size: [0.22, 0.38, 0.12] } },
 }
 
@@ -86,6 +87,7 @@ function decorateGearModel(type, root) {
     value: { parts, sockets: { attachment: spec.socket }, colliders: [root.userData.collider] },
     configurable: true,
   })
+  installEquipmentAnimationRig(root, type)
   return root
 }
 

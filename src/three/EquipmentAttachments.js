@@ -1,13 +1,13 @@
 export const EQUIPMENT_ATTACHMENTS = Object.freeze({
   'Baseball Cap': { socket: 'head-top', position: [0, -0.015, -0.015], rotation: [-0.16, 0, 0], scale: 0.82 },
   'Gold Round Glasses': { socket: 'face-eyes', position: [0, 0, 0], rotation: [0, 0, 0], scale: 0.94 },
-  'Hot Coffee': { socket: 'paw-left', position: [0.015, -0.005, 0.015], rotation: [0.08, -0.22, 0.04], scale: 1.05 },
-  'Investment Book': { socket: 'paw-left', position: [0.005, 0.005, 0.010], rotation: [0.04, -0.32, -0.10], scale: 1.05 },
-  'Ramen': { socket: 'paw-left', position: [0.010, 0.015, 0.005], rotation: [0.10, -0.18, 0.04], scale: 0.82 },
+  'Hot Coffee': { socket: 'head-top', position: [-0.20, 0.18, 0.02], rotation: [0, -0.12, -0.05], scale: 0.92 },
+  'Investment Book': { socket: 'head-top', position: [0, 0.20, 0.01], rotation: [0.02, -0.08, -0.08], scale: 0.88 },
+  'Ramen': { socket: 'head-top', position: [0, 0.20, 0.01], rotation: [0, -0.08, 0], scale: 0.74 },
   'Camera': { socket: 'chest-front', position: [0, 0, 0], rotation: [0, 0, 0], scale: 0.115 },
   'Hiking Backpack': { socket: 'back', position: [0, 0, 0], rotation: [0, Math.PI, 0], scale: 0.92 },
   'Good Luck Gold Bar': { socket: 'paw-left', position: [0, 0, 0], rotation: [0.04, -0.28, -0.12], scale: 1.06 },
-  'Sake': { socket: 'paw-left', position: [0.01, -0.01, 0.01], rotation: [0.08, -0.25, 0.04], scale: 1.28 },
+  'Sake': { socket: 'head-top', position: [0.20, 0.19, 0.02], rotation: [0, -0.16, 0.06], scale: 1.02 },
   'Wealth Gold Bar': { socket: 'paw-left', position: [0, 0, 0], rotation: [0.04, -0.28, -0.12], scale: 1.06 },
 })
 
