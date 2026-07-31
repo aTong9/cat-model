@@ -13,7 +13,7 @@ export class CatAnimator {
   }
 
   setAnimation(mode = 'standing') {
-    this.mode = mode === 'flex' || mode === 'crouch' ? mode : normalizePoseId(mode)
+    this.mode = this.strategies.has(mode) || mode === 'flex' || mode === 'crouch' ? mode : normalizePoseId(mode)
   }
 
   setRunSpeed(speed = 1) {

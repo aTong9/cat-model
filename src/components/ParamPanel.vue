@@ -101,6 +101,12 @@
 
         <section v-else class="settings-section">
           <SettingBlock title="姿势"><div class="choice-grid two"><button v-for="item in ACTIONS" :key="item.id" class="choice pose-choice" :class="{ active: store.actionMode === item.id }" :title="item.description" @click="store.actionMode = item.id"><b>{{ item.label }}</b><small>{{ item.description }}</small></button></div></SettingBlock>
+          <SettingBlock title="Pack 5">
+            <div class="emoji-pack">
+              <figure v-if="selectedEmojiAction" class="emoji-preview"><img :src="selectedEmojiAction.preview" :alt="`${selectedEmojiAction.label} 动作参考`"><figcaption><b>{{ selectedEmojiAction.label }}</b><small>{{ selectedEmojiAction.description }}</small></figcaption></figure>
+              <div class="emoji-action-grid"><button v-for="item in EMOJI_ACTIONS" :key="item.id" class="choice" :class="{ active: store.actionMode === item.id }" :title="item.description" @click="store.actionMode = item.id">{{ item.label }}</button></div>
+            </div>
+          </SettingBlock>
           <div class="pose-authoring">
             <header><div><b>动作编辑 API</b><small>拖动视口旋转环，或精确调整参数</small></div><button class="btn" :class="{ active: store.poseAuthoringEnabled }" @click="store.poseAuthoringEnabled = !store.poseAuthoringEnabled">{{ store.poseAuthoringEnabled ? '退出编辑' : '开始编辑' }}</button></header>
             <template v-if="store.poseAuthoringEnabled">
@@ -125,12 +131,14 @@ import { useCatStore, FUR_PRESETS, EYE_STYLES, FACE_EXPRESSIONS, GEAR_LIST, BACK
 import ComparisonPanel from './ComparisonPanel.vue'
 import { QUALITY_MODES } from '../three/RenderQualityController.js'
 import { POSE_CHANNELS } from '../character/animation/poseAuthoring.js'
+import { EMOJI_ACTIONS, getEmojiAction } from '../config/emojiActions.js'
 const store = useCatStore()
 const tokenQuery = ref(String(store.tokenId))
 const activeTab = ref('look')
 const traitQuery = ref('')
 const stageTextureName = ref('')
 const equipmentAnimations = [{ id: 'Semantic', label: '语义专属' }, { id: 'Hover', label: '悬浮' }, { id: 'Spin', label: '旋转' }, { id: 'Pulse', label: '脉冲' }]
+const selectedEmojiAction = computed(() => getEmojiAction(store.actionMode) ?? EMOJI_ACTIONS[0])
 const searchIndex = [
   { id: 'body', tab: 'body', label: '体型与比例' }, { id: 'fur', tab: 'look', label: '毛色外观' },
   { id: 'eyes', tab: 'look', label: '眼睛表情' }, { id: 'gear', tab: 'gear', label: '装备饰品' },
@@ -166,6 +174,7 @@ const SettingBlock = defineComponent({
 .panel-enter-active,.panel-leave-active{transition:opacity .22s,transform .28s}.panel-enter-from,.panel-leave-to{opacity:0;transform:translateX(28px)}@media(max-width:700px){.right-panel{top:auto;right:8px;bottom:68px;left:8px;align-items:stretch}.quick-tools{display:none}.panel-body{width:100%;max-height:min(68vh,620px);padding:14px;border-radius:18px 18px 12px 12px}.panel-toggle{align-self:flex-end;width:154px}.setting-block{grid-template-columns:42px 1fr}.choice-grid{grid-template-columns:repeat(2,minmax(0,1fr))}.keyboard-help{margin-left:52px}.reference-card img{max-height:145px}.panel-enter-from,.panel-leave-to{transform:translateY(28px)}}
 .token-nav{display:grid;grid-template-columns:1fr 1fr;gap:7px;margin-top:8px}.token-nav .btn{min-height:32px;color:#b6bed0;font-size:.68rem}
 .pose-choice{display:grid;gap:3px;text-align:left}.pose-choice b{font-size:.68rem}.pose-choice small{color:#7f899f;font-size:.56rem;line-height:1.3}.pose-choice.active small{color:rgba(26,26,46,.72)}.pose-hint{margin-left:58px;color:#7f899f;font-size:.62rem}
+.emoji-pack{display:grid;gap:8px}.emoji-preview{display:grid;grid-template-columns:72px 1fr;align-items:center;gap:10px;overflow:hidden;margin:0;padding:7px;border:1px solid rgba(245,211,61,.22);border-radius:10px;background:rgba(245,211,61,.055)}.emoji-preview img{width:72px;height:72px;border-radius:7px;object-fit:cover;image-rendering:pixelated}.emoji-preview figcaption{display:grid;gap:4px}.emoji-preview b{color:#f4f5f8;font-size:.72rem}.emoji-preview small{color:#8f98ac;font-size:.6rem;line-height:1.45}.emoji-action-grid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:5px}.emoji-action-grid .choice{min-height:30px;padding:4px;font-size:.61rem}
 .trait-audit{margin-top:11px;border:1px solid var(--border);border-radius:9px;background:rgba(255,255,255,.025)}.trait-audit summary{display:flex;justify-content:space-between;padding:9px 10px;cursor:pointer;color:#aeb5c8;font-size:.65rem}.trait-audit summary b{color:#8590a6;font-weight:500}.trait-audit ul{display:grid;gap:7px;padding:2px 10px 10px;list-style:none}.trait-audit li{display:grid;grid-template-columns:8px 1fr auto;align-items:center;gap:7px;color:#c8ccda;font-size:.62rem}.trait-audit li i{width:7px;height:7px;border-radius:50%}.trait-audit li i.implemented{background:#68d391}.trait-audit li i.partial{background:#f5d33d}.trait-audit li span b{margin-right:6px;color:#7f899f;font-weight:500}.trait-audit li em{color:#8c96aa;font-style:normal}.trait-audit li small{grid-column:2/4;color:#687288;line-height:1.35}
 .section-tabs{grid-template-columns:repeat(5,1fr)}
 .section-tabs{grid-template-columns:repeat(6,1fr)}.editor-tools{display:flex;gap:6px;margin-top:10px}.identity-editor input,.identity-editor textarea{width:100%;padding:8px;border:1px solid var(--border);border-radius:7px;background:rgba(255,255,255,.055);color:var(--text)}.identity-editor label{display:grid;gap:5px;color:#9ba4b8;font-size:.68rem}.conflict-note{padding:8px;border:1px solid rgba(245,211,61,.3);border-radius:7px;color:#e7d878;font-size:.65rem}

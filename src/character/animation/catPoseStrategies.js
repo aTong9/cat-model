@@ -1,5 +1,5 @@
 export function createCatPoseStrategies(rig) {
-  return {
+  const strategies = {
     'run': time => updateRun(rig, time),
     'flex': time => updateFlex(rig, time),
     'crouch': time => updateCrouch(rig, time),
@@ -9,6 +9,108 @@ export function createCatPoseStrategies(rig) {
     'stretch': time => updateStretch(rig, time),
     'wave': time => updateWave(rig, time),
   }
+  for (const id of EMOJI_POSE_IDS) strategies[id] = time => updateEmojiPose(rig, id, time)
+  return strategies
+}
+
+export const EMOJI_POSE_IDS = Object.freeze([
+  'emoji-abs', 'emoji-jump-rope', 'emoji-dumbbells', 'emoji-pull-up',
+  'emoji-bench-press', 'emoji-hula-hoop', 'emoji-boxing', 'emoji-so-cute',
+  'emoji-yoga', 'emoji-foodie', 'emoji-backflip', 'emoji-snowboarding',
+  'emoji-snow-fight', 'emoji-snowball', 'emoji-so-cold', 'emoji-so-comfy',
+])
+
+function setLimb(rig, partId, root = [0, 0, 0], middle = [0, 0, 0], end = [0, 0, 0]) {
+  const part = rig.parts[partId === 'arm-left' ? 'armLeft' : partId === 'arm-right' ? 'armRight' : partId === 'leg-left' ? 'legLeft' : 'legRight']
+  if (part) part.rotation.set(...root)
+  const joints = rig.getJointsFor(part)
+  const mid = joints.elbow ?? joints.knee
+  const tip = joints.wrist ?? joints.ankle
+  if (mid) mid.rotation.set(...middle)
+  if (tip) tip.rotation.set(...end)
+}
+
+function updateEmojiPose(rig, id, time) {
+  const s = Math.sin(time * 4.2)
+  const fast = Math.sin(time * 8.4)
+  rig.root.scale.set(1, 1, 1)
+  if (rig.parts.head) rig.parts.head.rotation.set(0, 0, 0)
+  const arms = (left, right = left) => {
+    setLimb(rig, 'arm-left', left[0], left[1], left[2])
+    setLimb(rig, 'arm-right', right[0], right[1], right[2])
+  }
+  const legs = (left, right = left) => {
+    setLimb(rig, 'leg-left', left[0], left[1], left[2])
+    setLimb(rig, 'leg-right', right[0], right[1], right[2])
+  }
+  if (id === 'emoji-abs') {
+    rig.root.scale.set(1.03, .96 + Math.abs(s) * .04, 1.02)
+    arms([[-.15,0,-.85],[.35,0,-.45],[-.1,0,0]], [[-.15,0,.85],[.35,0,.45],[-.1,0,0]])
+    legs([[-.2,0,-.08],[.55,0,0],[-.25,0,0]], [[-.2,0,.08],[.55,0,0],[-.25,0,0]])
+  } else if (id === 'emoji-jump-rope') {
+    rig.root.scale.set(1, 1 + Math.abs(fast) * .035, 1)
+    arms([[.05,0,-.28],[.16,0,-.12],[0,0,s*.35]], [[.05,0,.28],[.16,0,.12],[0,0,-s*.35]])
+    legs([[-.12,0,0],[.25,0,0],[-.16,0,0]])
+  } else if (id === 'emoji-dumbbells') {
+    arms([[0,0,-.5],[.18,0,-.75-s*.18],[0,0,-.1]], [[0,0,.5],[.18,0,.75+s*.18],[0,0,.1]])
+    legs([[0,0,-.04],[.08,0,0],[-.05,0,0]], [[0,0,.04],[.08,0,0],[-.05,0,0]])
+  } else if (id === 'emoji-pull-up') {
+    arms([[-.2,0,-1.5],[.15,0,-.25],[0,0,0]], [[-.2,0,1.5],[.15,0,.25],[0,0,0]])
+    legs([[-.35,0,-.08],[.72+Math.abs(s)*.15,0,0],[-.35,0,0]], [[-.35,0,.08],[.72+Math.abs(s)*.15,0,0],[-.35,0,0]])
+  } else if (id === 'emoji-bench-press') {
+    if (rig.parts.head) rig.parts.head.rotation.x = .18
+    arms([[-.45,0,-.75],[.1,0,-.55+s*.25],[0,0,0]], [[-.45,0,.75],[.1,0,.55-s*.25],[0,0,0]])
+    legs([[-.2,0,-.1],[.45,0,0],[-.2,0,0]], [[-.2,0,.1],[.45,0,0],[-.2,0,0]])
+  } else if (id === 'emoji-hula-hoop') {
+    rig.root.scale.set(1.02+s*.025, .99, 1.02-s*.02)
+    if (rig.parts.head) rig.parts.head.rotation.z = -s*.07
+    arms([[0,0,-.7],[.2,0,-.2],[0,0,0]], [[0,0,.7],[.2,0,.2],[0,0,0]])
+    legs([[0,0,-.08+s*.08],[.1,0,0]], [[0,0,.08+s*.08],[.1,0,0]])
+  } else if (id === 'emoji-boxing') {
+    const punch = Math.max(0, s)
+    arms([[-.35-punch*.35,0,-.55],[.4-punch*.3,0,-.35],[0,0,0]], [[-.35-(1-punch)*.35,0,.55],[.4-(1-punch)*.3,0,.35],[0,0,0]])
+    legs([[0,0,-.12],[.18,0,0]], [[0,0,.12],[.18,0,0]])
+  } else if (id === 'emoji-so-cute') {
+    if (rig.parts.head) rig.parts.head.rotation.set(-.05, 0, -.2+s*.025)
+    arms([[-.2,0,-1.05],[.5,0,-.5],[0,0,-.15]], [[-.2,0,1.05],[.5,0,.5],[0,0,.15]])
+    legs([[0,0,-.04],[.08,0,0]], [[0,0,.04],[.08,0,0]])
+  } else if (id === 'emoji-yoga') {
+    if (rig.parts.head) rig.parts.head.rotation.z = s*.025
+    arms([[-.15,0,-1.42],[.12,0,-.15]], [[-.15,0,1.42],[.12,0,.15]])
+    legs([[0,0,-.04],[.05,0,0]], [[-.45,0,.55],[1.0,0,.22],[-.45,0,0]])
+  } else if (id === 'emoji-foodie') {
+    if (rig.parts.head) rig.parts.head.rotation.x = .06+s*.035
+    arms([[0,0,-.12],[.15,0,-.1]], [[-.25,0,.75],[.55,0,.45],[-.15,0,.1]])
+    legs([[0,0,-.04],[.08,0,0]], [[0,0,.04],[.08,0,0]])
+  } else if (id === 'emoji-backflip') {
+    const tuck = (s + 1) * .5
+    rig.root.scale.set(1.02-tuck*.05, .98+tuck*.08, 1)
+    if (rig.parts.head) rig.parts.head.rotation.x = -.25+s*.18
+    arms([[-.25,0,-.75],[.45,0,-.25]], [[-.25,0,.75],[.45,0,.25]])
+    legs([[-.45,0,-.12],[.85+tuck*.2,0,0],[-.4,0,0]], [[-.45,0,.12],[.85+tuck*.2,0,0],[-.4,0,0]])
+  } else if (id === 'emoji-snowboarding') {
+    if (rig.parts.head) rig.parts.head.rotation.z = -s*.08
+    arms([[0,0,-.75+s*.08],[.15,0,-.1]], [[0,0,.75+s*.08],[.15,0,.1]])
+    legs([[-.25,0,-.16],[.62,0,0],[-.32,0,0]], [[-.25,0,.16],[.62,0,0],[-.32,0,0]])
+  } else if (id === 'emoji-snow-fight') {
+    if (rig.parts.head) rig.parts.head.rotation.y = -.12
+    arms([[0,0,-.35],[.25,0,-.2]], [[-.35,0,.65+s*.55],[.35,0,.25],[0,0,s*.15]])
+    legs([[0,0,-.1],[.15,0,0]], [[0,0,.1],[.15,0,0]])
+  } else if (id === 'emoji-snowball') {
+    if (rig.parts.head) rig.parts.head.rotation.x = .08
+    arms([[-.25,0,-.65],[.5,0,-.42+s*.08],[0,0,-s*.18]], [[-.25,0,.65],[.5,0,.42-s*.08],[0,0,s*.18]])
+    legs([[-.1,0,-.05],[.3,0,0]], [[-.1,0,.05],[.3,0,0]])
+  } else if (id === 'emoji-so-cold') {
+    if (rig.parts.head) rig.parts.head.rotation.z = fast*.035
+    arms([[-.15,0,-.55+fast*.04],[.58,0,-.42],[0,0,0]], [[-.15,0,.55+fast*.04],[.58,0,.42],[0,0,0]])
+    legs([[0,0,-.03+fast*.025],[.12,0,0]], [[0,0,.03+fast*.025],[.12,0,0]])
+  } else {
+    rig.root.scale.set(1.04, .91+Math.sin(time*1.5)*.008, 1.03)
+    if (rig.parts.head) rig.parts.head.rotation.set(.09, 0, s*.02)
+    arms([[.08,0,-.18],[.28,0,-.08]], [[.08,0,.18],[.28,0,.08]])
+    legs([[-.35,0,-.18],[.82,0,0],[-.4,0,0]], [[-.35,0,.18],[.82,0,0],[-.4,0,0]])
+  }
+  rig.updateTail(time, id === 'emoji-so-cold' ? .025 : .05, id === 'emoji-so-cold' ? 7 : 1.4)
 }
 
 function updateRun(rig, time) {
