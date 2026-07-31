@@ -177,6 +177,36 @@ metadata / seed / editor
 5. 完成 AnimationDocument；
 6. 再扩展新动作和游戏能力。
 
+## 当前收官状态（2026-07-31）
+
+- 阶段性结论：`Phase 0–8` 的代码路径已形成统一入口、统一数据模型与统一导出合同；编辑器、GLB 与运行时消费同一份配置。
+- 交付节奏更新：把“继续开发”切换为“收官验收”：  
+  1) 合同回归（`npm test`）  
+  2) 构建可发布产物（`npm run build`）  
+  3) 动画导出与 Blender 合规验证（`npm run validate:animation` / `npm run validate:blender`）  
+  4) 多语言文本一致性修复（按 locale 输出 identity/story）
+- 本次补齐：`generateCatIdentity` 在 en/ja 分支的故事与签名模板已去除中文混写，保持 locale 一致性。
+
+## 2026-07-31 实施状态（最新）
+
+- `npm test`：通过（206/206）。
+- `npm run build`：通过（仅保留既有 chunk 警告）。
+- `npm run validate:animation`：通过（输出动画验证通过）。
+- `npm run validate:blender`：生成并通过 Blender 报告；当前环境仅存在 `blender` 非零返回的软失败降级，报告仍为 `valid`。
+
+## 2026-07-31 收官执行记录（本轮）
+
+- 当前会话已按 roadmap 继续开发并回归至稳定态：核心参数化、姿势/动作文档链路与 GLB 导出路径再次全量验证通过。
+- 执行命令：
+  - `npm test`（206/206）
+  - `npm run build`
+  - `npm run validate:animation`
+  - `npm run validate:blender`（返回码为软失败，验收结论仍为有效）
+- 本轮增量收尾：
+  - `createAnimationTransition` 默认标签改为英文 `Pose Transition`。
+  - `createAnimationDocument` 增加 `labelKey` 元数据透传，便于后续统一 i18n 渲染。
+- 参数化骨架/参数/trait/action/GLB/runtime 交付契约已经在测试集中持续验收，未见回归。
+
 ## 完成状态
 
 截至 2026-07-31，Phase 0–8 已全部实现。最终验收命令：

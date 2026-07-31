@@ -1,6 +1,6 @@
 <template>
   <details class="matrix">
-    <summary><span>全部 Trait 实现矩阵</span><b>{{ totals.total }} 项 · {{ totals.partial }} 项待视觉验收</b></summary>
+    <summary><span>{{ t('matrix.title') }}</span><b>{{ totals.total }} {{ t('matrix.traitStatus', { count: totals.partial }) }}</b></summary>
     <div class="matrix-body">
       <section v-for="group in groups" :key="group.type">
         <header><b>{{ group.label }}</b><small>{{ group.items.length }}</small></header>
@@ -10,25 +10,34 @@
           </button>
         </div>
       </section>
-      <p><i class="implemented"></i>已实现 <i class="partial"></i>部分实现／待视觉验收</p>
+      <p><i class="implemented"></i>{{ t('matrix.implemented') }} <i class="partial"></i>{{ t('matrix.partial') }}</p>
     </div>
   </details>
 </template>
 
 <script setup>
 import { computed } from 'vue'
+import { useI18n } from 'vue-i18n'
 import { useCatStore } from '../stores/cat.js'
 import { BACKGROUND_TRAITS, EYE_STYLES, FACE_EXPRESSIONS, FUR_TRAITS, GEAR_TRAITS, SPECIAL_TRAITS } from '../config/traits.js'
 import { getTraitStatus } from '../core/traitStatus.js'
 const store = useCatStore()
+import { EYE_STYLE_OPTIONS, FACE_EXPRESSION_OPTIONS } from '../config/traits.js'
+const { t } = useI18n()
+const localizeOption = option => ({
+  id: option.id,
+  label: option.labelKey ? t(option.labelKey) : option.label,
+})
 const textItems = values => values.map(id => ({ id, label: id }))
+const localizeStyleOptions = options => options.map(item => ({ id: item.id, label: t(item.labelKey, item.id) }))
+
 const groups = [
-  { type: 'fur', label: '毛色 Fur', items: FUR_TRAITS.map(item => ({ id: item.id, label: item.label })) },
-  { type: 'eyes', label: '眼睛 Eyes', items: textItems(EYE_STYLES) },
-  { type: 'face', label: '表情 Face', items: textItems(FACE_EXPRESSIONS) },
-  { type: 'gear', label: '装备 Gear', items: GEAR_TRAITS.map(item => ({ id: item.id, label: item.label })) },
-  { type: 'background', label: '背景 Background', items: textItems(BACKGROUND_TRAITS) },
-  { type: 'special', label: '特殊场景 Special', items: SPECIAL_TRAITS.map(item => ({ id: item.id, label: item.label })) },
+  { type: 'fur', label: t('matrix.group.fur'), items: FUR_TRAITS.map(item => localizeOption(item)) },
+  { type: 'eyes', label: t('matrix.group.eyes'), items: localizeStyleOptions(EYE_STYLE_OPTIONS) },
+  { type: 'face', label: t('matrix.group.face'), items: localizeStyleOptions(FACE_EXPRESSION_OPTIONS) },
+  { type: 'gear', label: t('matrix.group.gear'), items: GEAR_TRAITS.map(item => localizeOption(item)) },
+  { type: 'background', label: t('matrix.group.background'), items: textItems(BACKGROUND_TRAITS) },
+  { type: 'special', label: t('matrix.group.special'), items: SPECIAL_TRAITS.map(item => localizeOption(item)) },
 ]
 const statusOf = (type, value) => getTraitStatus(type, value)
 const totals = computed(() => {

@@ -10,7 +10,9 @@ import {
   BACKGROUND_TRAITS,
   DEFAULT_TRAITS,
   EYE_STYLES,
+  EYE_STYLE_OPTIONS,
   FACE_EXPRESSIONS,
+  FACE_EXPRESSION_OPTIONS,
   FUR_TRAITS,
   GEAR_TRAITS,
   PRESET_CATS,
@@ -23,24 +25,25 @@ import { POSE_CHANNELS, createPoseDocument, upsertPoseKeyframe } from '../charac
 import { createEquipmentAnimationDocument, upsertEquipmentKeyframe } from '../character/equipment/equipmentAnimation.js'
 import { EMOJI_ACTION_IDS } from '../config/emojiActions.js'
 import { DEFAULT_ACTION_PARAMETERS, normalizeActionParameters } from '../character/animation/actionParameters.js'
+import { normalizeLocale, SUPPORT_LOCALES } from '../i18n/index.js'
 
 export const FUR_PRESETS = FUR_TRAITS
-export { EYE_STYLES, FACE_EXPRESSIONS, PRESET_CATS }
+export { EYE_STYLES, FACE_EXPRESSIONS, PRESET_CATS, EYE_STYLE_OPTIONS, FACE_EXPRESSION_OPTIONS }
 export const GEAR_LIST = GEAR_TRAITS
 export const BACKGROUNDS = BACKGROUND_TRAITS
 export const SPECIALS = SPECIAL_TRAITS
 export const ACTIONS = POSE_CONFIGS
 export const MORPHOLOGY_CONTROLS = MORPHOLOGY_PARAMETER_REGISTRY
 export const MORPHOLOGY_PRESETS = Object.freeze([
-  { id: 'pack5', label: 'Pack5 标准', values: { bodyScale: 1, bodyWidth: 1, bodyHeight: 1, bodyDepth: 1, headScale: 1, earScale: 1, legLength: 1, tailLength: 1, tailCurl: 0 } },
-  { id: 'classic', label: '经典长身', values: { bodyScale: .96, bodyWidth: .90, bodyHeight: 1.10, bodyDepth: 1.05, headScale: .96, earScale: 1, legLength: 1.08, tailLength: 1, tailCurl: 0 } },
-  { id: 'kitten', label: '幼猫', values: { bodyScale: .86, bodyWidth: .92, bodyHeight: .88, bodyDepth: .9, headScale: 1.2, earScale: 1.12, legLength: .88, tailLength: .9, tailCurl: .12 } },
-  { id: 'chubby', label: '圆滚滚', values: { bodyScale: 1.18, bodyWidth: 1.2, bodyHeight: .9, bodyDepth: 1.18, headScale: 1.08, earScale: .9, legLength: .84, tailLength: .92, tailCurl: .2 } },
-  { id: 'tall', label: '高挑', values: { bodyScale: .92, bodyWidth: .86, bodyHeight: 1.16, bodyDepth: .92, headScale: .9, earScale: 1.08, legLength: 1.24, tailLength: 1.18, tailCurl: -.05 } },
-  { id: 'big-head', label: '大头萌', values: { bodyScale: .94, bodyWidth: 1.04, bodyHeight: .9, bodyDepth: 1, headScale: 1.25, earScale: 1.04, legLength: .92, tailLength: .9, tailCurl: .18 } },
-  { id: 'wild', label: '野性', values: { bodyScale: 1.04, bodyWidth: .92, bodyHeight: 1.08, bodyDepth: .96, headScale: .94, earScale: 1.32, legLength: 1.14, tailLength: 1.38, tailCurl: -.35 } },
-  { id: 'compact', label: '短腿', values: { bodyScale: 1.08, bodyWidth: 1.12, bodyHeight: .82, bodyDepth: 1.08, headScale: 1.08, earScale: .92, legLength: .8, tailLength: 1.04, tailCurl: .35 } },
-  { id: 'elegant', label: '优雅', values: { bodyScale: .88, bodyWidth: .86, bodyHeight: 1.08, bodyDepth: .88, headScale: .92, earScale: 1.14, legLength: 1.18, tailLength: 1.32, tailCurl: .62 } },
+  { id: 'pack5', label: 'Pack5 标准', labelKey: 'panel.morphologyPresets.pack5', values: { bodyScale: 1, bodyWidth: 1, bodyHeight: 1, bodyDepth: 1, headScale: 1, earScale: 1, legLength: 1, tailLength: 1, tailCurl: 0 } },
+  { id: 'classic', label: '经典长身', labelKey: 'panel.morphologyPresets.classic', values: { bodyScale: .96, bodyWidth: .90, bodyHeight: 1.10, bodyDepth: 1.05, headScale: .96, earScale: 1, legLength: 1.08, tailLength: 1, tailCurl: 0 } },
+  { id: 'kitten', label: '幼猫', labelKey: 'panel.morphologyPresets.kitten', values: { bodyScale: .86, bodyWidth: .92, bodyHeight: .88, bodyDepth: .9, headScale: 1.2, earScale: 1.12, legLength: .88, tailLength: .9, tailCurl: .12 } },
+  { id: 'chubby', label: '圆滚滚', labelKey: 'panel.morphologyPresets.chubby', values: { bodyScale: 1.18, bodyWidth: 1.2, bodyHeight: .9, bodyDepth: 1.18, headScale: 1.08, earScale: .9, legLength: .84, tailLength: .92, tailCurl: .2 } },
+  { id: 'tall', label: '高挑', labelKey: 'panel.morphologyPresets.tall', values: { bodyScale: .92, bodyWidth: .86, bodyHeight: 1.16, bodyDepth: .92, headScale: .9, earScale: 1.08, legLength: 1.24, tailLength: 1.18, tailCurl: -.05 } },
+  { id: 'big-head', label: '大头萌', labelKey: 'panel.morphologyPresets.big-head', values: { bodyScale: .94, bodyWidth: 1.04, bodyHeight: .9, bodyDepth: 1, headScale: 1.25, earScale: 1.04, legLength: .92, tailLength: .9, tailCurl: .18 } },
+  { id: 'wild', label: '野性', labelKey: 'panel.morphologyPresets.wild', values: { bodyScale: 1.04, bodyWidth: .92, bodyHeight: 1.08, bodyDepth: .96, headScale: .94, earScale: 1.32, legLength: 1.14, tailLength: 1.38, tailCurl: -.35 } },
+  { id: 'compact', label: '短腿', labelKey: 'panel.morphologyPresets.compact', values: { bodyScale: 1.08, bodyWidth: 1.12, bodyHeight: .82, bodyDepth: 1.08, headScale: 1.08, earScale: .92, legLength: .8, tailLength: 1.04, tailCurl: .35 } },
+  { id: 'elegant', label: '优雅', labelKey: 'panel.morphologyPresets.elegant', values: { bodyScale: .88, bodyWidth: .86, bodyHeight: 1.08, bodyDepth: .88, headScale: .92, earScale: 1.14, legLength: 1.18, tailLength: 1.32, tailCurl: .62 } },
 ].map(preset => Object.freeze({
   ...preset,
   values: Object.freeze({
@@ -50,6 +53,27 @@ export const MORPHOLOGY_PRESETS = Object.freeze([
 })))
 
 const WEATHERS = ['sunny', 'cloudy', 'thunder', 'rain']
+const STORAGE_KEYS = Object.freeze({
+  language: 'liberty-cat-language',
+  theme: 'liberty-cat-theme',
+})
+
+function readStorageString(key, fallback, allowed = null) {
+  try {
+    const value = window?.localStorage?.getItem?.(key)
+    if (value == null) return fallback
+    if (allowed && !allowed.includes(value)) return fallback
+    return value
+  } catch {
+    return fallback
+  }
+}
+
+function writeStorageString(key, value) {
+  try {
+    window?.localStorage?.setItem?.(key, String(value))
+  } catch {}
+}
 
 export const useCatStore = defineStore('cat', () => {
   const defaultFur = getFurTrait(DEFAULT_TRAITS.fur)
@@ -91,18 +115,19 @@ export const useCatStore = defineStore('cat', () => {
   const cloudAmount = ref(.5)
   const fishAmount = ref(0)
   const musicOn = ref(false)
-  const language = ref('zh')
+  const language = ref(readStorageString(STORAGE_KEYS.language, 'zh', SUPPORT_LOCALES))
+  const theme = ref(readStorageString(STORAGE_KEYS.theme, 'midnight', ['midnight', 'neon', 'paper', 'dark']))
   const loading = ref(true)
   const loadingProgress = ref(0)
   const panelExpanded = ref(true)
   const workspaceMode = ref('create')
   const showHints = ref(true)
   const tokenLoading = ref(false)
-  const tokenError = ref('')
   const referenceImage = ref(null)
   const referenceImageFallback = ref(null)
   const referenceImageSource = ref('unavailable')
   const comparisonOpen = ref(false)
+  const tokenErrorMessage = ref({ key: '', values: null })
 
   const isSpecialFullScene = computed(() => SPECIALS.find(item => item.id === special.value)?.fullScene ?? false)
   const currentTraits = computed(() => createCatTraits({
@@ -131,7 +156,7 @@ export const useCatStore = defineStore('cat', () => {
     identity.value = { ...identity.value, [key]: key === 'personality' ? String(value).split(/[，,]/).map(item => item.trim()).filter(Boolean).slice(0, 5) : String(value ?? '') }
     recordEditorState()
   }
-  function generateIdentity() { identity.value = { ...generateCatIdentity(currentTraits.value, seed.value) }; recordEditorState() }
+  function generateIdentity() { identity.value = { ...generateCatIdentity(currentTraits.value, seed.value, { locale: language.value }) }; recordEditorState() }
   function applyTraits(input, { record = true } = {}) {
     const traits = createCatTraits(input)
     const fur = getFurTrait(traits.fur)
@@ -238,15 +263,17 @@ export const useCatStore = defineStore('cat', () => {
   async function loadToken(value) {
     const requested = String(value ?? '').trim()
     if (!/^\d+$/.test(requested)) {
-      tokenError.value = '请输入有效的 token ID'
+      tokenErrorMessage.value = { key: 'panel.loadError', values: null }
       return false
     }
     tokenLoading.value = true
-    tokenError.value = ''
+    tokenErrorMessage.value = { key: '', values: null }
     try {
       const token = await getTokenById(requested)
       if (!token) {
-        tokenError.value = requested === '4768' ? '#4768 已从项目范围排除' : `未找到 #${requested}`
+        tokenErrorMessage.value = requested === '4768'
+          ? { key: 'panel.tokenExcluded', values: { tokenId: requested } }
+          : { key: 'panel.tokenNotFound', values: { tokenId: requested } }
         return false
       }
       const fur = getFurTrait(token.fur || DEFAULT_TRAITS.fur)
@@ -268,7 +295,7 @@ export const useCatStore = defineStore('cat', () => {
       return true
     } catch (error) {
       console.warn(error)
-      tokenError.value = 'Token 数据加载失败'
+      tokenErrorMessage.value = { key: 'panel.tokenLoadFailed', values: null }
       return false
     } finally {
       tokenLoading.value = false
@@ -286,7 +313,16 @@ export const useCatStore = defineStore('cat', () => {
     workspaceMode.value = mode === 'verify' ? 'verify' : 'create'
     if (workspaceMode.value === 'verify' && referenceImage.value) comparisonOpen.value = true
   }
-  const setLanguage = lang => { language.value = lang }
+  const setLanguage = lang => {
+    const normalized = normalizeLocale(lang)
+    language.value = normalized
+    writeStorageString(STORAGE_KEYS.language, normalized)
+  }
+  const setTheme = mode => {
+    const normalized = ['midnight', 'neon', 'paper', 'dark'].includes(mode) ? mode : 'midnight'
+    theme.value = normalized
+    writeStorageString(STORAGE_KEYS.theme, normalized)
+  }
   function setPoseRotation(channelId, axis, value) {
     if (!customPose.value[channelId] || !['x', 'y', 'z'].includes(axis)) return
     const index = { x: 0, y: 1, z: 2 }[axis]
@@ -355,8 +391,8 @@ export const useCatStore = defineStore('cat', () => {
     furStyle, furColor, eyeStyle, gearType, faceExpression, background, special, actionMode, actionParameters, poseAuthoringEnabled, selectedPoseChannel, poseCursor, customPose, poseDocument, equipmentAuthoringEnabled, selectedEquipmentId, equipmentAnimation, equipmentCursor, equipmentTransform, equipmentPoseDocument, qualityMode, stageStyle, stageScale, stageHeight, stageTextureUrl, morphology, morphologyLocks, identity,
     tokenId, seed, activePreset, weather, lightIntensity, rainAmount, cloudAmount,
     fishAmount, musicOn, language, loading, loadingProgress, panelExpanded, workspaceMode, showHints,
-    tokenLoading, tokenError, referenceImage, referenceImageFallback, referenceImageSource, comparisonOpen,
-    isSpecialFullScene, currentTraits, canUndo, canRedo, undo, redo, setIdentity, generateIdentity, applyTraits, randomize, setFromSeed, cycleWeather, togglePanel, setWorkspaceMode, setLanguage,
+    tokenLoading, tokenError: tokenErrorMessage, referenceImage, referenceImageFallback, referenceImageSource, comparisonOpen,
+    isSpecialFullScene, currentTraits, canUndo, canRedo, undo, redo, setIdentity, generateIdentity, applyTraits, randomize, setFromSeed, cycleWeather, togglePanel, setWorkspaceMode, setLanguage, theme, setTheme,
     applyPreset, setFurStyle, setCustomFurColor, setBackground, setSpecial, setStageTexture, setActionParameter, resetActionParameters, setPoseRotation, setPoseChannelRotation, addPoseKeyframe, resetCustomPose, setEquipmentTransform, setEquipmentRotation, addEquipmentKeyframe, setMorphology, resetMorphology, applyMorphologyPreset, toggleMorphologyLock, loadToken, loadAdjacent,
   }
 })

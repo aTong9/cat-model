@@ -18,7 +18,7 @@ function finiteVector(value, fallback) {
 }
 
 export function createAnimationDocument({
-  id = 'custom-animation', label = '自定义动作', duration = 1, loop = true,
+  id = 'custom-animation', label = 'Custom Action', labelKey = null, duration = 1, loop = true,
   rootMotion = false, speed = 1, amplitude = 1, tracks = [], events = [],
 } = {}) {
   const knownChannels = new Set(POSE_CHANNELS.map(channel => channel.id))
@@ -49,7 +49,8 @@ export function createAnimationDocument({
   return Object.freeze({
     schemaVersion: ANIMATION_DOCUMENT_VERSION,
     id: String(id || 'custom-animation'),
-    label: String(label || '自定义动作'),
+    label: String(label || 'Custom Action'),
+    labelKey: labelKey ? String(labelKey) : null,
     duration: normalizedDuration,
     loop: Boolean(loop),
     rootMotion: Boolean(rootMotion),
@@ -89,6 +90,7 @@ export function animationDocumentToClip(input, registry) {
   const clip = new THREE.AnimationClip(document.id, document.duration / document.parameters.speed, tracks)
   clip.userData = {
     schemaVersion: document.schemaVersion,
+    labelKey: document.labelKey,
     label: document.label,
     loop: document.loop,
     rootMotion: document.rootMotion,
@@ -108,7 +110,7 @@ export function mirrorAnimationDocument(input) {
   return createAnimationDocument({
     ...document,
     id: `${document.id}-mirrored`,
-    label: `${document.label}（镜像）`,
+    label: `${document.label} (Mirror)`,
     tracks: document.tracks.map(track => ({
       ...track,
       channel: mirroredChannelId(track.channel),
@@ -169,10 +171,11 @@ export function blendAnimationDocuments(fromInput, toInput, weight = 0.5) {
   })
 }
 
-export function createAnimationTransition(fromPose, toPose, { id = 'pose-transition', label = '姿势过渡', duration = 0.25 } = {}) {
+export function createAnimationTransition(fromPose, toPose, { id = 'pose-transition', label = 'Pose Transition', duration = 0.25 } = {}) {
+  const resolvedLabel = String(label || 'Pose Transition')
   const channels = new Set([...Object.keys(fromPose?.channels ?? {}), ...Object.keys(toPose?.channels ?? {})])
   return createAnimationDocument({
-    id, label, duration, loop: false,
+    id, label: resolvedLabel, labelKey: 'animation.transition', duration, loop: false,
     tracks: [...channels].flatMap(channel => {
       const from = fromPose.channels?.[channel]
       const to = toPose.channels?.[channel]

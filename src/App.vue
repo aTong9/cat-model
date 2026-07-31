@@ -1,5 +1,5 @@
 <template>
-  <div class="app-root">
+  <div class="app-root" :data-theme="store.theme">
     <LoadingScreen />
     <CatCanvas />
     <CollectionDrawer />
@@ -7,16 +7,19 @@
     <MobileControls />
     <div class="brand-lockup">
       <span class="brand-mark">L</span>
-      <div><strong>LIBERTY CAT</strong><small>CHARACTER STUDIO</small></div>
+      <div>
+        <strong>{{ t('brand.catStudio') }}</strong>
+        <small>{{ t('brand.generatorTitle') }}</small>
+      </div>
     </div>
     <div class="mascot-note">
-      <img :src="catImage" alt="Liberty Cats 像素猫参考" />
-      <span>当前角色<br><b>#{{ store.tokenId.toString().padStart(4, '0') }}</b></span>
+      <img :src="catImage" :alt="t('app.referenceAlt')" />
+      <span>{{ t('app.currentCharacter') }}<br><b>#{{ store.tokenId.toString().padStart(4, '0') }}</b></span>
     </div>
     <div class="stage-caption" aria-live="polite">
-      <span>LIVE CHARACTER</span>
-      <strong>{{ store.identity.name || `Liberty Cat #${store.tokenId}` }}</strong>
-      <small>拖动旋转 · 滚轮缩放 · 点击切换姿势</small>
+      <span>{{ t('app.currentCharacter') }}</span>
+      <strong>{{ store.identity.name || t('app.characterDefaultName', { tokenId: store.tokenId }) }}</strong>
+      <small>{{ t('app.currentInstruction') }}</small>
     </div>
     <TopBar />
     <ParamPanel />
@@ -25,8 +28,10 @@
 </template>
 
 <script setup>
-import { onMounted } from 'vue'
+import { onMounted, watch } from 'vue'
 import { useCatStore } from './stores/cat.js'
+import { useI18n } from 'vue-i18n'
+import { normalizeLocale } from './i18n/index.js'
 import CatCanvas from './components/CatCanvas.vue'
 import TopBar from './components/TopBar.vue'
 import ParamPanel from './components/ParamPanel.vue'
@@ -40,6 +45,9 @@ import { parseShareQuery } from './core/shareCatConfig.js'
 const catImage = new URL('../pixel_cat_3d/cat.png', import.meta.url).href
 
 const store = useCatStore()
+const { t, locale } = useI18n()
+const onLanguageSync = () => { locale.value = normalizeLocale(store.language) }
+watch(() => store.language, onLanguageSync, { immediate: true })
 
 onMounted(() => {
   // 模拟加载过程
@@ -65,6 +73,8 @@ onMounted(() => {
     store.applyTraits(traits, { record: false })
   } else if (params.has('tokenId')) store.loadToken(params.get('tokenId'))
 })
+
+watch(() => store.theme, theme => { document.documentElement.dataset.theme = theme })
 </script>
 
 <style scoped>

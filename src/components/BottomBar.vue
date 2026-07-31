@@ -1,51 +1,63 @@
 <template>
   <div class="bottom-bar">
     <div class="bottom-inner glass">
-      <button class="btn random-btn" @click="store.randomize">随机生成</button>
+      <button class="btn random-btn" @click="store.randomize">{{ t('common.randomize') }}</button>
       <div class="divider"></div>
-      <button class="btn export-btn" :disabled="exporting" @click="runConfiguredExport"><span>{{ exporting ? exportLabel : '按配置导出' }}</span><i v-if="exporting" :style="{ width: `${exportProgress}%` }"></i></button>
-      <button class="btn" :disabled="exporting" @click="exportPNG">保存 PNG</button>
+      <button class="btn export-btn" :disabled="exporting" @click="runConfiguredExport"><span>{{ exporting ? exportLabel : t('panel.export.exportButton') }}</span><i v-if="exporting" :style="{ width: `${exportProgress}%` }"></i></button>
+      <button class="btn" :disabled="exporting" @click="exportPNG">{{ t('panel.export.png') }}</button>
       <details class="output-menu">
-        <summary class="btn">导出设置</summary>
+        <summary class="btn">{{ t('panel.export.exportApi') }}</summary>
         <div class="output-popover glass">
-          <header><b>EXPORT API</b><small>参数可复制并复用于批量任务</small></header>
-          <label>目标<select v-model="exportConfig.target"><option value="character">完整角色</option><option value="equipment">选中装备</option></select></label>
-          <label>预设<select v-model="exportConfig.preset" @change="applyExportPreset"><option v-for="preset in exportPresets" :key="preset.id" :value="preset.id">{{ preset.label }}</option></select></label>
-          <label class="check"><input v-model="exportConfig.includeBuiltInAnimations" type="checkbox" /> 默认动画</label>
-          <label class="check"><input v-model="exportConfig.includeCustomAnimation" type="checkbox" /> 自定义动画</label>
-          <label class="filename">文件名<input v-model.trim="exportConfig.filename" placeholder="留空则自动命名" /></label>
-          <button class="btn primary-export" @click="runConfiguredExport">执行 GLB 导出</button>
-          <button class="btn" @click="copyExportRequest">复制导出参数</button>
+          <header><b>{{ t('panel.export.exportApi') }}</b><small>{{ t('panel.export.exportHint') }}</small></header>
+          <label>{{ t('panel.export.target') }}<select v-model="exportConfig.target"><option value="character">{{ t('panel.export.targetCharacter') }}</option><option value="equipment">{{ t('panel.export.targetEquipment') }}</option></select></label>
+          <label>{{ t('panel.export.preset') }}<select v-model="exportConfig.preset" @change="applyExportPreset"><option v-for="preset in exportPresets" :key="preset.id" :value="preset.id">{{ preset.localizedLabel }}</option></select></label>
+          <label class="check"><input v-model="exportConfig.includeBuiltInAnimations" type="checkbox" /> {{ t('panel.export.includeBuiltinAnimations') }}</label>
+          <label class="check"><input v-model="exportConfig.includeCustomAnimation" type="checkbox" /> {{ t('panel.export.includeCustomAnimation') }}</label>
+          <label class="filename">{{ t('panel.export.filename') }}<input v-model.trim="exportConfig.filename" :placeholder="t('panel.export.filenameHint')" /></label>
+          <button class="btn primary-export" @click="runConfiguredExport">{{ t('panel.export.runExport') }}</button>
+          <button class="btn" @click="copyExportRequest">{{ t('panel.export.copyRequest') }}</button>
           <hr />
-          <button class="btn" @click="exportCharacterCard">角色卡 SVG</button>
-          <button class="btn" @click="exportProfile('transparent')">透明头像</button>
-          <button class="btn" @click="exportProfile('social')">社交头像</button>
-          <button class="btn" @click="exportTurnaround">正侧背三视图</button>
-          <button class="btn" @click="exportSelectedEquipment">导出选中装备 GLB</button>
-          <button class="btn" @click="copyConfig">{{ copied === 'config' ? '已复制参数' : '复制参数 JSON' }}</button>
-          <button class="btn" @click="copyShareUrl">{{ copied === 'url' ? '链接已复制' : '复制分享链接' }}</button>
+          <button class="btn" @click="exportCharacterCard">{{ t('panel.export.characterCard') }}</button>
+          <button class="btn" @click="exportProfile('transparent')">{{ t('panel.export.transparentProfile') }}</button>
+          <button class="btn" @click="exportProfile('social')">{{ t('panel.export.socialProfile') }}</button>
+          <button class="btn" @click="exportTurnaround">{{ t('panel.export.turnaround') }}</button>
+          <button class="btn" @click="exportSelectedEquipment">{{ t('panel.export.exportSelectedEquipment') }}</button>
+          <button class="btn" @click="copyConfig">{{ copied === 'config' ? t('panel.export.copyConfigDone') : t('panel.export.copyConfig') }}</button>
+          <button class="btn" @click="copyShareUrl">{{ copied === 'url' ? t('panel.export.shareCopied') : t('panel.export.copyShare') }}</button>
         </div>
       </details>
     </div>
-    <Transition name="toast"><div v-if="notice.text" class="export-notice glass" :class="notice.type" role="status" aria-live="polite"><b>{{ notice.type === 'success' ? '导出完成' : notice.type === 'error' ? '操作失败' : '正在处理' }}</b><span>{{ notice.text }}</span></div></Transition>
+    <Transition name="toast"><div v-if="notice.text" class="export-notice glass" :class="notice.type" role="status" aria-live="polite"><b>{{ notice.type === 'success' ? t('panel.notice.exportComplete') : notice.type === 'error' ? t('panel.notice.error') : t('panel.notice.exporting') }}</b><span>{{ notice.text }}</span></div></Transition>
   </div>
 </template>
 
 <script setup>
-import { ref } from 'vue'
+import { computed, ref } from 'vue'
 import { useCatStore } from '../stores/cat.js'
+import { useI18n } from 'vue-i18n'
 import { createShareUrl, serializeCatConfig } from '../core/shareCatConfig.js'
 import { EXPORT_PRESETS, createExportRequest, serializeExportRequest } from '../export/exportRequest.js'
 const store = useCatStore()
+const { t } = useI18n()
 const exporting = ref(false)
 const exportProgress = ref(0)
-const exportLabel = ref('正在准备…')
+const exportLabel = ref(t('panel.exportPreparing'))
 const notice = ref({ type: '', text: '' })
 const copied = ref('')
-const exportPresets = Object.values(EXPORT_PRESETS)
+const exportPresets = computed(() => Object.values(EXPORT_PRESETS).map(preset => ({
+  ...preset,
+  localizedLabel: t(preset.labelKey || preset.label) || preset.label || preset.id,
+})))
 const exportConfig = ref({ target: 'character', preset: 'game', includeBuiltInAnimations: true, includeCustomAnimation: true, includeMetadata: true, filename: '' })
 let noticeTimer
-const stageLabels = { audit: '检查角色…', pbr: '转换材质…', encode: '生成 GLB…', verify: '回读校验…', complete: '准备下载…' }
+const stageLabels = {
+  audit: t('panel.stageLabels.audit'),
+  pbr: t('panel.stageLabels.pbr'),
+  encode: t('panel.stageLabels.encode'),
+  verify: t('panel.stageLabels.verify'),
+  complete: t('panel.stageLabels.complete'),
+}
+
 function showNotice(type, text, duration = 3200) {
   clearTimeout(noticeTimer)
   notice.value = { type, text }
@@ -67,7 +79,7 @@ async function copyText(text, type) {
     setTimeout(() => { if (copied.value === type) copied.value = '' }, 1600)
   } catch (error) {
     console.warn('Copy failed', error)
-    showNotice('error', '复制失败，请检查浏览器权限')
+    showNotice('error', t('panel.errors.copyFail'))
   }
 }
 const copyConfig = () => copyText(serializeCatConfig(store.currentTraits), 'config')
@@ -86,10 +98,10 @@ async function exportGLB(request = createExportRequest(exportConfig.value)) {
   try {
     const canvas = document.querySelector('canvas')
     const character = canvas?.__character
-    if (!character) return showNotice('error', '角色尚未准备完成')
+    if (!character) return showNotice('error', t('panel.errors.notReady'))
     exporting.value = true
     exportProgress.value = 0
-    showNotice('progress', '正在检查角色和导出数据', 0)
+    showNotice('progress', t('panel.errors.tokenLoadProgress'), 0)
     const { downloadGlb, exportCharacterGlb, summarizeExportReport } = await import('../export/exportCharacterGlb.js')
     const customDocuments = request.includeCustomAnimation && store.poseDocument.keyframes.length ? [store.poseDocument] : []
     const animations = canvas?.__catAssembly?.model?.createExportAnimationClips({
@@ -98,31 +110,31 @@ async function exportGLB(request = createExportRequest(exportConfig.value)) {
     }) ?? []
     const { arrayBuffer, report } = await exportCharacterGlb(character, { animations, optimize: request.optimize, meshopt: request.meshopt, onProgress: ({ stage, percent }) => {
       exportProgress.value = percent
-      exportLabel.value = stageLabels[stage] || '正在导出…'
+      exportLabel.value = stageLabels[stage] || t('panel.notice.exporting')
     } })
     const { validateExportBudget } = await import('../export/exportRequest.js')
     const budget = validateExportBudget(report, request)
-    if (!budget.valid) throw new Error(`导出超出 ${budget.preset} 预算：${budget.failures.join(', ')}`)
+    if (!budget.valid) throw new Error(t('panel.errors.exportBudgetExceeded', { preset: budget.preset, reasons: budget.failures.join(', ') }))
     console.info('GLB export verified', report)
     downloadGlb(arrayBuffer, request.filename || `liberty-cat-${store.tokenId}.glb`)
     showNotice('success', summarizeExportReport(report))
   } catch (error) {
     console.warn(error)
-    showNotice('error', error.message || 'GLB 导出失败，请稍后重试', 5000)
+    showNotice('error', error.message || t('panel.errors.exportFail'), 5000)
   } finally { exporting.value = false; exportProgress.value = 0 }
 }
 function exportPNG() {
   try {
     const canvas = document.querySelector('canvas')
-    if (!canvas) return showNotice('error', '画布尚未准备完成')
+    if (!canvas) return showNotice('error', t('panel.errors.notReady'))
     const link = document.createElement('a')
     link.download = `liberty-cat-${store.tokenId}.png`
     link.href = canvas.toDataURL('image/png')
     link.click()
-    showNotice('success', `PNG 已保存：#${store.tokenId}`)
+    showNotice('success', t('panel.errors.pngReady', { tokenId: store.tokenId }))
   } catch (error) {
     console.warn(error)
-    showNotice('error', 'PNG 保存失败，远程纹理可能受到浏览器跨域限制', 5000)
+    showNotice('error', t('panel.errors.pngFail'), 5000)
   }
 }
 function downloadBlob(blob, filename) {
@@ -134,7 +146,7 @@ function downloadBlob(blob, filename) {
 function exportCharacterCard() {
   import('../export/characterCard.js').then(({ createCharacterCardSvg }) => {
     downloadBlob(new Blob([createCharacterCardSvg(store.currentTraits)], { type: 'image/svg+xml' }), `liberty-cat-${store.tokenId}-card.svg`)
-    showNotice('success', 'SVG 角色卡已生成')
+    showNotice('success', t('panel.errors.cardReady'))
   }).catch(error => showNotice('error', error.message))
 }
 async function exportProfile(profile) {
@@ -147,7 +159,7 @@ async function exportProfile(profile) {
     canvas.dataset.lastCaptureProfile = profile
     canvas.dataset.lastCaptureCornerAlpha = String(result.cornerAlpha)
     downloadBlob(result.blob, `liberty-cat-${store.tokenId}-${profile}-${result.spec.width}x${result.spec.height}.png`)
-    showNotice('success', profile === 'transparent' ? '透明头像已生成' : '社交头像已生成')
+    showNotice('success', profile === 'transparent' ? t('panel.errors.transparentReady') : t('panel.errors.socialReady'))
   } catch (error) { showNotice('error', error.message) }
   finally { restore() }
 }
@@ -157,14 +169,14 @@ async function exportTurnaround() {
     const { captureViewSet } = await import('../export/captureCanvasOutputs.js')
     const captures = await captureViewSet(canvas, { setView: view => window.dispatchEvent(new CustomEvent('cat:set-camera-view', { detail: { view } })) })
     captures.forEach(({ view, blob }) => downloadBlob(blob, `liberty-cat-${store.tokenId}-${view}.png`))
-    showNotice('success', '正侧背三视图已生成')
+    showNotice('success', t('panel.errors.turnaroundReady'))
   } catch (error) { showNotice('error', error.message) }
 }
 
 async function exportSelectedEquipment(request = createExportRequest({ ...exportConfig.value, target: 'equipment' })) {
   try {
     const entry = document.querySelector('canvas')?.__equipmentScatterController?.getSelectedEntry?.()
-    if (!entry) return showNotice('error', '请先点击并选择一个地面装备')
+    if (!entry) return showNotice('error', t('panel.errors.copyShareFailed'))
     const [{ exportEquipmentGlb, downloadEquipmentGlb }, { equipmentDocumentToClip }] = await Promise.all([
       import('../export/exportEquipmentGlb.js'),
       import('../character/equipment/equipmentAnimation.js'),
@@ -177,10 +189,15 @@ async function exportSelectedEquipment(request = createExportRequest({ ...export
       const url = URL.createObjectURL(new Blob([arrayBuffer], { type: 'model/gltf-binary' }))
       const link = document.createElement('a'); link.href = url; link.download = request.filename; link.click(); setTimeout(() => URL.revokeObjectURL(url), 0)
     } else downloadEquipmentGlb(arrayBuffer, entry.id)
-    showNotice('success', `${entry.id} · ${report.bones} 骨骼 · ${report.animationNames.length} 动画 · ${(report.bytes / 1024).toFixed(0)} KB`)
+    showNotice('success', t('panel.exportReport', {
+      id: entry.id,
+      bones: report.bones,
+      animations: report.animationNames.length,
+      size: (report.bytes / 1024).toFixed(0),
+    }))
   } catch (error) {
     console.warn(error)
-    showNotice('error', error.message || '装备 GLB 导出失败', 5000)
+    showNotice('error', error.message || t('panel.errors.equipmentExportFail'), 5000)
   }
 }
 

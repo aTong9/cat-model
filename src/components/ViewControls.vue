@@ -1,14 +1,16 @@
 <template>
-  <div class="view-controls glass" aria-label="固定相机视角">
-    <span>视角</span>
-    <button v-for="view in views" :key="view.id" :class="{ active: active === view.id }" @click="select(view.id)">{{ view.label }}</button>
+  <div class="view-controls glass" :aria-label="t('controls.view')">
+    <span>{{ t('controls.view') }}</span>
+    <button v-for="view in views" :key="view.id" :class="{ active: active === view.id }" @click="select(view.id)">{{ t(view.label) }}</button>
   </div>
 </template>
 
 <script setup>
 import { onMounted, onUnmounted, ref } from 'vue'
+import { useI18n } from 'vue-i18n'
+const { t } = useI18n()
 const active = ref('front')
-const views = [{ id: 'front', label: '正面' }, { id: 'three-quarter', label: '3/4' }, { id: 'side', label: '侧面' }, { id: 'back', label: '背面' }]
+const views = [{ id: 'front', label: 'controls.cameraView.front' }, { id: 'three-quarter', label: 'controls.cameraView.threeQuarter' }, { id: 'side', label: 'controls.cameraView.side' }, { id: 'back', label: 'controls.cameraView.back' }]
 function select(view) {
   active.value = view
   window.dispatchEvent(new CustomEvent('cat:set-camera-view', { detail: { view } }))

@@ -11,8 +11,8 @@ export const POSE_CHANNEL_LIMITS = Object.freeze({
   position: Object.freeze([-5, 5]),
   scale: Object.freeze([0.1, 4]),
 })
-export function createPoseDocument({ id = 'custom-action', label = '自定义动作', duration = 1.5, loop = true } = {}) {
-  return { schemaVersion: POSE_DOCUMENT_VERSION, id, label, duration, loop, keyframes: [] }
+export function createPoseDocument({ id = 'custom-action', label = 'Custom Action', duration = 1.5, loop = true } = {}) {
+  return { schemaVersion: POSE_DOCUMENT_VERSION, id, label: String(label), duration, loop, keyframes: [] }
 }
 
 export function capturePose(registry) {
@@ -44,12 +44,12 @@ function normalizePoseTransform(value) {
   })
 }
 
-export function createStaticPoseDocument({ id = 'custom-pose', label = '自定义姿势', channels = {} } = {}) {
+export function createStaticPoseDocument({ id = 'custom-pose', label = 'Custom Pose', channels = {} } = {}) {
   const known = new Set(POSE_CHANNELS.map(channel => channel.id))
   return Object.freeze({
     schemaVersion: STATIC_POSE_DOCUMENT_VERSION,
     id: String(id || 'custom-pose'),
-    label: String(label || '自定义姿势'),
+    label: String(label || 'Custom Pose'),
     channels: Object.freeze(Object.fromEntries(Object.entries(channels)
       .filter(([channelId]) => known.has(channelId))
       .map(([channelId, transform]) => [channelId, normalizePoseTransform(transform)]))),
@@ -90,7 +90,7 @@ export function mirrorStaticPoseDocument(document) {
       scale: transform.scale,
     }
   }
-  return createStaticPoseDocument({ id: `${source.id}-mirrored`, label: `${source.label}（镜像）`, channels })
+  return createStaticPoseDocument({ id: `${source.id}-mirrored`, label: `${source.label} (Mirror)`, channels })
 }
 
 export function blendStaticPoseDocuments(from, to, alpha = 0.5) {

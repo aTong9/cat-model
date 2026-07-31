@@ -21,6 +21,25 @@ export const PACK5_SOURCE_DURATIONS = Object.freeze({
   'emoji-so-comfy': 2.08,
 })
 
+const EMOJI_ACTION_TEXT = Object.freeze({
+  'emoji-abs': { labelKey: 'emojiAction.emojiAbs.label', descriptionKey: 'emojiAction.emojiAbs.description' },
+  'emoji-jump-rope': { labelKey: 'emojiAction.emojiJumpRope.label', descriptionKey: 'emojiAction.emojiJumpRope.description' },
+  'emoji-dumbbells': { labelKey: 'emojiAction.emojiDumbbells.label', descriptionKey: 'emojiAction.emojiDumbbells.description' },
+  'emoji-pull-up': { labelKey: 'emojiAction.emojiPullUp.label', descriptionKey: 'emojiAction.emojiPullUp.description' },
+  'emoji-bench-press': { labelKey: 'emojiAction.emojiBenchPress.label', descriptionKey: 'emojiAction.emojiBenchPress.description' },
+  'emoji-hula-hoop': { labelKey: 'emojiAction.emojiHulaHoop.label', descriptionKey: 'emojiAction.emojiHulaHoop.description' },
+  'emoji-boxing': { labelKey: 'emojiAction.emojiBoxing.label', descriptionKey: 'emojiAction.emojiBoxing.description' },
+  'emoji-so-cute': { labelKey: 'emojiAction.emojiSoCute.label', descriptionKey: 'emojiAction.emojiSoCute.description' },
+  'emoji-yoga': { labelKey: 'emojiAction.emojiYoga.label', descriptionKey: 'emojiAction.emojiYoga.description' },
+  'emoji-foodie': { labelKey: 'emojiAction.emojiFoodie.label', descriptionKey: 'emojiAction.emojiFoodie.description' },
+  'emoji-backflip': { labelKey: 'emojiAction.emojiBackflip.label', descriptionKey: 'emojiAction.emojiBackflip.description' },
+  'emoji-snowboarding': { labelKey: 'emojiAction.emojiSnowboarding.label', descriptionKey: 'emojiAction.emojiSnowboarding.description' },
+  'emoji-snow-fight': { labelKey: 'emojiAction.emojiSnowFight.label', descriptionKey: 'emojiAction.emojiSnowFight.description' },
+  'emoji-snowball': { labelKey: 'emojiAction.emojiSnowball.label', descriptionKey: 'emojiAction.emojiSnowball.description' },
+  'emoji-so-cold': { labelKey: 'emojiAction.emojiSoCold.label', descriptionKey: 'emojiAction.emojiSoCold.description' },
+  'emoji-so-comfy': { labelKey: 'emojiAction.emojiSoComfy.label', descriptionKey: 'emojiAction.emojiSoComfy.description' },
+})
+
 export const EMOJI_ACTIONS = Object.freeze([
   ['emoji-abs', '练腹肌', '01_Abs.gif', 'fitness', 1.6, '收紧核心并交替卷腹'],
   ['emoji-jump-rope', '跳绳', '02_Jump-Rope.gif', 'fitness', 1.2, '连续轻跳并转动双腕'],
@@ -41,6 +60,7 @@ export const EMOJI_ACTIONS = Object.freeze([
 ].map(([id, label, file, category, duration, description]) => Object.freeze({
   id, label, file, category, duration: PACK5_SOURCE_DURATIONS[id] ?? duration,
   description, preview: asset(file), loop: true,
+  ...EMOJI_ACTION_TEXT[id],
 })))
 
 export const EMOJI_ACTION_IDS = Object.freeze(EMOJI_ACTIONS.map(action => action.id))

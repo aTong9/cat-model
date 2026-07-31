@@ -1,8 +1,8 @@
 export const QUALITY_MODES = Object.freeze([
-  { id: 'auto', label: '自动' },
-  { id: 'high', label: '高画质' },
-  { id: 'balanced', label: '均衡' },
-  { id: 'performance', label: '省电' },
+  { id: 'auto', label: '自动', labelKey: 'settings.quality.auto' },
+  { id: 'high', label: '高画质', labelKey: 'settings.quality.high' },
+  { id: 'balanced', label: '均衡', labelKey: 'settings.quality.balanced' },
+  { id: 'performance', label: '省电', labelKey: 'settings.quality.performance' },
 ])
 
 export const QUALITY_PROFILES = Object.freeze({

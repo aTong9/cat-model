@@ -2,12 +2,12 @@
   <section class="crossy-game" @pointerdown="onPointerDown" @pointerup="onPointerUp">
     <canvas ref="canvasRef" class="crossy-canvas"></canvas>
     <div class="crossy-hud">
-      <strong>LIBERTY CROSSING</strong>
-      <span>距离 {{ score }}</span>
-      <span class="seed">SEED {{ seed }}</span>
+      <strong>{{ t('brand.crossing') }}</strong>
+      <span>{{ t('controls.crossyHud.distance', { score }) }}</span>
+      <span class="seed">{{ t('controls.crossyHud.seedLabel') }} {{ seed }}</span>
     </div>
-    <div class="crossy-help">WASD / 方向键 · 点击前进 · 滑动转向</div>
-    <div class="crossy-pad" aria-label="移动控制">
+    <div class="crossy-help">{{ t('controls.crossyHud.help') }}</div>
+    <div class="crossy-pad" :aria-label="t('controls.crossyHud.padLabel')">
       <button @click.stop="move('forward')">▲</button>
       <button @click.stop="move('left')">◀</button>
       <button @click.stop="move('backward')">▼</button>
@@ -19,6 +19,7 @@
 <script setup>
 import { computed, onMounted, onUnmounted, ref } from 'vue'
 import * as THREE from 'three'
+import { useI18n } from 'vue-i18n'
 import { useCatStore } from '../../stores/cat.js'
 import { createCharacterRuntime } from '../../character/runtime/CharacterRuntime.js'
 import { createGear } from '../../three/EquipmentFactory.js'
@@ -26,6 +27,7 @@ import { GridHopController } from './GridHopController.js'
 import { createLaneWindow } from './laneGenerator.js'
 
 const store = useCatStore()
+const { t } = useI18n()
 const canvasRef = ref(null)
 const score = ref(0)
 const seed = computed(() => Number(store.seed) >>> 0 || Number(store.tokenId) || 1)

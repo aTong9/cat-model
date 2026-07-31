@@ -3,7 +3,7 @@
     <div v-if="store.loading" class="loading-overlay">
       <div class="loading-content">
         <div class="loading-icon">🐈</div>
-        <strong>LIBERTY CAT STUDIO</strong>
+        <strong>{{ t('brand.catStudio') }}</strong>
         <p>{{ loadingText }}</p>
         <div class="progress-bar"><div class="progress-fill" :style="{ width: `${store.loadingProgress}%` }"></div></div>
         <small>{{ Math.floor(store.loadingProgress) }}%</small>
@@ -15,12 +15,14 @@
 <script setup>
 import { computed } from 'vue'
 import { useCatStore } from '../stores/cat.js'
+import { useI18n } from 'vue-i18n'
 const store = useCatStore()
+const { t } = useI18n()
 const loadingText = computed(() => {
-  if (store.loadingProgress < 20) return '正在读取角色参数…'
-  if (store.loadingProgress < 50) return '正在生成猫咪主体…'
-  if (store.loadingProgress < 80) return '正在装配外观与装备…'
-  return '角色即将就绪'
+  if (store.loadingProgress < 20) return t('loading.text1')
+  if (store.loadingProgress < 50) return t('loading.text2')
+  if (store.loadingProgress < 80) return t('loading.text3')
+  return t('loading.text4')
 })
 </script>
 

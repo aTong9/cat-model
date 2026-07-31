@@ -1,14 +1,14 @@
 <template>
   <figure v-if="store.referenceImage" class="reference-preview">
     <div class="image-stage">
-      <div v-if="imageState === 'loading'" class="image-loading"><span></span><b>正在载入原图…</b></div>
-      <img v-show="imageState === 'ready'" :src="imageSource" :alt="`Liberty Cat #${store.tokenId} 原始图片`" @load="onLoad" @error="onError" />
-      <div v-if="imageState === 'error'" class="image-error"><b>图片不可用</b><span>本地与远程资源均未载入</span></div>
+      <div v-if="imageState === 'loading'" class="image-loading"><span></span><b>{{ t('comparison.loading') }}</b></div>
+      <img v-show="imageState === 'ready'" :src="imageSource" :alt="t('comparison.imageAlt', { tokenId: store.tokenId })" @load="onLoad" @error="onError" />
+      <div v-if="imageState === 'error'" class="image-error"><b>{{ t('comparison.unavailable') }}</b><span>{{ t('comparison.unavailableText') }}</span></div>
     </div>
     <figcaption>
-      <div><span>ORIGINAL TOKEN</span><strong>Liberty Cat #{{ store.tokenId }}</strong></div>
+      <div><span>{{ t('comparison.original') }}</span><strong>Liberty Cat #{{ store.tokenId }}</strong></div>
       <i :class="imageState">{{ stateLabel }}</i>
-      <button type="button" @click="setFrontView">切到正面</button>
+      <button type="button" @click="setFrontView">{{ t('comparison.switchToFront') }}</button>
     </figcaption>
   </figure>
 </template>
@@ -16,11 +16,15 @@
 <script setup>
 import { computed, ref, watch } from 'vue'
 import { useCatStore } from '../stores/cat.js'
+import { useI18n } from 'vue-i18n'
 const store = useCatStore()
+const { t } = useI18n()
 const imageState = ref('loading')
 const usingFallback = ref(false)
 const imageSource = computed(() => usingFallback.value ? store.referenceImageFallback : store.referenceImage)
-const stateLabel = computed(() => imageState.value === 'ready' ? (usingFallback.value || store.referenceImageSource === 'local' ? '本地图片' : '网络图片') : imageState.value === 'error' ? '不可用' : '载入中')
+const stateLabel = computed(() => imageState.value === 'ready'
+  ? (usingFallback.value || store.referenceImageSource === 'local' ? t('comparison.local') : t('comparison.remote'))
+  : imageState.value === 'error' ? t('comparison.unavailable') : t('comparison.loading'))
 watch(() => store.referenceImage, () => { imageState.value = 'loading'; usingFallback.value = false })
 function onLoad() { imageState.value = 'ready' }
 function onError() { if (!usingFallback.value && store.referenceImageFallback) { usingFallback.value = true; imageState.value = 'loading' } else imageState.value = 'error' }

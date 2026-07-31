@@ -8,10 +8,10 @@ export const DEFAULT_ACTION_PARAMETERS = Object.freeze({
 })
 
 export const ACTION_PARAMETER_DEFINITIONS = Object.freeze({
-  speed: Object.freeze({ label: '动作速度', min: .25, max: 2.5, step: .05 }),
-  intensity: Object.freeze({ label: '动作力度', min: 0, max: 1.5, step: .05 }),
-  rootMotion: Object.freeze({ label: '根运动幅度', min: 0, max: 1.5, step: .05 }),
-  propScale: Object.freeze({ label: '动作道具比例', min: .5, max: 1.8, step: .05 }),
+  speed: Object.freeze({ label: '动作速度', labelKey: 'actionParameters.speed', min: .25, max: 2.5, step: .05 }),
+  intensity: Object.freeze({ label: '动作力度', labelKey: 'actionParameters.intensity', min: 0, max: 1.5, step: .05 }),
+  rootMotion: Object.freeze({ label: '根运动幅度', labelKey: 'actionParameters.rootMotion', min: 0, max: 1.5, step: .05 }),
+  propScale: Object.freeze({ label: '动作道具比例', labelKey: 'actionParameters.propScale', min: .5, max: 1.8, step: .05 }),
 })
 
 export function normalizeActionParameters(parameters = {}) {

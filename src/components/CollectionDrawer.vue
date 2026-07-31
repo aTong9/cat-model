@@ -1,29 +1,29 @@
 <template>
   <aside class="collection" :class="{ open }">
     <button class="collection-toggle" aria-controls="collection-panel" :aria-expanded="open" @click="toggleDrawer">
-      <span>{{ open ? '收起图鉴' : '全部猫咪' }}</span><b>{{ open ? '×' : '9901' }}</b>
+      <span>{{ open ? t('panel.filtersOpen') : t('panel.filtersAll') }}</span><b>{{ open ? '×' : '9901' }}</b>
     </button>
     <Transition name="drawer">
       <div v-if="open" id="collection-panel" class="collection-body glass">
-        <header><span>LIBERTY CATS ARCHIVE</span><strong>按 NFT 属性筛选并载入真实 Token</strong></header>
+        <header><span>{{ t('brand.archive') }}</span><strong>{{ t('panel.filterTitle') }}</strong></header>
         <div class="filters">
           <label v-for="filter in filterDefinitions" :key="filter.key">
             <span>{{ filter.label }}</span>
             <select :value="filters[filter.key]" @change="setFilter(filter.key, $event.target.value)">
-              <option value="">全部</option>
+              <option value="">{{ t('common.all') }}</option>
               <option v-for="option in filter.options" :key="option.id" :value="option.id" :disabled="optionCount(filter.key, option.id) === 0">{{ option.label }} · {{ optionCount(filter.key, option.id) }}</option>
             </select>
           </label>
         </div>
-        <div class="result-line"><span v-if="loading">正在读取目录…</span><span v-else-if="loadError">目录读取失败，请重试</span><span v-else>找到 {{ result.total }} 只<span v-if="result.total > result.tokens.length">，显示前 {{ result.tokens.length }} 只</span></span><button v-if="hasFilters" @click="resetFilters">清除筛选</button></div>
+        <div class="result-line"><span v-if="loading">{{ t('panel.loadingCatalog') }}</span><span v-else-if="loadError">{{ t('panel.catalogError') }}</span><span v-else>{{ t('panel.resultPrefix', { total: result.total }) }}<span v-if="result.total > result.tokens.length">{{ t('panel.showOnly', { visible: result.tokens.length }) }}</span></span><button v-if="hasFilters" @click="resetFilters">{{ t('panel.clearFilters') }}</button></div>
         <div class="cards" @scroll.passive="onCardsScroll">
           <button v-for="token in result.tokens" :key="token.tokenId" class="card" :class="{ active: String(store.tokenId) === token.tokenId }" @click="store.loadToken(token.tokenId)">
             <img :src="token.imageUrl" :alt="`Liberty Cat #${token.tokenId}`" loading="lazy" @error="useFallback($event, token)" />
             <span>#{{ token.tokenId }}</span><i v-if="token.special">★</i>
           </button>
         </div>
-        <p v-if="loadError" class="empty">{{ loadError }}<button @click="loadCatalog">重新读取</button></p>
-        <p v-else-if="!loading && !result.total" class="empty">当前属性组合没有对应 Token。<button @click="resetFilters">清除筛选</button></p>
+        <p v-if="loadError" class="empty">{{ loadError }}<button @click="loadCatalog">{{ t('panel.catalogError') }}</button></p>
+        <p v-else-if="!loading && !result.total" class="empty">{{ t('panel.noTokenWithFilters') }}<button @click="resetFilters">{{ t('panel.clearFilters') }}</button></p>
       </div>
     </Transition>
   </aside>
@@ -32,7 +32,15 @@
 <script setup>
 import { computed, reactive, ref } from 'vue'
 import { useCatStore } from '../stores/cat.js'
-import { BACKGROUND_TRAITS, EYE_STYLES, FACE_EXPRESSIONS, FUR_TRAITS, GEAR_TRAITS, SPECIAL_TRAITS } from '../config/traits.js'
+import { useI18n } from 'vue-i18n'
+import {
+  BACKGROUND_TRAITS,
+  EYE_STYLE_OPTIONS,
+  FACE_EXPRESSION_OPTIONS,
+  FUR_TRAITS,
+  GEAR_TRAITS,
+  SPECIAL_TRAITS,
+} from '../config/traits.js'
 import { countTokenFilterOptions, filterTokenCatalog, loadTokenCatalog } from '../data/tokenCatalog.js'
 
 const store = useCatStore()
@@ -42,11 +50,24 @@ const loadError = ref('')
 const visibleLimit = ref(24)
 const tokens = ref([])
 const filters = reactive({ fur: '', eyes: '', face: '', gear: '', background: '', special: '' })
+const { t } = useI18n()
+const localizeOption = option => ({
+  id: option.id,
+  label: option.labelKey ? (t(option.labelKey, option.id) || option.label) : option.label,
+})
 const textOptions = values => values.map(id => ({ id, label: id }))
+const localizeStyleOptions = (options, defaultLabel) => options.map(option => {
+  const label = t(option.labelKey, option.label || defaultLabel)
+  return { id: option.id, label: label || option.label || option.id }
+})
+
 const filterDefinitions = [
-  { key: 'fur', label: '毛色', options: FUR_TRAITS }, { key: 'eyes', label: '眼睛', options: textOptions(EYE_STYLES) },
-  { key: 'face', label: '表情', options: textOptions(FACE_EXPRESSIONS) }, { key: 'gear', label: '装备', options: GEAR_TRAITS },
-  { key: 'background', label: '背景', options: textOptions(BACKGROUND_TRAITS) }, { key: 'special', label: '特殊', options: SPECIAL_TRAITS },
+  { key: 'fur', label: t('panel.filter.fur'), options: FUR_TRAITS.map(localizeOption) },
+  { key: 'eyes', label: t('panel.filter.eyes'), options: localizeStyleOptions(EYE_STYLE_OPTIONS, t('panel.filter.eyes')) },
+  { key: 'face', label: t('panel.filter.face'), options: localizeStyleOptions(FACE_EXPRESSION_OPTIONS, t('panel.filter.face')) },
+  { key: 'gear', label: t('panel.filter.gear'), options: GEAR_TRAITS.map(localizeOption) },
+  { key: 'background', label: t('panel.filter.background'), options: textOptions(BACKGROUND_TRAITS) },
+  { key: 'special', label: t('panel.filter.special'), options: SPECIAL_TRAITS.map(localizeOption) },
 ]
 const result = computed(() => filterTokenCatalog(tokens.value, filters, visibleLimit.value))
 const hasFilters = computed(() => Object.values(filters).some(Boolean))
@@ -63,7 +84,7 @@ async function loadCatalog() {
   try {
     tokens.value = (await loadTokenCatalog()).tokens
   } catch (error) {
-    loadError.value = error instanceof Error ? error.message : '无法读取猫咪目录'
+    loadError.value = error instanceof Error ? error.message : t('panel.catalogError')
   } finally {
     loading.value = false
   }

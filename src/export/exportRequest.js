@@ -1,16 +1,16 @@
 export const EXPORT_PRESETS = Object.freeze({
   game: Object.freeze({
-    id: 'game', label: '游戏运行时', includeBuiltInAnimations: true, includeCustomAnimation: true,
+    id: 'game', label: '游戏运行时', labelKey: 'panel.exportPresets.game', includeBuiltInAnimations: true, includeCustomAnimation: true,
     includeMetadata: true, optimize: true, meshopt: true,
     budget: Object.freeze({ maxTriangles: 180000, maxMaterials: 64, maxMeshes: 140, maxBytes: 12 * 1024 * 1024 }),
   }),
   dcc: Object.freeze({
-    id: 'dcc', label: 'DCC 编辑', includeBuiltInAnimations: true, includeCustomAnimation: true,
+    id: 'dcc', label: 'DCC 编辑', labelKey: 'panel.exportPresets.dcc', includeBuiltInAnimations: true, includeCustomAnimation: true,
     includeMetadata: true, optimize: false, meshopt: false,
     budget: Object.freeze({ maxTriangles: 250000, maxMaterials: 80, maxMeshes: 160, maxBytes: 32 * 1024 * 1024 }),
   }),
   static: Object.freeze({
-    id: 'static', label: '静态模型', includeBuiltInAnimations: false, includeCustomAnimation: false,
+    id: 'static', label: '静态模型', labelKey: 'panel.exportPresets.static', includeBuiltInAnimations: false, includeCustomAnimation: false,
     includeMetadata: true, optimize: true, meshopt: true,
     budget: Object.freeze({ maxTriangles: 180000, maxMaterials: 64, maxMeshes: 140, maxBytes: 10 * 1024 * 1024 }),
   }),

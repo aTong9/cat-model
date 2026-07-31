@@ -1,15 +1,15 @@
 <template>
-  <div v-if="!store.panelExpanded" class="mobile-controls" aria-label="手机角色控制">
+  <div v-if="!store.panelExpanded" class="mobile-controls" :aria-label="t('mobile.label')">
     <div class="dpad glass">
-      <button class="up" aria-label="向前" @pointerdown.prevent="move(0, -1)" @pointerup="stop" @pointercancel="stop" @pointerleave="stop">▲</button>
-      <button class="left" aria-label="向左" @pointerdown.prevent="move(-1, 0)" @pointerup="stop" @pointercancel="stop" @pointerleave="stop">◀</button>
+      <button class="up" :aria-label="t('controls.view')" @pointerdown.prevent="move(0, -1)" @pointerup="stop" @pointercancel="stop" @pointerleave="stop">▲</button>
+      <button class="left" :aria-label="t('controls.controls.mobileMoveHint')" @pointerdown.prevent="move(-1, 0)" @pointerup="stop" @pointercancel="stop" @pointerleave="stop">◀</button>
       <i></i>
-      <button class="right" aria-label="向右" @pointerdown.prevent="move(1, 0)" @pointerup="stop" @pointercancel="stop" @pointerleave="stop">▶</button>
-      <button class="down" aria-label="向后" @pointerdown.prevent="move(0, 1)" @pointerup="stop" @pointercancel="stop" @pointerleave="stop">▼</button>
+      <button class="right" :aria-label="t('controls.controls.mobileMoveHint')" @pointerdown.prevent="move(1, 0)" @pointerup="stop" @pointercancel="stop" @pointerleave="stop">▶</button>
+      <button class="down" :aria-label="t('controls.controls.mobileMoveHint')" @pointerdown.prevent="move(0, 1)" @pointerup="stop" @pointercancel="stop" @pointerleave="stop">▼</button>
     </div>
     <div class="actions">
-      <button class="jump glass" aria-label="跳跃" @pointerdown.prevent="action('jump', true)">跳</button>
-      <button class="run glass" aria-label="奔跑" @pointerdown.prevent="action('sprint', true)" @pointerup="action('sprint', false)" @pointercancel="action('sprint', false)" @pointerleave="action('sprint', false)">跑</button>
+      <button class="jump glass" :aria-label="t('controls.controls.jump')" @pointerdown.prevent="action('jump', true)">{{ t('controls.controls.jump') }}</button>
+      <button class="run glass" :aria-label="t('controls.controls.run')" @pointerdown.prevent="action('sprint', true)" @pointerup="action('sprint', false)" @pointercancel="action('sprint', false)" @pointerleave="action('sprint', false)">{{ t('controls.controls.run') }}</button>
     </div>
   </div>
 </template>
@@ -17,8 +17,10 @@
 <script setup>
 import { onUnmounted } from 'vue'
 import { useCatStore } from '../stores/cat.js'
+import { useI18n } from 'vue-i18n'
 
 const store = useCatStore()
+const { t } = useI18n()
 const emitInput = detail => window.dispatchEvent(new CustomEvent('cat:virtual-input', { detail }))
 const move = (x, z) => emitInput({ direction: { x, z } })
 const stop = () => move(0, 0)
