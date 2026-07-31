@@ -8,8 +8,18 @@ export const CAT_GENERATOR_VERSION = '3.0.0'
 export const DEFAULT_IDENTITY = Object.freeze({ name: '', personality: [], occupation: '', theme: '', story: '', catchphrase: '' })
 export const MORPHOLOGY_DEFINITIONS = Object.freeze({
   bodyScale: Object.freeze({ min: 0.8, max: 1.25, default: 1 }),
+  bodyWidth: Object.freeze({ min: 0.78, max: 1.28, default: 1 }),
+  bodyHeight: Object.freeze({ min: 0.78, max: 1.2, default: 1 }),
+  bodyDepth: Object.freeze({ min: 0.8, max: 1.25, default: 1 }),
   headScale: Object.freeze({ min: 0.8, max: 1.25, default: 1 }),
+  eyeScale: Object.freeze({ min: 0.8, max: 1.4, default: 1 }),
+  eyeSpacing: Object.freeze({ min: 0.8, max: 1.25, default: 1 }),
+  mouthScale: Object.freeze({ min: 0.8, max: 1.4, default: 1 }),
   earScale: Object.freeze({ min: 0.7, max: 1.35, default: 1 }),
+  earWidth: Object.freeze({ min: 0.75, max: 1.3, default: 1 }),
+  earHeight: Object.freeze({ min: 0.75, max: 1.3, default: 1 }),
+  pawScale: Object.freeze({ min: 0.75, max: 1.35, default: 1 }),
+  footScale: Object.freeze({ min: 0.8, max: 1.35, default: 1 }),
   legLength: Object.freeze({ min: 0.8, max: 1.25, default: 1 }),
   tailLength: Object.freeze({ min: 0.7, max: 1.4, default: 1 }),
   tailCurl: Object.freeze({ min: -0.6, max: 0.8, default: 0 }),

@@ -16,7 +16,6 @@ import { createRenderLifecycleController } from '../three/RenderLifecycleControl
 import { createRenderQualityController } from '../three/RenderQualityController.js'
 import { createEquipmentScatterController } from '../three/EquipmentScatterController.js'
 import * as THREE from 'three'
-import { getNextPoseId } from '../config/poses.js'
 import { TransformControls } from 'three/addons/controls/TransformControls.js'
 import { applyPose, resolvePoseChannel } from '../character/animation/poseAuthoring.js'
 import { applyEquipmentTransform, captureEquipmentTransform } from '../character/equipment/equipmentAnimation.js'
@@ -42,8 +41,6 @@ let verticalVelocity = 0
 let grounded = true
 let cameraTransition = null
 let componentDisposed = false
-const catRaycaster = new THREE.Raycaster()
-const catPointer = new THREE.Vector2()
 
 const CAMERA_VIEWS = Object.freeze({
   front: new THREE.Vector3(0, 0.45, 4.6),
@@ -115,6 +112,7 @@ onMounted(async () => {
     morphology: store.morphology,
   }, { animation: store.actionMode })
   catModel = catAssembly.model
+  for (const [actionId, parameters] of Object.entries(store.actionParameters)) catModel.setActionParameters(actionId, parameters)
   canvas.__character = catAssembly.root
   canvas.__catAssembly = catAssembly
   canvas.__beginCharacterCapture = beginCharacterCapture
@@ -224,7 +222,6 @@ function beginCharacterCapture({ transparent = false } = {}) {
 function onClick(e) {
   if (equipmentScatterController?.consumeSuppressedClick()) return
   if (equipmentScatterController?.cast(e.clientX, e.clientY)) return
-  cyclePoseWhenCatHit(e.clientX, e.clientY)
 }
 
 function onPointerDown(e) {
@@ -233,21 +230,6 @@ function onPointerDown(e) {
 function onPointerMove(e) { equipmentScatterController?.moveDrag(e.clientX, e.clientY) }
 function onPointerUp(e) {
   if (equipmentScatterController?.endDrag(e.clientX, e.clientY)) e.currentTarget.releasePointerCapture?.(e.pointerId)
-}
-
-function cyclePoseWhenCatHit(clientX, clientY) {
-  const canvas = canvasRef.value
-  const rect = canvas?.getBoundingClientRect()
-  if (!rect?.width || !rect?.height || !camera || !catModel) return false
-  catPointer.set(
-    ((clientX - rect.left) / rect.width) * 2 - 1,
-    -((clientY - rect.top) / rect.height) * 2 + 1,
-  )
-  catRaycaster.setFromCamera(catPointer, camera)
-  const hit = catRaycaster.intersectObject(catModel.group, true).some(({ object }) => object.isMesh)
-  if (!hit) return false
-  store.actionMode = getNextPoseId(store.actionMode)
-  return true
 }
 
 // === 监听 Store 变化 → 更新 3D 模型 ===
@@ -263,6 +245,9 @@ watch(() => ({ ...store.morphology }), morphology => catAssembly?.apply({ morpho
 watch(() => store.actionMode, (v) => {
   if (!inputController?.isMoving) catModel?.setAnimation(v)
 })
+watch(() => store.actionParameters, parameters => {
+  for (const [actionId, value] of Object.entries(parameters)) catModel?.setActionParameters(actionId, value)
+}, { deep: true })
 watch(() => store.background, (background) => {
   catAssembly?.apply({ background })
   applyBackground(background)

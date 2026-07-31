@@ -1,4 +1,5 @@
 import * as THREE from 'three'
+import { createArticulatedFoot, createArticulatedHand } from './createCatPaws.js'
 
 function createFurJointCover(radius, material, name, scale = [1, 1, 1]) {
   const cover = new THREE.Mesh(new THREE.SphereGeometry(radius, 28, 20), material)
@@ -85,7 +86,8 @@ function createSkinnedLimb({ name, upperVector, lowerVector, radii, material, jo
 export function createRaisedArm(side, { gradientMap, createHeart }) {
   const shoulder = new THREE.Group()
   shoulder.name = side < 0 ? 'ArmLeft' : 'ArmRight'
-  shoulder.position.set(side * 0.32, 0.64, 0.12)
+  shoulder.position.set(side * 0.40, 0.62, 0.08)
+  shoulder.userData.restPosition = shoulder.position.toArray()
   const fur = new THREE.MeshToonMaterial({
     color: '#f4c430',
     gradientMap: gradientMap,
@@ -105,13 +107,13 @@ export function createRaisedArm(side, { gradientMap, createHeart }) {
   shoulder.add(shoulderBlend)
   // The reference arm is a single tapered silhouette. Its bind pose points
   // downward so idle never needs the old 180° elbow fold that pinched the mesh.
-  const upperVector = new THREE.Vector3(side * 0.045, -0.27, 0.055)
-  const foreVector = new THREE.Vector3(-side * 0.018, -0.22, 0.035)
+  const upperVector = new THREE.Vector3(side * 0.040, -0.225, 0.050)
+  const foreVector = new THREE.Vector3(-side * 0.015, -0.175, 0.030)
   const limb = createSkinnedLimb({
     name: shoulder.name,
     upperVector,
     lowerVector: foreVector,
-    radii: [0.150, 0.124, 0.102],
+    radii: [0.158, 0.137, 0.116],
     material: fur,
     radialSegments: 20,
   })
@@ -119,41 +121,10 @@ export function createRaisedArm(side, { gradientMap, createHeart }) {
   const elbow = limb.middleBone
   const wrist = limb.endBone
 
-  const palm = new THREE.Mesh(new THREE.SphereGeometry(0.125, 20, 16), pawFur)
-  palm.scale.set(0.98, 1.16, 0.90)
-  palm.name = `${shoulder.name}Paw`
-  palm.castShadow = true
-  wrist.add(palm)
-
-  // Three shallow knuckles match the neutral mitten-like reference hand.
-  const digits = [
-    { x: -0.045, y: 0.070, s: 0.94 },
-    { x: 0, y: 0.096, s: 1.00 },
-    { x: 0.045, y: 0.070, s: 0.94 },
-  ]
-  digits.forEach((finger, index) => {
-    const digit = new THREE.Mesh(new THREE.SphereGeometry(0.050 * finger.s, 16, 12), pawFur)
-    digit.scale.set(0.88, 1.10, 0.82)
-    digit.position.set(finger.x, finger.y, 0.018)
-    digit.name = `${shoulder.name}Digit${index + 1}`
-    digit.castShadow = true
-    wrist.add(digit)
-
-    const fingerPad = new THREE.Mesh(new THREE.SphereGeometry(0.019 * finger.s, 12, 8), pad)
-    fingerPad.scale.set(0.90, 1.08, 0.34)
-    fingerPad.position.set(digit.position.x, digit.position.y - 0.004, 0.118)
-    fingerPad.name = `${shoulder.name}FingerPad${index + 1}`
-    fingerPad.visible = false
-    wrist.add(fingerPad)
-  })
-
-  const pawPad = createHeart(0.058, pad)
-  pawPad.scale.set(1.06, 0.94, 0.58)
-  pawPad.position.set(0, -0.018, 0.140)
-  pawPad.name = `${shoulder.name}Pad`
-  pawPad.visible = false
-  wrist.add(pawPad)
-  shoulder.userData.joints = { elbow, wrist }
+  const hand = createArticulatedHand(side, { pawMaterial: pawFur, padMaterial: pad, createHeart, limbName: shoulder.name })
+  hand.name = `${shoulder.name}Paw`
+  wrist.add(hand)
+  shoulder.userData.joints = { elbow, wrist, ...hand.userData.joints }
   shoulder.userData.attachment = {
     parentId: 'body',
     parentSocket: side < 0 ? 'shoulder-left' : 'shoulder-right',
@@ -172,21 +143,34 @@ export function createRaisedArm(side, { gradientMap, createHeart }) {
 export function createFoot(side, { gradientMap, createHeart }) {
   const hip = new THREE.Group()
   hip.name = side < 0 ? 'LegLeft' : 'LegRight'
-  hip.position.set(side * 0.18, -0.10, 0.02)
+  // The lower SDF belly is the foremost surface at the hip. Put the leg
+  // slightly in front of it so the articulated mesh covers the body outline
+  // instead of appearing as a detached ball behind a black seam.
+  // Start the articulated leg inside the lower torso. The previous .08 root
+  // left only the paw visible below the belly, which read as a very short leg.
+  // Raising the hip while extending both bones preserves the same ankle/floor
+  // contact and exposes a proper upper/lower-leg silhouette.
+  hip.position.set(side * 0.18, 0.18, 0.16)
+  hip.userData.restPosition = hip.position.toArray()
   const fur = new THREE.MeshToonMaterial({
     color: '#f4c430',
     gradientMap: gradientMap,
   })
   const pawFur = new THREE.MeshToonMaterial({ color: '#f5f1e6', gradientMap: gradientMap })
   const pad = new THREE.MeshStandardMaterial({ color: '#f06f78', roughness: 0.42 })
-  const thighVector = new THREE.Vector3(side * 0.01, -0.20, 0.035)
-  hip.add(createFurJointCover(0.148, fur, `${hip.name}HipBlend`, [1.08, 1.14, 1.08]))
-  const shinVector = new THREE.Vector3(-side * 0.01, -0.15, 0.060)
+  const thighVector = new THREE.Vector3(side * 0.008, -0.18, 0.028)
+  const hipBlend = createFurJointCover(0.148, fur, `${hip.name}HipBlend`, [1.08, 1.14, 1.08])
+  // The torso already supplies the rounded haunch volume. Showing another
+  // sphere at the leg root creates the broken, scalloped joint seen in the old
+  // neutral model, so retain it as a rig helper but omit it from the surface.
+  hipBlend.visible = false
+  hip.add(hipBlend)
+  const shinVector = new THREE.Vector3(-side * 0.008, -0.14, 0.040)
   const limb = createSkinnedLimb({
     name: hip.name,
     upperVector: thighVector,
     lowerVector: shinVector,
-    radii: [0.122, 0.098, 0.080],
+    radii: [0.150, 0.134, 0.114],
     material: fur,
     jointNames: ['Hip', 'Knee', 'Ankle'],
     radialSegments: 14,
@@ -194,49 +178,16 @@ export function createFoot(side, { gradientMap, createHeart }) {
   hip.add(limb.surface)
   const knee = limb.middleBone
   const ankle = limb.endBone
-  const center = new THREE.Vector3(0, -0.025, 0.105)
-
-  const sole = new THREE.Mesh(new THREE.SphereGeometry(0.13, 20, 16), pawFur)
-  sole.scale.set(1.18, 0.74, 1.34)
-  sole.position.copy(center)
-  sole.name = `${hip.name}Sole`
-  sole.castShadow = true
-  ankle.add(sole)
-
-  const toeOffsets = [-0.086, -0.043, 0, 0.043, 0.086]
-  toeOffsets.forEach((offset, index) => {
-    const edgeScale = index === 0 || index === 4 ? 0.88 : 1
-    const toe = new THREE.Mesh(new THREE.SphereGeometry(0.041 * edgeScale, 14, 10), pawFur)
-    toe.scale.set(0.92, 1.02, 1.02)
-    toe.position.set(
-      center.x + offset,
-      center.y + 0.020,
-      center.z + 0.135,
-    )
-    toe.name = `${hip.name}Toe${index + 1}`
-    toe.castShadow = true
-    ankle.add(toe)
-
-    const toePad = new THREE.Mesh(new THREE.SphereGeometry(0.016 * edgeScale, 10, 8), pad)
-    toePad.scale.set(0.92, 1.04, 0.34)
-    toePad.position.set(toe.position.x, toe.position.y, -0.075)
-    toePad.name = `${hip.name}ToePad${index + 1}`
-    ankle.add(toePad)
-  })
-
-  const solePad = createHeart(0.067, pad)
-  solePad.scale.set(1.12, 1.02, 0.72)
-  solePad.position.set(center.x, center.y + 0.015, -0.105)
-  solePad.name = `${hip.name}MainPad`
-  ankle.add(solePad)
-  hip.userData.joints = { knee, ankle }
+  const foot = createArticulatedFoot(side, { pawMaterial: pawFur, padMaterial: pad, createHeart, limbName: hip.name })
+  ankle.add(foot)
+  hip.userData.joints = { knee, ankle, ...foot.userData.joints }
   hip.userData.attachment = {
     parentId: 'body',
     parentSocket: side < 0 ? 'hip-left' : 'hip-right',
     localStart: hip.position.toArray(),
     localEnd: hip.position.clone().add(thighVector).add(shinVector).toArray(),
     baseRadius: 0.148,
-    endRadius: 0.080,
+    endRadius: 0.114,
     embedDepth: 0.09,
     contactType: 'embedded',
     gapTolerance: 0.01,

@@ -1,7 +1,32 @@
 import * as THREE from 'three'
 
 export const POSE_DOCUMENT_VERSION = 1
+const HAND_CHANNELS = ['thumb', 'index', 'middle', 'ring', 'little']
+  .flatMap(joint => ['left', 'right'].flatMap(side => [
+    {
+      id: `arm-${side}/${joint}`,
+      label: `${side === 'left' ? '左' : '右'}手${joint}`,
+      part: `arm-${side}`,
+      joint,
+    },
+    {
+      id: `arm-${side}/${joint}-distal`,
+      label: `${side === 'left' ? '左' : '右'}手${joint}末节`,
+      part: `arm-${side}`,
+      joint: `${joint}Distal`,
+    },
+  ]))
+
+const FOOT_CHANNELS = ['toe1', 'toe2', 'toe3', 'toe4', 'toe5']
+  .flatMap(joint => ['left', 'right'].map(side => ({
+    id: `leg-${side}/${joint}`,
+    label: `${side === 'left' ? '左' : '右'}脚${joint}`,
+    part: `leg-${side}`,
+    joint,
+  })))
+
 export const POSE_CHANNELS = Object.freeze([
+  { id: 'motion-root', label: '角色根运动', part: 'motion-root' },
   { id: 'head', label: '头部', part: 'head' },
   { id: 'ear-left', label: '左耳', part: 'ear-left' },
   { id: 'ear-right', label: '右耳', part: 'ear-right' },
@@ -17,6 +42,15 @@ export const POSE_CHANNELS = Object.freeze([
   { id: 'leg-right', label: '右腿', part: 'leg-right' },
   { id: 'leg-right/knee', label: '右膝', part: 'leg-right', joint: 'knee' },
   { id: 'leg-right/ankle', label: '右踝', part: 'leg-right', joint: 'ankle' },
+  { id: 'face/eye-left', label: '左眼视线', part: 'face', joint: 'eyeLeft' },
+  { id: 'face/eye-right', label: '右眼视线', part: 'face', joint: 'eyeRight' },
+  { id: 'face/eyelid-left', label: '左眼睑', part: 'face', joint: 'eyelidLeft' },
+  { id: 'face/eyelid-right', label: '右眼睑', part: 'face', joint: 'eyelidRight' },
+  { id: 'face/brow-left', label: '左眉', part: 'face', joint: 'browLeft' },
+  { id: 'face/brow-right', label: '右眉', part: 'face', joint: 'browRight' },
+  { id: 'face/jaw', label: '下巴', part: 'face', joint: 'jaw' },
+  ...HAND_CHANNELS,
+  ...FOOT_CHANNELS,
 ])
 
 export function resolvePoseChannel(registry, channelId) {
@@ -122,19 +156,97 @@ export const BUILTIN_EXPORT_ANIMATIONS = Object.freeze([
   { id: 'wave', name: 'Wave', duration: 1.2, loop: true },
 ])
 
+function captureObjectTransforms(root, time, samples) {
+  root?.traverse(object => {
+    if (!object.name) return
+    if (!samples.has(object.name)) samples.set(object.name, { times: [], positions: [], rotations: [], scales: [] })
+    const sample = samples.get(object.name)
+    sample.times.push(time)
+    sample.positions.push(...object.position.toArray())
+    sample.rotations.push(...object.quaternion.toArray())
+    sample.scales.push(...object.scale.toArray())
+  })
+}
+
+function captureSingleObjectTransform(object, time, samples) {
+  if (!object?.name) return
+  if (!samples.has(object.name)) samples.set(object.name, { times: [], positions: [], rotations: [], scales: [] })
+  const sample = samples.get(object.name)
+  sample.times.push(time)
+  sample.positions.push(...object.position.toArray())
+  sample.rotations.push(...object.quaternion.toArray())
+  sample.scales.push(...object.scale.toArray())
+}
+
+function appendObjectTransformTracks(clip, samples) {
+  for (const [name, sample] of samples) {
+    clip.tracks.push(
+      new THREE.VectorKeyframeTrack(`${name}.position`, sample.times, sample.positions),
+      new THREE.QuaternionKeyframeTrack(`${name}.quaternion`, sample.times, sample.rotations),
+      new THREE.VectorKeyframeTrack(`${name}.scale`, sample.times, sample.scales),
+    )
+  }
+  return clip
+}
+
+function appendObjectScaleTracks(clip, samples) {
+  for (const [name, sample] of samples) {
+    clip.tracks.push(new THREE.VectorKeyframeTrack(`${name}.scale`, sample.times, sample.scales))
+  }
+  return clip
+}
+
+function appendObjectPositionTracks(clip, samples) {
+  for (const [name, sample] of samples) {
+    clip.tracks.push(new THREE.VectorKeyframeTrack(`${name}.position`, sample.times, sample.positions))
+  }
+  return clip
+}
+
 export function bakeProceduralAnimationClips(model, { fps = 30, include = BUILTIN_EXPORT_ANIMATIONS, customDocuments = [] } = {}) {
   const previousMode = model.animator.mode
   const clips = []
   for (const spec of include) {
     const document = createPoseDocument({ id: spec.name, label: spec.name, duration: spec.duration, loop: spec.loop })
     const frameCount = Math.max(2, Math.round(spec.duration * fps))
+    const rootTimes = []
+    const rootPositions = []
+    const actionPropSamples = new Map()
+    const faceTransformSamples = new Map()
+    const partPositionSamples = new Map()
     for (let frame = 0; frame <= frameCount; frame++) {
       const time = frame / frameCount * spec.duration
       model.setAnimation(spec.id)
       model.update(time)
       document.keyframes.push({ time, pose: capturePose(model.registry) })
+      const motionRoot = model.registry.getPart('motion-root')
+      if (motionRoot) {
+        rootTimes.push(time)
+        rootPositions.push(...motionRoot.position.toArray())
+      }
+      captureObjectTransforms(model.actionProps?.props?.[spec.id], time, actionPropSamples)
+      const faceJoints = model.registry.getJoints('face')
+      captureObjectTransforms(faceJoints?.jaw, time, faceTransformSamples)
+      captureObjectTransforms(faceJoints?.eyeLeft, time, faceTransformSamples)
+      captureObjectTransforms(faceJoints?.eyeRight, time, faceTransformSamples)
+      captureObjectTransforms(faceJoints?.actionEyeLeft, time, faceTransformSamples)
+      captureObjectTransforms(faceJoints?.actionEyeRight, time, faceTransformSamples)
+      captureObjectTransforms(faceJoints?.eyeStarLeft, time, faceTransformSamples)
+      captureObjectTransforms(faceJoints?.eyeStarRight, time, faceTransformSamples)
+      captureObjectTransforms(faceJoints?.browLeft, time, faceTransformSamples)
+      captureObjectTransforms(faceJoints?.browRight, time, faceTransformSamples)
+      captureObjectTransforms(faceJoints?.cheekLeft, time, faceTransformSamples)
+      captureObjectTransforms(faceJoints?.cheekRight, time, faceTransformSamples)
+      for (const partId of ['head', 'ear-left', 'ear-right', 'arm-left', 'arm-right', 'leg-left', 'leg-right']) {
+        const part = model.registry.getPart(partId)
+        captureSingleObjectTransform(part, time, partPositionSamples)
+      }
     }
-    clips.push(poseDocumentToClip(document, model.registry))
+    const clip = poseDocumentToClip(document, model.registry)
+    if (rootTimes.length) clip.tracks.push(new THREE.VectorKeyframeTrack('CharacterMotion.position', rootTimes, rootPositions))
+    appendObjectScaleTracks(clip, faceTransformSamples)
+    appendObjectPositionTracks(clip, partPositionSamples)
+    clips.push(appendObjectTransformTracks(clip, actionPropSamples).optimize())
   }
   for (const document of customDocuments) {
     if (document?.keyframes?.length) clips.push(poseDocumentToClip(document, model.registry))

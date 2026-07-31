@@ -54,7 +54,12 @@ test('maps toon materials to an explicit Blender-friendly PBR profile', () => {
 })
 
 test('GLB round-trip preserves versioned morphology and identity metadata', async () => {
-  const morphology = { bodyScale: 1.1, headScale: 0.9, earScale: 1.2, legLength: 1.15, tailLength: 1.25, tailCurl: 0.35 }
+  const morphology = {
+    bodyScale: 1.1, bodyWidth: 1, bodyHeight: 1, bodyDepth: 1,
+    headScale: 0.9, eyeScale: 1, eyeSpacing: 1, mouthScale: 1,
+    earScale: 1.2, earWidth: 1, earHeight: 1,
+    pawScale: 1, footScale: 1, legLength: 1.15, tailLength: 1.25, tailCurl: 0.35,
+  }
   const identity = { name: 'Nova', personality: ['好奇'], occupation: '摄影师', theme: '城市', story: '记录每次相遇。', catchphrase: '出发！' }
   const assembly = createCatAssembly({ tokenId: '12', seed: 42, gear: 'Camera', morphology, identity })
   try {
@@ -82,5 +87,20 @@ test('GLB round-trip preserves named animation clips for DCC and game engines', 
     assert.equal(report.roundTrip.compatibility.blender.valid, true)
     assert.equal(report.roundTrip.compatibility.unity.valid, true)
     assert.equal(report.roundTrip.compatibility.unreal.valid, true)
+  } finally { assembly.dispose() }
+})
+
+test('GLB round-trip preserves wrist-driven Pack 5 prop tracks', async () => {
+  const assembly = createCatAssembly({ tokenId: '414', morphology: { bodyScale: 1.2, pawScale: 1.25 } })
+  try {
+    assembly.model.setAnimation('emoji-dumbbells')
+    assembly.model.update(.2)
+    const animations = assembly.model.createExportAnimationClips({
+      fps: 12,
+      include: [{ id: 'emoji-dumbbells', name: 'Dumbbells', duration: 1.6, loop: true }],
+    })
+    const { report } = await exportCharacterGlb(assembly.root, { animations })
+    assert.ok(report.roundTrip.animationTracks.Dumbbells.includes('DumbbellLeft.position'))
+    assert.ok(report.roundTrip.animationTracks.Dumbbells.includes('DumbbellRight.position'))
   } finally { assembly.dispose() }
 })

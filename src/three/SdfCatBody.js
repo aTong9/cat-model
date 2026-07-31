@@ -113,9 +113,9 @@ export function createSdfCatBody(furColor = '#f4c430', opts = {}) {
 
     // 臀部 —— 略宽
     sphere({
-      c: { x: 0, y: -0.03, z: 0.02 },
-      r: 0.38,
-      s: [1.08 * wid, 0.92, 1.00],
+      c: { x: 0, y: -0.12, z: 0.02 },
+      r: 0.45,
+      s: [1.10 * wid, 1.05, 1.00],
       k: 0.22, tag: 'body',
     }),
 

@@ -1,5 +1,26 @@
 const asset = file => new URL(`../../liberty_cats_download/emoji/pack5/${file}`, import.meta.url).href
 
+// Measured from the source GIF streams with ffprobe. Keeping preview, runtime
+// and GLB bake durations on the same clock prevents loop seams and pose drift.
+export const PACK5_SOURCE_DURATIONS = Object.freeze({
+  'emoji-abs': 1.80,
+  'emoji-jump-rope': 1.76,
+  'emoji-dumbbells': 1.24,
+  'emoji-pull-up': 1.64,
+  'emoji-bench-press': 1.80,
+  'emoji-hula-hoop': 1.76,
+  'emoji-boxing': .88,
+  'emoji-so-cute': 1.64,
+  'emoji-yoga': 1.80,
+  'emoji-foodie': 1.64,
+  'emoji-backflip': 1.60,
+  'emoji-snowboarding': 2.00,
+  'emoji-snow-fight': 1.80,
+  'emoji-snowball': 2.56,
+  'emoji-so-cold': 1.64,
+  'emoji-so-comfy': 2.08,
+})
+
 export const EMOJI_ACTIONS = Object.freeze([
   ['emoji-abs', '练腹肌', '01_Abs.gif', 'fitness', 1.6, '收紧核心并交替卷腹'],
   ['emoji-jump-rope', '跳绳', '02_Jump-Rope.gif', 'fitness', 1.2, '连续轻跳并转动双腕'],
@@ -18,7 +39,8 @@ export const EMOJI_ACTIONS = Object.freeze([
   ['emoji-so-cold', '好冷', '15_So-Cold.gif', 'snow', 1.0, '抱臂快速发抖'],
   ['emoji-so-comfy', '好舒服', '16_So-Comfy.gif', 'mood', 2.4, '放松坐姿与缓慢呼吸'],
 ].map(([id, label, file, category, duration, description]) => Object.freeze({
-  id, label, file, category, duration, description, preview: asset(file), loop: true,
+  id, label, file, category, duration: PACK5_SOURCE_DURATIONS[id] ?? duration,
+  description, preview: asset(file), loop: true,
 })))
 
 export const EMOJI_ACTION_IDS = Object.freeze(EMOJI_ACTIONS.map(action => action.id))

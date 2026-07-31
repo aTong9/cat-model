@@ -2,7 +2,7 @@ import test from 'node:test'
 import assert from 'node:assert/strict'
 import { createShareQuery, createShareUrl, parseShareQuery, serializeCatConfig } from '../src/core/shareCatConfig.js'
 
-const traits = { tokenId: '42', fur: 'Tuxedo', furColor: '#53515b', eyes: 'VR', face: 'Smile', gear: 'Camera', background: 'Purple Gradient', special: null, morphology: { bodyScale: 1.2, headScale: 0.9, earScale: 1.1, legLength: 1.15, tailLength: 1.3, tailCurl: 0.4 } }
+const traits = { tokenId: '42', fur: 'Tuxedo', furColor: '#53515b', eyes: 'VR', face: 'Smile', gear: 'Camera', background: 'Purple Gradient', special: null, morphology: { bodyScale: 1.2, bodyWidth: 1, bodyHeight: 1, bodyDepth: 1, headScale: 0.9, eyeScale: 1, eyeSpacing: 1, mouthScale: 1, earScale: 1.1, earWidth: 1, earHeight: 1, pawScale: 1, footScale: 1, legLength: 1.15, tailLength: 1.3, tailCurl: 0.4 } }
 
 test('share query round-trips normalized cat traits', () => {
   const restored = parseShareQuery(createShareQuery(traits))

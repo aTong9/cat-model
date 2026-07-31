@@ -85,7 +85,9 @@ export function applyFurRecipeToGeometry(geometry, style, customColor) {
       color.copy(colorsByName.white)
       if (!whiteRegion && masks.leftFace) color.copy(colorsByName.accent)
       else if (!whiteRegion && masks.rightFace) color.copy(colorsByName.dark)
-      else if (!whiteRegion && masks.spot) color.copy(masks.spotValue > 0.72 ? colorsByName.dark : colorsByName.accent)
+      // The Liberty Cats calico identity is a clean two-tone head split over a
+      // white body. Procedural vertex noise produced stretched, building-like
+      // streaks on the low-poly SDF surface and did not match the pixel source.
     } else if (recipe.pattern === 'leopard') {
       if (whiteRegion) color.copy(colorsByName.white)
       else if (masks.spot) color.copy(colorsByName.accent)

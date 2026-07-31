@@ -20,6 +20,8 @@ import {
 import { POSE_CONFIGS } from '../config/poses.js'
 import { POSE_CHANNELS, createPoseDocument, upsertPoseKeyframe } from '../character/animation/poseAuthoring.js'
 import { createEquipmentAnimationDocument, upsertEquipmentKeyframe } from '../character/equipment/equipmentAnimation.js'
+import { EMOJI_ACTION_IDS } from '../config/emojiActions.js'
+import { DEFAULT_ACTION_PARAMETERS, normalizeActionParameters } from '../character/animation/actionParameters.js'
 
 export const FUR_PRESETS = FUR_TRAITS
 export { EYE_STYLES, FACE_EXPRESSIONS, PRESET_CATS }
@@ -29,22 +31,39 @@ export const SPECIALS = SPECIAL_TRAITS
 export const ACTIONS = POSE_CONFIGS
 export const MORPHOLOGY_CONTROLS = Object.freeze([
   { key: 'bodyScale', label: '身体胖瘦', ...MORPHOLOGY_DEFINITIONS.bodyScale },
+  { key: 'bodyWidth', label: '身体宽度', ...MORPHOLOGY_DEFINITIONS.bodyWidth },
+  { key: 'bodyHeight', label: '身体高度', ...MORPHOLOGY_DEFINITIONS.bodyHeight },
+  { key: 'bodyDepth', label: '身体厚度', ...MORPHOLOGY_DEFINITIONS.bodyDepth },
   { key: 'headScale', label: '头部比例', ...MORPHOLOGY_DEFINITIONS.headScale },
+  { key: 'eyeScale', label: '眼睛大小', ...MORPHOLOGY_DEFINITIONS.eyeScale },
+  { key: 'eyeSpacing', label: '眼睛间距', ...MORPHOLOGY_DEFINITIONS.eyeSpacing },
+  { key: 'mouthScale', label: '嘴部大小', ...MORPHOLOGY_DEFINITIONS.mouthScale },
   { key: 'earScale', label: '耳朵大小', ...MORPHOLOGY_DEFINITIONS.earScale },
+  { key: 'earWidth', label: '耳朵宽度', ...MORPHOLOGY_DEFINITIONS.earWidth },
+  { key: 'earHeight', label: '耳朵高度', ...MORPHOLOGY_DEFINITIONS.earHeight },
+  { key: 'pawScale', label: '手掌比例', ...MORPHOLOGY_DEFINITIONS.pawScale },
+  { key: 'footScale', label: '脚掌比例', ...MORPHOLOGY_DEFINITIONS.footScale },
   { key: 'legLength', label: '腿部长度', ...MORPHOLOGY_DEFINITIONS.legLength },
   { key: 'tailLength', label: '尾巴长度', ...MORPHOLOGY_DEFINITIONS.tailLength },
   { key: 'tailCurl', label: '尾巴卷曲', ...MORPHOLOGY_DEFINITIONS.tailCurl },
 ])
 export const MORPHOLOGY_PRESETS = Object.freeze([
-  { id: 'classic', label: '经典', values: { bodyScale: 1, headScale: 1, earScale: 1, legLength: 1, tailLength: 1, tailCurl: 0 } },
-  { id: 'kitten', label: '幼猫', values: { bodyScale: .86, headScale: 1.2, earScale: 1.12, legLength: .88, tailLength: .9, tailCurl: .12 } },
-  { id: 'chubby', label: '圆滚滚', values: { bodyScale: 1.24, headScale: 1.08, earScale: .9, legLength: .84, tailLength: .92, tailCurl: .2 } },
-  { id: 'tall', label: '高挑', values: { bodyScale: .92, headScale: .9, earScale: 1.08, legLength: 1.24, tailLength: 1.18, tailCurl: -.05 } },
-  { id: 'big-head', label: '大头萌', values: { bodyScale: .94, headScale: 1.25, earScale: 1.04, legLength: .92, tailLength: .9, tailCurl: .18 } },
-  { id: 'wild', label: '野性', values: { bodyScale: 1.08, headScale: .94, earScale: 1.32, legLength: 1.14, tailLength: 1.38, tailCurl: -.35 } },
-  { id: 'compact', label: '短腿', values: { bodyScale: 1.12, headScale: 1.08, earScale: .92, legLength: .8, tailLength: 1.04, tailCurl: .35 } },
-  { id: 'elegant', label: '优雅', values: { bodyScale: .88, headScale: .92, earScale: 1.14, legLength: 1.18, tailLength: 1.32, tailCurl: .62 } },
-].map(preset => Object.freeze({ ...preset, values: Object.freeze(preset.values) })))
+  { id: 'pack5', label: 'Pack5 标准', values: { bodyScale: 1, bodyWidth: 1, bodyHeight: 1, bodyDepth: 1, headScale: 1, earScale: 1, legLength: 1, tailLength: 1, tailCurl: 0 } },
+  { id: 'classic', label: '经典长身', values: { bodyScale: .96, bodyWidth: .90, bodyHeight: 1.10, bodyDepth: 1.05, headScale: .96, earScale: 1, legLength: 1.08, tailLength: 1, tailCurl: 0 } },
+  { id: 'kitten', label: '幼猫', values: { bodyScale: .86, bodyWidth: .92, bodyHeight: .88, bodyDepth: .9, headScale: 1.2, earScale: 1.12, legLength: .88, tailLength: .9, tailCurl: .12 } },
+  { id: 'chubby', label: '圆滚滚', values: { bodyScale: 1.18, bodyWidth: 1.2, bodyHeight: .9, bodyDepth: 1.18, headScale: 1.08, earScale: .9, legLength: .84, tailLength: .92, tailCurl: .2 } },
+  { id: 'tall', label: '高挑', values: { bodyScale: .92, bodyWidth: .86, bodyHeight: 1.16, bodyDepth: .92, headScale: .9, earScale: 1.08, legLength: 1.24, tailLength: 1.18, tailCurl: -.05 } },
+  { id: 'big-head', label: '大头萌', values: { bodyScale: .94, bodyWidth: 1.04, bodyHeight: .9, bodyDepth: 1, headScale: 1.25, earScale: 1.04, legLength: .92, tailLength: .9, tailCurl: .18 } },
+  { id: 'wild', label: '野性', values: { bodyScale: 1.04, bodyWidth: .92, bodyHeight: 1.08, bodyDepth: .96, headScale: .94, earScale: 1.32, legLength: 1.14, tailLength: 1.38, tailCurl: -.35 } },
+  { id: 'compact', label: '短腿', values: { bodyScale: 1.08, bodyWidth: 1.12, bodyHeight: .82, bodyDepth: 1.08, headScale: 1.08, earScale: .92, legLength: .8, tailLength: 1.04, tailCurl: .35 } },
+  { id: 'elegant', label: '优雅', values: { bodyScale: .88, bodyWidth: .86, bodyHeight: 1.08, bodyDepth: .88, headScale: .92, earScale: 1.14, legLength: 1.18, tailLength: 1.32, tailCurl: .62 } },
+].map(preset => Object.freeze({
+  ...preset,
+  values: Object.freeze({
+    ...Object.fromEntries(Object.entries(MORPHOLOGY_DEFINITIONS).map(([key, definition]) => [key, definition.default])),
+    ...preset.values,
+  }),
+})))
 
 const WEATHERS = ['sunny', 'cloudy', 'thunder', 'rain']
 
@@ -61,6 +80,7 @@ export const useCatStore = defineStore('cat', () => {
   const seed = ref(Date.now())
   const activePreset = ref(null)
   const actionMode = ref('standing')
+  const actionParameters = ref(Object.fromEntries(EMOJI_ACTION_IDS.map(id => [id, { ...DEFAULT_ACTION_PARAMETERS }])))
   const poseAuthoringEnabled = ref(false)
   const selectedPoseChannel = ref('head')
   const poseCursor = ref(0)
@@ -290,6 +310,17 @@ export const useCatStore = defineStore('cat', () => {
     next[index] = Math.min(Math.PI, Math.max(-Math.PI, Number(value) || 0))
     customPose.value = { ...customPose.value, [channelId]: next }
   }
+  function setActionParameter(actionId, key, value) {
+    if (!EMOJI_ACTION_IDS.includes(actionId) || !(key in DEFAULT_ACTION_PARAMETERS)) return
+    actionParameters.value = {
+      ...actionParameters.value,
+      [actionId]: normalizeActionParameters({ ...actionParameters.value[actionId], [key]: value }),
+    }
+  }
+  function resetActionParameters(actionId) {
+    if (!EMOJI_ACTION_IDS.includes(actionId)) return
+    actionParameters.value = { ...actionParameters.value, [actionId]: { ...DEFAULT_ACTION_PARAMETERS } }
+  }
   function setPoseChannelRotation(channelId, rotation) {
     if (!customPose.value[channelId] || !Array.isArray(rotation)) return
     customPose.value = { ...customPose.value, [channelId]: rotation.slice(0, 3).map(value => Number(value) || 0) }
@@ -337,11 +368,11 @@ export const useCatStore = defineStore('cat', () => {
   }
 
   return {
-    furStyle, furColor, eyeStyle, gearType, faceExpression, background, special, actionMode, poseAuthoringEnabled, selectedPoseChannel, poseCursor, customPose, poseDocument, equipmentAuthoringEnabled, selectedEquipmentId, equipmentAnimation, equipmentCursor, equipmentTransform, equipmentPoseDocument, qualityMode, stageStyle, stageScale, stageHeight, stageTextureUrl, morphology, morphologyLocks, identity,
+    furStyle, furColor, eyeStyle, gearType, faceExpression, background, special, actionMode, actionParameters, poseAuthoringEnabled, selectedPoseChannel, poseCursor, customPose, poseDocument, equipmentAuthoringEnabled, selectedEquipmentId, equipmentAnimation, equipmentCursor, equipmentTransform, equipmentPoseDocument, qualityMode, stageStyle, stageScale, stageHeight, stageTextureUrl, morphology, morphologyLocks, identity,
     tokenId, seed, activePreset, weather, lightIntensity, rainAmount, cloudAmount,
     fishAmount, musicOn, language, loading, loadingProgress, panelExpanded, workspaceMode, showHints,
     tokenLoading, tokenError, referenceImage, referenceImageFallback, referenceImageSource, comparisonOpen,
     isSpecialFullScene, currentTraits, canUndo, canRedo, undo, redo, setIdentity, generateIdentity, applyTraits, randomize, setFromSeed, cycleWeather, togglePanel, setWorkspaceMode, setLanguage,
-    applyPreset, setFurStyle, setCustomFurColor, setBackground, setSpecial, setStageTexture, setPoseRotation, setPoseChannelRotation, addPoseKeyframe, resetCustomPose, setEquipmentTransform, setEquipmentRotation, addEquipmentKeyframe, setMorphology, resetMorphology, applyMorphologyPreset, toggleMorphologyLock, loadToken, loadAdjacent,
+    applyPreset, setFurStyle, setCustomFurColor, setBackground, setSpecial, setStageTexture, setActionParameter, resetActionParameters, setPoseRotation, setPoseChannelRotation, addPoseKeyframe, resetCustomPose, setEquipmentTransform, setEquipmentRotation, addEquipmentKeyframe, setMorphology, resetMorphology, applyMorphologyPreset, toggleMorphologyLock, loadToken, loadAdjacent,
   }
 })

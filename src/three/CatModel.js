@@ -5,7 +5,7 @@ import { getFurTrait } from '../config/traits.js'
 import { getEyeAppearanceProfile } from './AppearanceProfiles.js'
 import { getFaceAppearanceProfile } from './FaceProfiles.js'
 import { createCatTail, updateCatTail } from '../character/tail/createCatTail.js'
-import { applyMorphology } from '../character/morphology/applyMorphology.js'
+import { applyMorphology, PACK5_BASE_SCALE } from '../character/morphology/applyMorphology.js'
 import { createCatEar } from '../character/ears/createCatEar.js'
 import { CharacterPartRegistry } from '../character/registry/CharacterPartRegistry.js'
 import { EquipmentAssembler } from '../character/equipment/EquipmentAssembler.js'
@@ -19,6 +19,7 @@ import { createCatAnimationRig } from '../character/animation/createCatAnimation
 import { applyFurRecipeToGeometry } from '../character/appearance/furRecipes.js'
 import { resolveFaceEquipmentPolicy } from '../character/appearance/faceCompositionContract.js'
 import { bakeProceduralAnimationClips } from '../character/animation/poseAuthoring.js'
+import { ActionPropController } from '../character/animation/ActionPropController.js'
 
 // ===== Toon 渐变贴图（参考 Meow-Generator MeshToonMaterial） =====
 let _sharedToonMap = null
@@ -67,6 +68,34 @@ function eyeWhite() {
 }
 function pupil() {
   return new THREE.MeshStandardMaterial({ color: '#111111', roughness: 0.08 })
+}
+
+function createFaceStar(name, size = .095) {
+  const shape = new THREE.Shape()
+  for (let index = 0; index < 10; index++) {
+    const angle = Math.PI / 2 + index * Math.PI / 5
+    const radius = index % 2 === 0 ? size : size * .42
+    const x = Math.cos(angle) * radius
+    const y = Math.sin(angle) * radius
+    if (index === 0) shape.moveTo(x, y)
+    else shape.lineTo(x, y)
+  }
+  shape.closePath()
+  const mesh = new THREE.Mesh(
+    new THREE.ShapeGeometry(shape),
+    new THREE.MeshStandardMaterial({
+      color: '#ffe43b', emissive: '#f4b800', emissiveIntensity: .72,
+      roughness: .28, metalness: .08, side: THREE.DoubleSide,
+    }),
+  )
+  const group = new THREE.Group()
+  group.name = name
+  mesh.name = `${name}Surface`
+  group.add(mesh)
+  group.scale.setScalar(.001)
+  group.userData.baseScale = 1
+  group.userData.restRotation = [0, 0, 0]
+  return group
 }
 function noseMat() {
   return new THREE.MeshStandardMaterial({ color: '#e8917a', roughness: 0.38 })
@@ -143,6 +172,8 @@ export class CatModel {
     this._bodyGroup = null
     this._eyeGroupL = null
     this._eyeGroupR = null
+    this._eyelidLGroup = null
+    this._eyelidRGroup = null
     this._mouthGroup = null
     this._gearRoot = null
     this._vrHeadset = null
@@ -155,11 +186,15 @@ export class CatModel {
     this._footLGroup = null
     this._footRGroup = null
     this._tailGroup = null
+    this._motionGroup = null
+    this._morphologyGroup = null
 
     this._buildBody()
+    this._createMotionRoot()
+    this.actionProps = new ActionPropController(this._motionGroup, this.root)
     this.equipmentAssembler = new EquipmentAssembler(this.registry)
     const animatorOptions = {
-      root: this.root,
+      root: this._motionGroup,
       registry: this.registry,
       parts: {
         body: this._bodyGroup, head: this._headGroup,
@@ -168,12 +203,15 @@ export class CatModel {
         legLeft: this._footLGroup, legRight: this._footRGroup,
       },
       updateTail: (...args) => this._updateTailSurface(...args),
+      actionProps: this.actionProps,
     }
     this.animator = new CatAnimator(animatorOptions)
     this.animationRig = createCatAnimationRig({
-      root: this.root, registry: this.registry,
+      root: this._motionGroup, registry: this.registry,
       updateTail: animatorOptions.updateTail,
+      actionProps: this.actionProps,
       getRunSpeed: () => this.animator.runSpeed,
+      getActionParameters: actionId => this.animator.getActionParameters(actionId),
     })
     for (const [mode, strategy] of Object.entries(createCatPoseStrategies(this.animationRig))) {
       this.animator.registerStrategy(mode, strategy)
@@ -196,7 +234,7 @@ export class CatModel {
     const trait = style === 'Custom' ? { color: hex } : getFurTrait(style)
     this.root.traverse(part => {
       if (!part.isMesh || !part.material?.color) return
-      if (/Arm(Left|Right)(Upper|Fore|Socket|ShoulderBlend|ElbowBlend|WristCover|ContinuousSurface)|Leg(Left|Right)(Upper|Lower|HipBlend|KneeBlend|AnkleCover|ContinuousSurface)|Tail(Segment|RootBlend|Blend|Surface)|Ear(Left|Right)Outer/.test(part.name)) part.material.color.set(trait.color)
+      if (/Arm(Left|Right)(Upper|Fore|Socket|ShoulderBlend|ElbowBlend|WristCover|ContinuousSurface)|Leg(Left|Right)(Upper|Lower|HipBlend|KneeBlend|AnkleCover|ContinuousSurface)|Tail(Segment|RootBlend|Blend|Surface)|Ear(Left|Right)(Outer|RootBlend|RoundedRim)/.test(part.name)) part.material.color.set(trait.color)
       if (/Paw$|Digit\d|Leg(Left|Right)Sole|Toe\d/.test(part.name)) part.material.color.set('#f5f1e6')
     })
   }
@@ -238,6 +276,14 @@ export class CatModel {
     this.animator.setRunSpeed(speed)
   }
 
+  setActionParameters(actionId, parameters) {
+    return this.animator.setActionParameters(actionId, parameters)
+  }
+
+  getActionParameters(actionId) {
+    return this.animator.getActionParameters(actionId)
+  }
+
   _updateTailSurface(time, intensity = 0.06, speed = 1) {
     updateCatTail(this._tailGroup, time, intensity, speed)
   }
@@ -245,13 +291,29 @@ export class CatModel {
 
 
 
-  setMorphology({ bodyScale = 1, headScale = 1, earScale = 1, legLength = 1, tailLength = 1, tailCurl = 0 } = {}) {
+  setMorphology({
+    bodyScale = 1, bodyWidth = 1, bodyHeight = 1, bodyDepth = 1,
+    headScale = 1, eyeScale = 1, eyeSpacing = 1, mouthScale = 1,
+    earScale = 1, earWidth = 1, earHeight = 1,
+    pawScale = 1, footScale = 1, legLength = 1, tailLength = 1, tailCurl = 0,
+  } = {}) {
     this.root.userData.morphology = applyMorphology({
+      morphologyRoot: this._morphologyGroup,
       body: this.registry.getPart('body'), head: this.registry.getPart('head'),
+      eyeLeft: this._eyeGroupL, eyeRight: this._eyeGroupR,
+      actionEyeLeft: this._actionEyeLGroup, actionEyeRight: this._actionEyeRGroup,
+      eyeStarLeft: this._eyeStarLGroup, eyeStarRight: this._eyeStarRGroup,
+      eyelidLeft: this._eyelidLGroup, eyelidRight: this._eyelidRGroup,
+      browLeft: this._browLGroup, browRight: this._browRGroup,
+      mouth: this._mouthGroup,
       earLeft: this.registry.getPart('ear-left'), earRight: this.registry.getPart('ear-right'),
       armLeft: this.registry.getPart('arm-left'), armRight: this.registry.getPart('arm-right'),
       legLeft: this.registry.getPart('leg-left'), legRight: this.registry.getPart('leg-right'), tail: this.registry.getPart('tail'),
-    }, { bodyScale, headScale, earScale, legLength, tailLength, tailCurl })
+    }, {
+      bodyScale, bodyWidth, bodyHeight, bodyDepth, headScale, eyeScale,
+      eyeSpacing, mouthScale, earScale, earWidth, earHeight, pawScale,
+      footScale, legLength, tailLength, tailCurl,
+    })
   }
 
 
@@ -265,12 +327,45 @@ export class CatModel {
   }
 
   dispose() {
+    this.actionProps.dispose()
     this.equipmentAssembler.dispose()
     this._equippedGear = null
     disposeObject3DResources(this.root, { detach: false, excludeGeometries: [this._bodyGeoRef] })
   }
 
   // ========== Private: 构建身体 ==========
+
+  _createMotionRoot() {
+    const pivotY = .72
+    const visualChildren = [...this.root.children]
+    const motion = new THREE.Group()
+    motion.name = 'CharacterMotion'
+    motion.position.y = pivotY
+    motion.userData.restPosition = [0, pivotY, 0]
+    motion.userData.restRotation = [0, 0, 0]
+    this.root.add(motion)
+    const morphology = new THREE.Group()
+    morphology.name = 'CharacterMorphology'
+    morphology.userData.baseScale = [...PACK5_BASE_SCALE]
+    morphology.scale.set(...PACK5_BASE_SCALE)
+    motion.add(morphology)
+    for (const child of visualChildren) {
+      morphology.add(child)
+      // Body geometry, face landmarks, ears and shoulders are authored in the
+      // same absolute character space and must keep those coordinates. The old
+      // blanket pivot subtraction moved every facial feature and both arms
+      // down by 0.72 units, so the face appeared on the belly. Legs are the
+      // exception: their bind roots are converted into the grounded
+      // morphology space so the authored feet remain on the floor.
+      if (child === this._footLGroup || child === this._footRGroup) {
+        child.position.y -= pivotY
+        child.userData.restPosition = child.position.toArray()
+      }
+    }
+    this._motionGroup = motion
+    this._morphologyGroup = morphology
+    this.registry.registerPart('motion-root', motion)
+  }
 
   _buildBody() {
     // -- SDF 主体（loaf 面包猫） --
@@ -396,12 +491,131 @@ export class CatModel {
     this._eyeGroupL = new THREE.Group()
     this._eyeGroupL.name = 'FaceEyeLeft'
     this._eyeGroupL.position.set(-headRadius * 0.43, headRadius * 0.10, headRadius * 1.02)
+    this._eyeGroupL.userData.restPosition = this._eyeGroupL.position.toArray()
+    this._eyeGroupL.userData.baseScale = 1
     headGroup.add(this._eyeGroupL)
 
     this._eyeGroupR = new THREE.Group()
     this._eyeGroupR.name = 'FaceEyeRight'
     this._eyeGroupR.position.set(headRadius * 0.43, headRadius * 0.10, headRadius * 1.02)
+    this._eyeGroupR.userData.restPosition = this._eyeGroupR.position.toArray()
+    this._eyeGroupR.userData.baseScale = 1
     headGroup.add(this._eyeGroupR)
+
+    this._eyeStarLGroup = createFaceStar('FaceEyeStarLeft')
+    this._eyeStarLGroup.position.set(-headRadius * .43, headRadius * .10, headRadius * 1.42)
+    this._eyeStarLGroup.userData.restPosition = this._eyeStarLGroup.position.toArray()
+    headGroup.add(this._eyeStarLGroup)
+    this._eyeStarRGroup = createFaceStar('FaceEyeStarRight')
+    this._eyeStarRGroup.position.set(headRadius * .43, headRadius * .10, headRadius * 1.42)
+    this._eyeStarRGroup.userData.restPosition = this._eyeStarRGroup.position.toArray()
+    headGroup.add(this._eyeStarRGroup)
+
+    const createActionEye = (name, x) => {
+      const group = new THREE.Group()
+      group.name = name
+      group.position.set(x, headRadius * .10, headRadius * 1.18)
+      group.userData.restPosition = group.position.toArray()
+      group.userData.baseScale = 1
+      group.scale.setScalar(.001)
+      const eye = new THREE.Mesh(
+        new THREE.SphereGeometry(headRadius * .25, 24, 18),
+        new THREE.MeshStandardMaterial({ color: '#111116', roughness: .18 }),
+      )
+      eye.scale.set(.92, 1.12, .42)
+      eye.name = `${name}Surface`
+      group.add(eye)
+      const highlight = new THREE.Mesh(
+        new THREE.SphereGeometry(headRadius * .070, 12, 8),
+        new THREE.MeshBasicMaterial({ color: '#ffffff' }),
+      )
+      highlight.position.set(-headRadius * .075, headRadius * .085, headRadius * .105)
+      highlight.name = `${name}Highlight`
+      group.add(highlight)
+      headGroup.add(group)
+      return group
+    }
+    this._actionEyeLGroup = createActionEye('FaceActionEyeLeft', -headRadius * .43)
+    this._actionEyeRGroup = createActionEye('FaceActionEyeRight', headRadius * .43)
+
+    const createEyelid = (name, x) => {
+      const joint = new THREE.Group()
+      joint.name = name
+      joint.position.set(x, headRadius * 0.10, headRadius * 1.16)
+      joint.rotation.x = Math.PI / 2
+      joint.userData.restRotation = [Math.PI / 2, 0, 0]
+      joint.userData.restPosition = joint.position.toArray()
+      const cover = new THREE.Mesh(
+        new RoundedBoxGeometry(headRadius * .56, .012, .008, 3, .006),
+        new THREE.MeshBasicMaterial({ color: '#27232b' }),
+      )
+      cover.name = `${name}Cover`
+      cover.position.y = .018
+      cover.castShadow = true
+      joint.add(cover)
+      headGroup.add(joint)
+      return joint
+    }
+    this._eyelidLGroup = createEyelid('FaceEyelidLeft', -headRadius * .43)
+    this._eyelidRGroup = createEyelid('FaceEyelidRight', headRadius * .43)
+    const createBrow = (name, x, side) => {
+      const joint = new THREE.Group()
+      joint.name = name
+      joint.position.set(x, headRadius * .43, headRadius * 1.17)
+      joint.userData.restPosition = joint.position.toArray()
+      joint.userData.restRotation = [0, 0, 0]
+      joint.userData.baseScale = 1
+      joint.scale.set(1, .01, 1)
+      const brow = new THREE.Mesh(
+        new RoundedBoxGeometry(headRadius * .36, headRadius * .055, headRadius * .035, 4, headRadius * .025),
+        new THREE.MeshStandardMaterial({ color: '#27232b', roughness: .58 }),
+      )
+      brow.name = `${name}Surface`
+      brow.rotation.z = side * .04
+      brow.castShadow = true
+      joint.add(brow)
+      headGroup.add(joint)
+      return joint
+    }
+    this._browLGroup = createBrow('FaceBrowLeft', -headRadius * .43, -1)
+    this._browRGroup = createBrow('FaceBrowRight', headRadius * .43, 1)
+    const createCheek = (name, x) => {
+      const joint = new THREE.Group()
+      joint.name = name
+      joint.position.set(x, -headRadius * .22, headRadius * 1.20)
+      joint.userData.restPosition = joint.position.toArray()
+      joint.userData.baseScale = 1
+      joint.scale.set(.01, .01, .01)
+      const cheek = new THREE.Mesh(
+        new THREE.SphereGeometry(headRadius * .14, 20, 12),
+        new THREE.MeshStandardMaterial({
+          color: '#ff6f87', roughness: .54, transparent: true, opacity: .72,
+          depthWrite: false,
+        }),
+      )
+      cheek.name = `${name}Surface`
+      cheek.scale.set(1.34, .48, .16)
+      joint.add(cheek)
+      headGroup.add(joint)
+      return joint
+    }
+    this._cheekLGroup = createCheek('FaceCheekLeft', -headRadius * .62)
+    this._cheekRGroup = createCheek('FaceCheekRight', headRadius * .62)
+    this.registry.registerJoints('face', {
+      eyeLeft: this._eyeGroupL,
+      eyeRight: this._eyeGroupR,
+      actionEyeLeft: this._actionEyeLGroup,
+      actionEyeRight: this._actionEyeRGroup,
+      eyeStarLeft: this._eyeStarLGroup,
+      eyeStarRight: this._eyeStarRGroup,
+      eyelidLeft: this._eyelidLGroup,
+      eyelidRight: this._eyelidRGroup,
+      browLeft: this._browLGroup,
+      browRight: this._browRGroup,
+      cheekLeft: this._cheekLGroup,
+      cheekRight: this._cheekRGroup,
+      jaw: this._mouthGroup,
+    })
 
     // -- VR 头显根 --
     this._vrHeadset = new THREE.Group()
@@ -420,8 +634,8 @@ export class CatModel {
     this.registry.createSocket('paw-left', this._armLGroup, [-0.14, -0.46, 0.20])
     this.registry.createSocket('shoulder-left', bodyGroup, [-0.32, 0.64, 0.12])
     this.registry.createSocket('shoulder-right', bodyGroup, [0.32, 0.64, 0.12])
-    this.registry.createSocket('hip-left', bodyGroup, [-0.18, -0.10, 0.02])
-    this.registry.createSocket('hip-right', bodyGroup, [0.18, -0.10, 0.02])
+    this.registry.createSocket('hip-left', bodyGroup, [-0.18, 0.08, 0.22])
+    this.registry.createSocket('hip-right', bodyGroup, [0.18, 0.08, 0.22])
     this.registry.createSocket('tail-base', bodyGroup, [0.04, -0.08, -0.31])
 
     // 初始构建
@@ -438,7 +652,10 @@ export class CatModel {
     const expr = this._faceExpression
     const g = this._mouthGroup
     const profile = getFaceAppearanceProfile(expr)
-    g.scale.setScalar(1.05 * profile.scale)
+    g.userData.profileScale = 1.05 * profile.scale
+    const morphologyScale = this.root.userData.morphology?.mouthScale ?? g.userData.morphologyScale ?? 1
+    g.userData.baseScale = g.userData.profileScale * 1.12 * morphologyScale
+    g.scale.setScalar(g.userData.baseScale)
     g.userData.faceExpression = expr
     g.userData.faceFamily = profile.family
     g.userData.faceBounds = { width: profile.mouthWidth, height: profile.mouthHeight }

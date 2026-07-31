@@ -137,10 +137,10 @@ test('idle and run embed shoulders while hands flare slightly outward', () => {
 
   model.setAnimation('idle')
   model.update(0.7)
-  assert.equal(Math.abs(left.position.x), 0.32)
-  assert.equal(Math.abs(right.position.x), 0.32)
-  assert.ok(left.rotation.z < -0.06)
-  assert.ok(right.rotation.z > 0.06)
+  assert.equal(Math.abs(left.position.x), 0.40)
+  assert.equal(Math.abs(right.position.x), 0.40)
+  assert.equal(left.rotation.z, -0.035)
+  assert.equal(right.rotation.z, 0.035)
 
   model.setAnimation('run')
   for (const time of [0, 0.15, 0.3, 0.45]) {

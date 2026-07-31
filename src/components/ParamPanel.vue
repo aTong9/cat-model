@@ -107,6 +107,16 @@
               <div class="emoji-action-grid"><button v-for="item in EMOJI_ACTIONS" :key="item.id" class="choice" :class="{ active: store.actionMode === item.id }" :title="item.description" @click="store.actionMode = item.id">{{ item.label }}</button></div>
             </div>
           </SettingBlock>
+          <SettingBlock v-if="activeEmojiAction" title="动作参数">
+            <div class="action-parameter-list">
+              <label v-for="(definition, key) in ACTION_PARAMETER_DEFINITIONS" :key="key" class="range-control">
+                <span>{{ definition.label }}</span>
+                <input type="range" :min="definition.min" :max="definition.max" :step="definition.step" :value="store.actionParameters[activeEmojiAction.id][key]" @input="store.setActionParameter(activeEmojiAction.id, key, $event.target.value)" />
+                <output>{{ store.actionParameters[activeEmojiAction.id][key].toFixed(2) }}</output>
+              </label>
+              <button class="btn" @click="store.resetActionParameters(activeEmojiAction.id)">恢复参考动作</button>
+            </div>
+          </SettingBlock>
           <div class="pose-authoring">
             <header><div><b>动作编辑 API</b><small>拖动视口旋转环，或精确调整参数</small></div><button class="btn" :class="{ active: store.poseAuthoringEnabled }" @click="store.poseAuthoringEnabled = !store.poseAuthoringEnabled">{{ store.poseAuthoringEnabled ? '退出编辑' : '开始编辑' }}</button></header>
             <template v-if="store.poseAuthoringEnabled">
@@ -132,13 +142,15 @@ import ComparisonPanel from './ComparisonPanel.vue'
 import { QUALITY_MODES } from '../three/RenderQualityController.js'
 import { POSE_CHANNELS } from '../character/animation/poseAuthoring.js'
 import { EMOJI_ACTIONS, getEmojiAction } from '../config/emojiActions.js'
+import { ACTION_PARAMETER_DEFINITIONS } from '../character/animation/actionParameters.js'
 const store = useCatStore()
 const tokenQuery = ref(String(store.tokenId))
 const activeTab = ref('look')
 const traitQuery = ref('')
 const stageTextureName = ref('')
 const equipmentAnimations = [{ id: 'Semantic', label: '语义专属' }, { id: 'Hover', label: '悬浮' }, { id: 'Spin', label: '旋转' }, { id: 'Pulse', label: '脉冲' }]
-const selectedEmojiAction = computed(() => getEmojiAction(store.actionMode) ?? EMOJI_ACTIONS[0])
+const activeEmojiAction = computed(() => getEmojiAction(store.actionMode))
+const selectedEmojiAction = computed(() => activeEmojiAction.value ?? EMOJI_ACTIONS[0])
 const searchIndex = [
   { id: 'body', tab: 'body', label: '体型与比例' }, { id: 'fur', tab: 'look', label: '毛色外观' },
   { id: 'eyes', tab: 'look', label: '眼睛表情' }, { id: 'gear', tab: 'gear', label: '装备饰品' },

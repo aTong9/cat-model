@@ -44,13 +44,23 @@ test('builds and updates a character without Vue or the DOM', () => {
 test('migrates v1 traits and clamps v2 morphology deterministically', () => {
   const traits = migrateCatTraits({ schemaVersion: 1, fur: 'Golden', bodyScale: 99, morphology: { headScale: 0.1, earScale: 1.2 } })
   assert.equal(traits.schemaVersion, 2)
-  assert.deepEqual(traits.morphology, { bodyScale: 1, headScale: 0.8, earScale: 1.2, legLength: 1, tailLength: 1, tailCurl: 0 })
+  assert.deepEqual(traits.morphology, {
+    bodyScale: 1, bodyWidth: 1, bodyHeight: 1, bodyDepth: 1,
+    headScale: 0.8, eyeScale: 1, eyeSpacing: 1, mouthScale: 1,
+    earScale: 1.2, earWidth: 1, earHeight: 1,
+    pawScale: 1, footScale: 1, legLength: 1, tailLength: 1, tailCurl: 0,
+  })
   assert.equal(validateCatTraits(traits).valid, true)
 })
 
 test('assembly applies morphology without rebuilding its public root', () => {
   const assembly = createCatAssembly({ morphology: { bodyScale: 1.2, headScale: 0.9, earScale: 1.1, legLength: 1.2, tailLength: 1.3, tailCurl: 0.5 } })
-  assert.deepEqual(assembly.root.userData.morphology, { bodyScale: 1.2, headScale: 0.9, earScale: 1.1, legLength: 1.2, tailLength: 1.3, tailCurl: 0.5 })
+  assert.deepEqual(assembly.root.userData.morphology, {
+    bodyScale: 1.2, bodyWidth: 1, bodyHeight: 1, bodyDepth: 1,
+    headScale: 0.9, eyeScale: 1, eyeSpacing: 1, mouthScale: 1,
+    earScale: 1.1, earWidth: 1, earHeight: 1,
+    pawScale: 1, footScale: 1, legLength: 1.2, tailLength: 1.3, tailCurl: 0.5,
+  })
   assert.equal(assembly.traits.morphology.tailLength, 1.3)
   assembly.dispose()
 })

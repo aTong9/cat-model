@@ -157,6 +157,7 @@ function inspectRoundTrip(gltf, expectedTraits, expectedAnimations = []) {
   if (expectedTraits?.gear && !equipmentAttachment) errors.push('roundtrip-missing-equipment-attachment')
   if (equipmentAttachment && !socketNames.includes(equipmentAttachment.socket)) errors.push('roundtrip-invalid-equipment-socket')
   const animationNames = gltf.animations.map(clip => clip.name)
+  const animationTracks = Object.fromEntries(gltf.animations.map(clip => [clip.name, clip.tracks.map(track => track.name)]))
   for (const name of expectedAnimations) {
     const clip = THREE.AnimationClip.findByName(gltf.animations, name)
     if (!clip) errors.push(`roundtrip-missing-animation:${name}`)
@@ -167,7 +168,7 @@ function inspectRoundTrip(gltf, expectedTraits, expectedAnimations = []) {
     unity: { valid: expectedAnimations.every(name => animationNames.includes(name)), profile: 'Generic rig clips' },
     unreal: { valid: expectedAnimations.every(name => animationNames.includes(name)), profile: 'skeletal/node animation sequences' },
   }
-  return { valid: errors.length === 0, errors, animationNames, compatibility, schemaVersion: traits?.schemaVersion, generatorVersion: traits?.generatorVersion, seed: traits?.seed, morphology: traits?.morphology ?? null, identity: traits?.identity ?? null, socketNames, equipmentAttachment, stats: { meshes, materials, animations: gltf.animations.length } }
+  return { valid: errors.length === 0, errors, animationNames, animationTracks, compatibility, schemaVersion: traits?.schemaVersion, generatorVersion: traits?.generatorVersion, seed: traits?.seed, morphology: traits?.morphology ?? null, identity: traits?.identity ?? null, socketNames, equipmentAttachment, stats: { meshes, materials, animations: gltf.animations.length } }
 }
 
 function disposeGltf(gltf) {

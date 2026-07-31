@@ -3,6 +3,7 @@ import assert from 'node:assert/strict'
 import * as THREE from 'three'
 import { MORPHOLOGY_DEFINITIONS } from '../src/core/catTraits.js'
 import { createCatAssembly } from '../src/core/createCatAssembly.js'
+import { PACK5_EAR_BASE_SCALE } from '../src/character/morphology/applyMorphology.js'
 
 function getBounds(root) {
   root.updateMatrixWorld(true)
@@ -37,7 +38,7 @@ test('morphology extremes reach the intended character nodes', () => {
   try {
     assert.equal(assembly.model._bodyGroup.scale.x, 1.25)
     assert.equal(assembly.model._headGroup.scale.x, 0.8)
-    assert.equal(assembly.model._earLGroup.scale.x, 1.35)
+    assert.equal(assembly.model._earLGroup.scale.x, PACK5_EAR_BASE_SCALE[0] * 1.35)
     assert.equal(assembly.model._footLGroup.scale.y, 1.25)
     assert.equal(assembly.model._tailGroup.scale.y, 1.4)
     assert.equal(assembly.model._tailGroup.userData.tailCurl, 0.8)
@@ -101,8 +102,8 @@ test('body-scale extremes keep arm and tail roots embedded with the body', () =>
 
     for (const bodyScale of [MORPHOLOGY_DEFINITIONS.bodyScale.min, 1, MORPHOLOGY_DEFINITIONS.bodyScale.max]) {
       assembly.apply({ morphology: { ...assembly.traits.morphology, bodyScale } })
-      assert.equal(leftArm.position.x, -0.32 * bodyScale)
-      assert.equal(rightArm.position.x, 0.32 * bodyScale)
+      assert.equal(leftArm.position.x, -0.40 * bodyScale)
+      assert.equal(rightArm.position.x, 0.40 * bodyScale)
       assert.equal(tail.position.x, 0.04 * bodyScale)
       assert.equal(tail.position.z, -0.31 * bodyScale)
     }

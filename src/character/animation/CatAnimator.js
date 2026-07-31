@@ -1,15 +1,19 @@
 import * as THREE from 'three'
 import { normalizePoseId } from '../../config/poses.js'
+import { resetFaceMotion } from './faceMotion.js'
+import { normalizeActionParameters } from './actionParameters.js'
 
 export class CatAnimator {
-  constructor({ root, registry, parts, updateTail, strategies = {} }) {
+  constructor({ root, registry, parts, updateTail, actionProps, strategies = {} }) {
     this.root = root
     this.registry = registry
     this.parts = parts
     this.updateTail = updateTail
+    this.actionProps = actionProps
     this.strategies = new Map(Object.entries(strategies))
     this.mode = 'standing'
     this.runSpeed = 1
+    this.actionParameters = new Map()
   }
 
   setAnimation(mode = 'standing') {
@@ -30,6 +34,16 @@ export class CatAnimator {
     return this.strategies.has(mode)
   }
 
+  setActionParameters(actionId, parameters = {}) {
+    const normalized = normalizeActionParameters(parameters)
+    this.actionParameters.set(actionId, normalized)
+    return normalized
+  }
+
+  getActionParameters(actionId = this.mode) {
+    return this.actionParameters.get(actionId) ?? normalizeActionParameters()
+  }
+
   update(time) {
     this.resetPose()
     const strategy = this.strategies.get(this.mode)
@@ -41,22 +55,41 @@ export class CatAnimator {
   }
 
   resetPose() {
+    this.actionProps?.clear()
+    this.root.position.set(...(this.root.userData.restPosition ?? [0, 0, 0]))
+    this.root.rotation.set(...(this.root.userData.restRotation ?? [0, 0, 0]))
     this.root.scale.set(1, 1, 1)
     const { body, head, earLeft, earRight, armLeft, armRight, legLeft, legRight } = this.parts
     if (body) body.position.y = 0
     for (const part of [head, earLeft, earRight, armLeft, armRight, legLeft, legRight]) {
-      if (part) part.rotation.set(0, 0, 0)
+      if (!part) continue
+      part.rotation.set(0, 0, 0)
+      if (part.userData.restPosition) part.position.set(...part.userData.restPosition)
     }
     for (const partId of ['arm-left', 'arm-right', 'leg-left', 'leg-right']) {
       const joints = this.registry.getJoints(partId)
-      for (const joint of Object.values(joints)) joint?.rotation?.set(0, 0, 0)
+      for (const joint of Object.values(joints)) {
+        const rest = joint?.userData?.restRotation
+        joint?.rotation?.set(...(rest ?? [0, 0, 0]))
+      }
     }
+    for (const part of [armLeft, armRight]) {
+      const paw = part?.getObjectByName(part === armLeft ? 'ArmLeftPaw' : 'ArmRightPaw')
+      if (paw?.userData.restScale) paw.scale.set(...paw.userData.restScale)
+    }
+    for (const part of [legLeft, legRight]) {
+      const foot = part?.getObjectByName(part === legLeft ? 'FootLeft' : 'FootRight')
+      if (foot?.userData.restScale) foot.scale.set(...foot.userData.restScale)
+    }
+    resetFaceMotion(this.registry.getJoints('face'))
   }
 
-  _updateStanding(time) {
-    const { head, earLeft, earRight, armLeft, armRight, legLeft, legRight } = this.parts
-    const breathe = 1 + Math.sin(time * 1.5) * 0.012
-    this.root.scale.set(1.05 * breathe, 1.02 * breathe, breathe)
+  _updateStanding() {
+    const { armLeft, armRight } = this.parts
+    // Neutral is a frozen modelling/reference pose. It deliberately contains
+    // no breathing, sway, ear twitch, leg lift or tail cycle, so turnaround
+    // comparison and later authored actions all start from identical anatomy.
+    this.root.scale.set(1, 1, 1)
     for (const partId of ['arm-left', 'arm-right']) {
       const { elbow, wrist } = this.registry.getJoints(partId)
       if (elbow) elbow.rotation.set(0, 0, 0)
@@ -67,33 +100,8 @@ export class CatAnimator {
       if (knee) knee.rotation.set(0, 0, 0)
       if (ankle) ankle.rotation.set(0, 0, 0)
     }
-    if (head) {
-      head.rotation.z = Math.sin(time * 0.8) * 0.020
-      head.rotation.x = Math.sin(time * 1.05) * 0.012
-      head.rotation.y = Math.sin(time * 0.65) * 0.015
-    }
-    if (earLeft) {
-      earLeft.rotation.z = Math.sin(time * 1.3 + 0.5) * 0.04
-      earLeft.rotation.x = Math.sin(time * 1.1) * 0.03
-    }
-    if (earRight) {
-      earRight.rotation.z = Math.sin(time * 1.3 - 0.5) * 0.04
-      earRight.rotation.x = Math.sin(time * 1.1 + 0.3) * 0.03
-    }
-    if (armLeft) {
-      armLeft.rotation.set(Math.sin(time * 0.92 + 0.6) * 0.018, 0, -0.08 + Math.sin(time * 1.15) * 0.010)
-    }
-    if (armRight) {
-      armRight.rotation.set(Math.sin(time * 0.92 + 2.1) * 0.018, 0, 0.08 + Math.sin(time * 1.15 + Math.PI) * 0.010)
-    }
-    if (legLeft) {
-      legLeft.rotation.x = Math.sin(time * 1.35 + 0.4) * 0.035
-      legLeft.rotation.z = Math.sin(time * 1.05) * 0.025
-    }
-    if (legRight) {
-      legRight.rotation.x = Math.sin(time * 1.35 + 2.2) * 0.035
-      legRight.rotation.z = Math.sin(time * 1.05 + Math.PI) * 0.025
-    }
-    this.updateTail(time, 0.045, 1.25)
+    armLeft?.rotation.set(0, 0, -0.035)
+    armRight?.rotation.set(0, 0, 0.035)
+    this.updateTail(0, 0, 1)
   }
 }

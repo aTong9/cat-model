@@ -1,5 +1,6 @@
 import test from 'node:test'
 import assert from 'node:assert/strict'
+import * as THREE from 'three'
 import { MORPHOLOGY_DEFINITIONS } from '../src/core/catTraits.js'
 import { createCatAssembly } from '../src/core/createCatAssembly.js'
 import {
@@ -24,9 +25,45 @@ test('base cat exposes the complete stable part, joint and socket contract', () 
   try {
     assert.deepEqual(assembly.registry.partNames, BASE_CAT_PART_IDS)
     assert.deepEqual(assembly.registry.socketNames, BASE_CAT_SOCKET_IDS)
-    for (const partId of ['arm-left', 'arm-right', 'leg-left', 'leg-right']) {
-      assert.equal(Object.keys(assembly.registry.getJoints(partId)).length, 2, partId)
+    for (const partId of ['arm-left', 'arm-right']) {
+      assert.deepEqual(Object.keys(assembly.registry.getJoints(partId)), [
+        'elbow', 'wrist',
+        'thumb', 'thumbDistal', 'index', 'indexDistal', 'middle', 'middleDistal',
+        'ring', 'ringDistal', 'little', 'littleDistal',
+      ])
     }
+    for (const partId of ['leg-left', 'leg-right']) {
+      assert.deepEqual(Object.keys(assembly.registry.getJoints(partId)), ['knee', 'ankle', 'toe1', 'toe2', 'toe3', 'toe4', 'toe5'])
+    }
+  } finally {
+    assembly.dispose()
+  }
+})
+
+test('default facial landmarks, shoulders and planted legs keep the frozen base proportions', () => {
+  const assembly = createCatAssembly({})
+  try {
+    assembly.model.setAnimation('standing')
+    assembly.model.update(0)
+    assembly.root.updateMatrixWorld(true)
+
+    const bodyBounds = new THREE.Box3().setFromObject(assembly.registry.getPart('body'))
+    const bodyHeight = bodyBounds.max.y - bodyBounds.min.y
+    const worldY = object => object.getWorldPosition(new THREE.Vector3()).y
+    const mouthY = worldY(assembly.root.getObjectByName('FaceMouth'))
+    const shoulderY = [
+      worldY(assembly.registry.getPart('arm-left')),
+      worldY(assembly.registry.getPart('arm-right')),
+    ]
+    const legBounds = [
+      new THREE.Box3().setFromObject(assembly.registry.getPart('leg-left')),
+      new THREE.Box3().setFromObject(assembly.registry.getPart('leg-right')),
+    ]
+
+    assert.ok((mouthY - bodyBounds.min.y) / bodyHeight > 0.65, 'face must stay on the upper head, never the waist')
+    assert.ok(shoulderY.every(y => (y - bodyBounds.min.y) / bodyHeight > 0.55), 'arms must remain shoulder-mounted')
+    assert.ok(legBounds.every(box => box.max.y - box.min.y > bodyHeight * 0.35), 'legs must retain a readable upper/lower-leg length')
+    assert.ok(Math.abs(legBounds[0].min.y - legBounds[1].min.y) < 0.01, 'both planted feet must share one floor plane')
   } finally {
     assembly.dispose()
   }
@@ -52,11 +89,13 @@ test('shoulders, hips and tail root stay embedded at morphology extremes', () =>
   }
 })
 
-test('front paw pads are hidden while rear-view foot pads are authored and visible', () => {
+test('front paw pads stay behind the palm while rear-view foot pads are authored and visible', () => {
   const assembly = createCatAssembly({})
   try {
     for (const side of ['Left', 'Right']) {
-      assert.equal(assembly.root.getObjectByName(`Arm${side}Pad`).visible, false)
+      const palmPad = assembly.root.getObjectByName(`Arm${side}Pad`)
+      assert.equal(palmPad.visible, true)
+      assert.ok(palmPad.position.z < 0)
       assert.equal(assembly.root.getObjectByName(`Arm${side}FingerPad1`).visible, false)
       assert.equal(assembly.root.getObjectByName(`Leg${side}MainPad`).visible, true)
       assert.ok(assembly.root.getObjectByName(`Leg${side}MainPad`).position.z < 0)

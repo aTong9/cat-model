@@ -2,7 +2,7 @@ import * as THREE from 'three'
 
 export const BASE_CAT_PART_IDS = Object.freeze([
   'body', 'arm-left', 'arm-right', 'leg-left', 'leg-right', 'tail',
-  'head', 'face', 'ear-left', 'ear-right', 'gear-root',
+  'head', 'face', 'ear-left', 'ear-right', 'gear-root', 'motion-root',
 ])
 
 export const BASE_CAT_SOCKET_IDS = Object.freeze([

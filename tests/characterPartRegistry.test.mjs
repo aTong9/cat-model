@@ -2,7 +2,7 @@ import test from 'node:test'
 import assert from 'node:assert/strict'
 import { createCatAssembly } from '../src/core/createCatAssembly.js'
 
-const PARTS = ['body', 'head', 'face', 'ear-left', 'ear-right', 'arm-left', 'arm-right', 'leg-left', 'leg-right', 'tail', 'gear-root']
+const PARTS = ['body', 'head', 'face', 'ear-left', 'ear-right', 'arm-left', 'arm-right', 'leg-left', 'leg-right', 'tail', 'gear-root', 'motion-root']
 const SOCKETS = ['head-top', 'face-eyes', 'face-mouth', 'chest-front', 'back', 'paw-left', 'shoulder-left', 'shoulder-right', 'hip-left', 'hip-right', 'tail-base']
 
 test('character assembly exposes registered parts and semantic sockets', () => {
