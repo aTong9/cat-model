@@ -37,14 +37,14 @@ export const FACE_EXPRESSION_OPTIONS = Object.freeze([
 export const GEAR_TRAITS = [
   { id: 'Baseball Cap', label: '棒球帽', labelKey: `traits.gear.${toTraitKey('Baseball Cap')}`, preview: '/equipment/BaseballCap.png' },
   { id: 'Camera', label: '相机', labelKey: `traits.gear.${toTraitKey('Camera')}`, preview: '/equipment/Camera.png' },
-  { id: 'Gold Round Glasses', label: '金框眼镜', labelKey: `traits.gear.${toTraitKey('Gold Round Glasses')}`, preview: '/equipment/GoldRoundGlasses.png' },
-  { id: 'Good Luck Gold Bar', label: '大吉金条', labelKey: `traits.gear.${toTraitKey('Good Luck Gold Bar')}`, preview: '/equipment/GoodLuckGoldBar.png' },
+  { id: 'Gold Round Glasses', label: '金眼镜', labelKey: `traits.gear.${toTraitKey('Gold Round Glasses')}`, preview: '/equipment/GoldRoundGlasses.png' },
+  { id: 'Good Luck Gold Bar', label: '大吉', labelKey: `traits.gear.${toTraitKey('Good Luck Gold Bar')}`, preview: '/equipment/GoodLuckGoldBar.png' },
   { id: 'Hiking Backpack', label: '登山背包', labelKey: `traits.gear.${toTraitKey('Hiking Backpack')}`, preview: '/equipment/HikingBackpack.png' },
   { id: 'Hot Coffee', label: '热咖啡', labelKey: `traits.gear.${toTraitKey('Hot Coffee')}`, preview: '/equipment/HotCoffee.png' },
-  { id: 'Investment Book', label: '投资书', labelKey: `traits.gear.${toTraitKey('Investment Book')}`, preview: '/equipment/InvestmentBook.png' },
+  { id: 'Investment Book', label: '有的赚', labelKey: `traits.gear.${toTraitKey('Investment Book')}`, preview: '/equipment/InvestmentBook.png' },
   { id: 'Ramen', label: '拉面', labelKey: `traits.gear.${toTraitKey('Ramen')}`, preview: '/equipment/Ramen.png' },
   { id: 'Sake', label: '清酒', labelKey: `traits.gear.${toTraitKey('Sake')}`, preview: '/equipment/Sake.png' },
-  { id: 'Wealth Gold Bar', label: '招财金条', labelKey: `traits.gear.${toTraitKey('Wealth Gold Bar')}`, preview: '/equipment/WealthGoldBar.png' },
+  { id: 'Wealth Gold Bar', label: '亿万两', labelKey: `traits.gear.${toTraitKey('Wealth Gold Bar')}`, preview: '/equipment/WealthGoldBar.png' },
 ]
 
 export const BACKGROUND_TRAITS = [
@@ -59,13 +59,13 @@ export const BACKGROUND_TRAITS = [
 ]
 
 export const SPECIAL_TRAITS = [
-  { id: 'Fitness Guru', label: '健身搭档', labelKey: `traits.special.${toTraitKey('Fitness Guru')}`, fullScene: false },
+  { id: 'Fitness Guru', label: '健身达人', labelKey: `traits.special.${toTraitKey('Fitness Guru')}`, fullScene: false },
   { id: 'Galactic Voyage', label: '星际漫游', labelKey: `traits.special.${toTraitKey('Galactic Voyage')}`, fullScene: true },
-  { id: 'Golden General', label: '黄金守护', labelKey: `traits.special.${toTraitKey('Golden General')}`, fullScene: true },
-  { id: 'Onsen journey', label: '温泉假日', labelKey: `traits.special.${toTraitKey('Onsen journey')}`, fullScene: false },
-  { id: 'Realm of Mt.Fuji', label: '富士幻境', labelKey: `traits.special.${toTraitKey('Realm of Mt.Fuji')}`, fullScene: false },
-  { id: 'Thunderous Might', label: '雷霆能量', labelKey: `traits.special.${toTraitKey('Thunderous Might')}`, fullScene: false },
-  { id: 'Time Traveler', label: '时空旅人', labelKey: `traits.special.${toTraitKey('Time Traveler')}`, fullScene: true },
+  { id: 'Golden General', label: '黄金将军', labelKey: `traits.special.${toTraitKey('Golden General')}`, fullScene: true },
+  { id: 'Onsen journey', label: '温泉之旅', labelKey: `traits.special.${toTraitKey('Onsen journey')}`, fullScene: false },
+  { id: 'Realm of Mt.Fuji', label: '富士之镜', labelKey: `traits.special.${toTraitKey('Realm of Mt.Fuji')}`, fullScene: false },
+  { id: 'Thunderous Might', label: '雷霆万钧', labelKey: `traits.special.${toTraitKey('Thunderous Might')}`, fullScene: false },
+  { id: 'Time Traveler', label: '时空旅者', labelKey: `traits.special.${toTraitKey('Time Traveler')}`, fullScene: true },
 ]
 
 export const PRESET_CATS = [

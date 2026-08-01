@@ -32,6 +32,6 @@ export function normalizeSakuraOnsenConfig(overrides = {}) {
   return value
 }
 
-export function shouldUseSakuraOnsen(tokenId, special) {
-  return String(tokenId) === '3001' && special === 'Onsen journey'
+export function shouldUseSakuraOnsen(_tokenId, special) {
+  return special === 'Onsen journey'
 }

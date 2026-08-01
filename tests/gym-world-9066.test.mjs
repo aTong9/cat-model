@@ -4,10 +4,10 @@ import * as THREE from 'three'
 import { createGymWorld9066 } from '../src/three/gym/createGymWorld9066.js'
 import { shouldUseGymWorld9066 } from '../src/three/gym/GymWorld9066Config.js'
 
-test('gym replacement is strictly scoped to token 9066', () => {
+test('gym replacement follows the Fitness Guru trait for every token', () => {
   assert.equal(shouldUseGymWorld9066(9066, 'Fitness Guru'), true)
   assert.equal(shouldUseGymWorld9066('9066', 'Fitness Guru'), true)
-  assert.equal(shouldUseGymWorld9066(9065, 'Fitness Guru'), false)
+  assert.equal(shouldUseGymWorld9066(9065, 'Fitness Guru'), true)
   assert.equal(shouldUseGymWorld9066(9066, 'Onsen journey'), false)
 })
 
