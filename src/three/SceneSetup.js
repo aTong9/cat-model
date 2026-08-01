@@ -1,6 +1,12 @@
 import * as THREE from 'three'
 import { OrbitControls } from 'three/addons/controls/OrbitControls.js'
 
+export function getResponsiveCameraDistance(viewportWidth = 1280) {
+  if (viewportWidth <= 520) return 7
+  if (viewportWidth <= 900) return 5.8
+  return 4.6
+}
+
 /**
  * 创建完整的 Three.js 场景
  * @param {HTMLCanvasElement} canvas
@@ -23,7 +29,7 @@ export function createScene(canvas) {
 
   // --- Camera ---
   const camera = new THREE.PerspectiveCamera(38, 2, 0.25, 140)
-  camera.position.set(0, 1.15, 4.6)
+  camera.position.set(0, 1.15, getResponsiveCameraDistance(window.innerWidth))
   camera.lookAt(0, 0.72, 0)
 
   // --- OrbitControls ---

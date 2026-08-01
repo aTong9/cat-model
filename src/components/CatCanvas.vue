@@ -6,7 +6,7 @@
 import { ref, onMounted, onUnmounted, watch } from 'vue'
 import { useCatStore, GEAR_LIST } from '../stores/cat.js'
 import { createCatAssembly } from '../core/createCatAssembly.js'
-import { createScene } from '../three/SceneSetup.js'
+import { createScene, getResponsiveCameraDistance } from '../three/SceneSetup.js'
 import { createGear, preloadGearTextures } from '../three/EquipmentFactory.js'
 import { createLatestLoadGuard, loadDetailedSpecialScene, loadReferenceSpecialScene } from '../three/SpecialSceneLoader.js'
 import { createWeatherController } from '../three/WeatherController.js'
@@ -62,10 +62,11 @@ function onCameraView(event) {
   if (!camera || !controls || !catModel) return
   const offset = CAMERA_VIEWS[event.detail?.view]
   if (!offset) return
+  const responsiveScale = getResponsiveCameraDistance(window.innerWidth) / CAMERA_VIEWS.front.z
   const characterPosition = catModel.group.getWorldPosition(new THREE.Vector3())
   const target = characterPosition.clone().add(new THREE.Vector3(0, 0.72, 0))
   cameraTransition = {
-    position: target.clone().add(offset),
+    position: target.clone().add(offset.clone().multiplyScalar(responsiveScale)),
     target,
   }
 }
