@@ -34,6 +34,7 @@ export const BACKGROUNDS = BACKGROUND_TRAITS
 export const SPECIALS = SPECIAL_TRAITS
 export const ACTIONS = POSE_CONFIGS
 export const MORPHOLOGY_CONTROLS = MORPHOLOGY_PARAMETER_REGISTRY
+export const DEFAULT_TOKEN_ID = 9038
 export const MORPHOLOGY_PRESETS = Object.freeze([
   { id: 'pack5', label: 'Pack5 标准', labelKey: 'panel.morphologyPresets.pack5', values: { bodyScale: 1, bodyWidth: 1, bodyHeight: 1, bodyDepth: 1, headScale: 1, earScale: 1, legLength: 1, tailLength: 1, tailCurl: 0 } },
   { id: 'classic', label: '经典长身', labelKey: 'panel.morphologyPresets.classic', values: { bodyScale: .96, bodyWidth: .90, bodyHeight: 1.10, bodyDepth: 1.05, headScale: .96, earScale: 1, legLength: 1.08, tailLength: 1, tailCurl: 0 } },
@@ -84,7 +85,7 @@ export const useCatStore = defineStore('cat', () => {
   const faceExpression = ref(DEFAULT_TRAITS.face)
   const background = ref(DEFAULT_TRAITS.background)
   const special = ref(DEFAULT_TRAITS.special)
-  const tokenId = ref(1)
+  const tokenId = ref(DEFAULT_TOKEN_ID)
   const seed = ref(Date.now())
   const activePreset = ref(null)
   const actionMode = ref('standing')

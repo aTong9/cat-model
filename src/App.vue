@@ -29,7 +29,7 @@
 
 <script setup>
 import { onMounted, watch } from 'vue'
-import { useCatStore } from './stores/cat.js'
+import { DEFAULT_TOKEN_ID, useCatStore } from './stores/cat.js'
 import { useI18n } from 'vue-i18n'
 import { normalizeLocale } from './i18n/index.js'
 import CatCanvas from './components/CatCanvas.vue'
@@ -73,6 +73,7 @@ onMounted(() => {
     const traits = parseShareQuery(params)
     store.applyTraits(traits, { record: false })
   } else if (params.has('tokenId')) store.loadToken(params.get('tokenId'))
+  else if (!params.has('seed')) store.loadToken(DEFAULT_TOKEN_ID)
 })
 
 watch(() => store.theme, theme => { document.documentElement.dataset.theme = theme })
