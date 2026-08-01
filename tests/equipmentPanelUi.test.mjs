@@ -10,6 +10,12 @@ test('equipment thumbnails are constrained inside their preview frame', () => {
   assert.match(panelSource, /\.gear-preview img\{[^}]*position:absolute[^}]*inset:/)
 })
 
+test('equipment preview paths honor the Vite public base on GitHub Pages', () => {
+  assert.match(panelSource, /import\.meta\.env\.BASE_URL/)
+  assert.match(panelSource, /replace\(\/\^\\\/\+\//)
+  assert.match(panelSource, /preview:\s*resolvePublicPreview\(option\.preview\)/)
+})
+
 test('requested Chinese equipment and special labels are applied without changing trait ids', () => {
   const { gear, special } = characterParameterLabels.zh.traits
   assert.deepEqual({
