@@ -19,6 +19,12 @@ import * as THREE from 'three'
 import { TransformControls } from 'three/addons/controls/TransformControls.js'
 import { applyPose, resolvePoseChannel } from '../character/animation/poseAuthoring.js'
 import { applyEquipmentTransform, captureEquipmentTransform } from '../character/equipment/equipmentAnimation.js'
+import { appQualityToWinterQuality } from '../three/winter/WinterWorldConfig.js'
+import { shouldUseSakuraOnsen } from '../three/onsen/SakuraOnsenConfig.js'
+import { shouldUseGymWorld9066 } from '../three/gym/GymWorld9066Config.js'
+import { shouldUseStormWorld11 } from '../three/storm/StormWorld11Config.js'
+import { shouldUseSynthwaveWorld9038 } from '../three/synthwave/SynthwaveWorld9038Config.js'
+import { shouldUseCosmicWorld3000 } from '../three/cosmic/CosmicWorld3000Config.js'
 
 const store = useCatStore()
 const canvasRef = ref(null)
@@ -33,6 +39,8 @@ let poseTransformControls
 let clock
 let animId
 let specialGroup
+let activeEnvironmentRuntime = null
+let characterGroundY = 0
 const specialSceneLoadGuard = createLatestLoadGuard()
 const moveDirection = new THREE.Vector3()
 const previousCatPosition = new THREE.Vector3()
@@ -41,6 +49,7 @@ let verticalVelocity = 0
 let grounded = true
 let cameraTransition = null
 let componentDisposed = false
+let debugFrame = 0
 
 const CAMERA_VIEWS = Object.freeze({
   front: new THREE.Vector3(0, 0.45, 4.6),
@@ -191,6 +200,8 @@ onUnmounted(() => {
   poseTransformControls?.removeFromParent?.()
   weatherController?.dispose()
   equipmentScatterController?.dispose()
+  activeEnvironmentRuntime?.dispose()
+  activeEnvironmentRuntime = null
   if (canvasRef.value) delete canvasRef.value.__equipmentScatterController
   disposeObject3DResources(specialGroup)
   specialGroup?.removeFromParent()
@@ -240,7 +251,10 @@ watch(() => store.gearType, (v) => {
   equipmentScatterController?.setEquippedId(v)
 })
 watch(() => store.faceExpression, (face) => catAssembly?.apply({ face }))
-watch(() => store.tokenId, (tokenId) => catAssembly?.apply({ tokenId }))
+watch(() => store.tokenId, (tokenId) => {
+  catAssembly?.apply({ tokenId })
+  requestSpecialScene(store.special)
+})
 watch(() => ({ ...store.morphology }), morphology => catAssembly?.apply({ morphology }), { deep: true })
 watch(() => store.actionMode, (v) => {
   if (!inputController?.isMoving) catModel?.setAnimation(v)
@@ -262,6 +276,7 @@ watch(() => store.lightIntensity, (value) => {
 watch(() => store.qualityMode, (value) => {
   qualityController?.setMode(value)
   updateSize?.()
+  if (store.special === 'Realm of Mt.Fuji' || shouldUseSakuraOnsen(store.tokenId, store.special) || shouldUseGymWorld9066(store.tokenId, store.special) || shouldUseStormWorld11(store.tokenId, store.special) || shouldUseSynthwaveWorld9038(store.tokenId, store.special) || shouldUseCosmicWorld3000(store.tokenId, store.special)) requestSpecialScene(store.special)
 })
 watch(() => [store.stageStyle, store.stageScale, store.stageHeight, store.stageTextureUrl], ([style, scale, height, textureUrl]) => setStage?.({ style, scale, height, textureUrl }))
 watch(() => [store.poseAuthoringEnabled, store.selectedPoseChannel], ([enabled, channelId]) => {
@@ -315,11 +330,22 @@ function requestSpecialScene(type) {
 async function buildSpecialScene(type) {
   const loadVersion = specialSceneLoadGuard.begin()
   if (!specialGroup) return
+  activeEnvironmentRuntime?.dispose()
+  activeEnvironmentRuntime = null
   disposeObject3DResources(specialGroup)
   specialGroup.clear()
+  const previewGround = scene.getObjectByName('PreviewGround')
+  const previewPodium = scene.getObjectByName('PreviewPodium')
+  if (previewGround) previewGround.visible = true
+  if (previewPodium) previewPodium.visible = store.stageStyle !== 'hidden'
   applyBackground(store.background)
   if (!type) return
-  const reference = await loadReferenceSpecialScene(type)
+  const useDetailedOnsen = shouldUseSakuraOnsen(store.tokenId, type)
+  const useDetailedGym = shouldUseGymWorld9066(store.tokenId, type)
+  const useDetailedStorm = shouldUseStormWorld11(store.tokenId, type)
+  const useDetailedSynthwave = shouldUseSynthwaveWorld9038(store.tokenId, type)
+  const useDetailedCosmic = shouldUseCosmicWorld3000(store.tokenId, type)
+  const reference = useDetailedOnsen || useDetailedGym || useDetailedStorm || useDetailedSynthwave || useDetailedCosmic ? { group: null, background: null } : await loadReferenceSpecialScene(type)
   if (!specialSceneLoadGuard.isCurrent(loadVersion) || !specialGroup) {
     disposeObject3DResources(reference.group)
     return
@@ -332,7 +358,18 @@ async function buildSpecialScene(type) {
   }
   const add = (mesh) => { specialGroup.add(mesh); return mesh }
   const pointMat = (color, size = .04) => new THREE.PointsMaterial({ color, size, transparent: true, opacity: .8, depthWrite: false })
-  if (type === 'Galactic Voyage') {
+  if (type === 'Galactic Voyage' && useDetailedCosmic) {
+    const createSceneGroup = await loadDetailedSpecialScene(type)
+    if (!specialSceneLoadGuard.isCurrent(loadVersion) || !specialGroup) return
+    scene.background = new THREE.Color('#080d2e')
+    scene.fog = new THREE.Fog('#10163f', 58, 126)
+    const worldGroup = add(createSceneGroup({ quality: appQualityToWinterQuality(qualityController?.profile?.id) }))
+    activeEnvironmentRuntime = worldGroup.environmentRuntime
+    characterGroundY = activeEnvironmentRuntime?.sampleCharacterGroundY(catModel.group.position.x, catModel.group.position.z) ?? 0
+    if (grounded) catModel.group.position.y = characterGroundY
+    if (previewGround) previewGround.visible = false
+    if (previewPodium) previewPodium.visible = false
+  } else if (type === 'Galactic Voyage') {
     const stars = new Float32Array(420)
     for (let i = 0; i < stars.length; i += 3) { stars[i] = (Math.random() - .5) * 10; stars[i + 1] = Math.random() * 6 - .5; stars[i + 2] = -2 - Math.random() * 4 }
     const geo = new THREE.BufferGeometry(); geo.setAttribute('position', new THREE.BufferAttribute(stars, 3)); add(new THREE.Points(geo, pointMat('#dbeaff', .035)))
@@ -343,21 +380,73 @@ async function buildSpecialScene(type) {
   } else if (type === 'Realm of Mt.Fuji') {
     const createSceneGroup = await loadDetailedSpecialScene(type)
     if (!specialSceneLoadGuard.isCurrent(loadVersion) || !specialGroup) return
-    scene.background = new THREE.Color('#3471df')
-    scene.fog.color.set('#8db7ee')
-    add(createSceneGroup())
+    scene.background = new THREE.Color('#2861d8')
+    scene.fog = new THREE.Fog('#9dc6ee', 25, 100)
+    const worldGroup = add(createSceneGroup({
+      quality: appQualityToWinterQuality(qualityController?.profile?.id),
+      shadowEnabled: qualityController?.profile?.shadows ?? true,
+    }))
+    activeEnvironmentRuntime = worldGroup.environmentRuntime || worldGroup.winterWorld
+    characterGroundY = activeEnvironmentRuntime?.sampleCharacterGroundY(catModel.group.position.x, catModel.group.position.z) ?? 0
+    if (grounded) catModel.group.position.y = characterGroundY
+    if (previewGround) previewGround.visible = false
+    if (previewPodium) previewPodium.visible = false
+  } else if (type === 'Onsen journey' && useDetailedOnsen) {
+    const createSceneGroup = await loadDetailedSpecialScene(type)
+    if (!specialSceneLoadGuard.isCurrent(loadVersion) || !specialGroup) return
+    scene.background = new THREE.Color('#ffc957')
+    scene.fog = new THREE.Fog('#ffd99b', 30, 95)
+    const worldGroup = add(createSceneGroup({
+      quality: appQualityToWinterQuality(qualityController?.profile?.id),
+    }))
+    activeEnvironmentRuntime = worldGroup.environmentRuntime || worldGroup.winterWorld
+    characterGroundY = activeEnvironmentRuntime?.sampleCharacterGroundY(catModel.group.position.x, catModel.group.position.z) ?? 0
+    if (grounded) catModel.group.position.y = characterGroundY
+    if (previewGround) previewGround.visible = false
+    if (previewPodium) previewPodium.visible = false
   } else if (type === 'Onsen journey') {
     const water = add(new THREE.Mesh(new THREE.CircleGeometry(2.6, 48), new THREE.MeshStandardMaterial({ color: '#8edbe8', transparent: true, opacity: .65, roughness: .2 }))); water.rotation.x = -Math.PI / 2; water.position.set(0, -.5, -.4)
     for (let i = 0; i < 8; i++) { const steam = add(new THREE.Mesh(new THREE.SphereGeometry(.13, 10, 8), new THREE.MeshBasicMaterial({ color: '#fff', transparent: true, opacity: .25 }))); steam.position.set((Math.random() - .5) * 2, .2 + Math.random(), -1 - Math.random()); steam.userData.steam = .003 + Math.random() * .003 }
-  } else if (type === 'Time Traveler') {
+  } else if (type === 'Time Traveler' && useDetailedSynthwave) {
     const createSceneGroup = await loadDetailedSpecialScene(type)
     if (!specialSceneLoadGuard.isCurrent(loadVersion) || !specialGroup) return
-    scene.background = new THREE.Color('#090522')
-    scene.fog.color.set('#19082d')
-    add(createSceneGroup())
+    scene.background = new THREE.Color('#10072f')
+    scene.fog = new THREE.Fog('#5b0b62', 32, 112)
+    const worldGroup = add(createSceneGroup({ quality: appQualityToWinterQuality(qualityController?.profile?.id) }))
+    activeEnvironmentRuntime = worldGroup.environmentRuntime
+    characterGroundY = activeEnvironmentRuntime?.sampleCharacterGroundY(catModel.group.position.x, catModel.group.position.z) ?? 0
+    if (grounded) catModel.group.position.y = characterGroundY
+    if (previewGround) previewGround.visible = false
+    if (previewPodium) previewPodium.visible = false
+  } else if (type === 'Fitness Guru' && useDetailedGym) {
+    const createSceneGroup = await loadDetailedSpecialScene(type)
+    if (!specialSceneLoadGuard.isCurrent(loadVersion) || !specialGroup) return
+    scene.background = new THREE.Color('#f57c00')
+    scene.fog = new THREE.Fog('#f6a23c', 28, 75)
+    const worldGroup = add(createSceneGroup({
+      quality: appQualityToWinterQuality(qualityController?.profile?.id),
+      shadowsEnabled: qualityController?.profile?.shadows ?? true,
+    }))
+    activeEnvironmentRuntime = worldGroup.environmentRuntime
+    characterGroundY = activeEnvironmentRuntime?.sampleCharacterGroundY(catModel.group.position.x, catModel.group.position.z) ?? 0
+    if (grounded) catModel.group.position.y = characterGroundY
+    if (previewGround) previewGround.visible = false
+    if (previewPodium) previewPodium.visible = false
   } else if (type === 'Fitness Guru') {
     const bell = add(new THREE.Mesh(new THREE.SphereGeometry(.28, 20, 16), new THREE.MeshStandardMaterial({ color: '#34323d', roughness: .45, metalness: .6 }))); bell.position.set(-1.2, -.1, -.6)
     const handle = add(new THREE.Mesh(new THREE.TorusGeometry(.18, .055, 8, 18, Math.PI), new THREE.MeshStandardMaterial({ color: '#34323d', metalness: .6 }))); handle.position.set(-1.2, .2, -.6)
+  } else if (type === 'Thunderous Might' && useDetailedStorm) {
+    const createSceneGroup = await loadDetailedSpecialScene(type)
+    if (!specialSceneLoadGuard.isCurrent(loadVersion) || !specialGroup) return
+    scene.background = new THREE.Color('#0b1c2b')
+    scene.fog = new THREE.Fog('#263746', 22, 90)
+    weatherController?.setWeather('sunny')
+    const worldGroup = add(createSceneGroup({ quality: appQualityToWinterQuality(qualityController?.profile?.id) }))
+    activeEnvironmentRuntime = worldGroup.environmentRuntime
+    characterGroundY = activeEnvironmentRuntime?.sampleCharacterGroundY(catModel.group.position.x, catModel.group.position.z) ?? 0
+    if (grounded) catModel.group.position.y = characterGroundY
+    if (previewGround) previewGround.visible = false
+    if (previewPodium) previewPodium.visible = false
   } else if (type === 'Thunderous Might') {
     for (let i = 0; i < 7; i++) { const bolt = add(new THREE.Mesh(new THREE.BoxGeometry(.06, 1.4, .03), new THREE.MeshBasicMaterial({ color: '#b7f6ff' }))); bolt.position.set((Math.random() - .5) * 6, 2.5 + Math.random() * 2, -2); bolt.rotation.z = .35; bolt.userData.bolt = Math.random() * 6 }
   }
@@ -365,7 +454,7 @@ async function buildSpecialScene(type) {
 
 // === 天气效果 ===
 watch(() => store.weather, (w) => {
-  weatherController?.setWeather(w)
+  weatherController?.setWeather(shouldUseStormWorld11(store.tokenId, store.special) ? 'sunny' : w)
 })
 
 function emitPortalEntry(portal) {
@@ -403,8 +492,8 @@ function updateCharacterMovement(dt) {
   if (!grounded) {
     verticalVelocity -= 9.8 * dt
     catModel.group.position.y += verticalVelocity * dt
-    if (catModel.group.position.y <= 0) {
-      catModel.group.position.y = 0
+    if (catModel.group.position.y <= characterGroundY) {
+      catModel.group.position.y = characterGroundY
       verticalVelocity = 0
       grounded = true
     }
@@ -416,19 +505,40 @@ function updateCharacterMovement(dt) {
     catModel.setRunSpeed(sprinting ? 1.35 : 0.68)
     catModel.setAnimation('run')
   } else catModel.setAnimation(store.actionMode)
-  if (!moving) return
+  activeEnvironmentRuntime?.setCharacterState({
+    position: catModel.group.position,
+    yaw: catModel.group.rotation.y,
+    moving: moving && grounded,
+    sprinting,
+  })
+  if (!moving) {
+    if (grounded && activeEnvironmentRuntime) {
+      characterGroundY = activeEnvironmentRuntime.sampleCharacterGroundY(catModel.group.position.x, catModel.group.position.z)
+      catModel.group.position.y = characterGroundY
+    }
+    return
+  }
 
   moveDirection.normalize()
   previousCatPosition.copy(catModel.group.position)
   const speed = sneaking ? movement.sneakSpeed : sprinting ? movement.runSpeed : movement.walkSpeed
-  catModel.group.position.addScaledVector(moveDirection, speed * dt)
-  catModel.group.position.x = THREE.MathUtils.clamp(catModel.group.position.x, -4.6, 4.6)
-  catModel.group.position.z = THREE.MathUtils.clamp(catModel.group.position.z, -4.6, 4.6)
+  const proposed = catModel.group.position.clone().addScaledVector(moveDirection, speed * dt)
+  if (activeEnvironmentRuntime) {
+    const resolved = activeEnvironmentRuntime.resolveMovement(previousCatPosition, proposed)
+    characterGroundY = resolved.position.y
+    catModel.group.position.x = resolved.position.x
+    catModel.group.position.z = resolved.position.z
+    if (grounded) catModel.group.position.y = characterGroundY
+  } else {
+    catModel.group.position.copy(proposed)
+    catModel.group.position.x = THREE.MathUtils.clamp(catModel.group.position.x, -4.6, 4.6)
+    catModel.group.position.z = THREE.MathUtils.clamp(catModel.group.position.z, -4.6, 4.6)
+    characterGroundY = 0
+  }
   const targetYaw = Math.atan2(moveDirection.x, moveDirection.z)
   catModel.group.rotation.y = THREE.MathUtils.lerp(catModel.group.rotation.y, targetYaw, 1 - Math.exp(-12 * dt))
 
   const displacement = catModel.group.position.clone().sub(previousCatPosition)
-  displacement.y = 0
   camera.position.add(displacement)
   controls.target.add(displacement)
   checkPortalEntry()
@@ -465,15 +575,20 @@ function animate() {
 
   // 云动画
   specialGroup?.children.forEach(item => {
-    item.userData.update?.(t)
+    if (item !== activeEnvironmentRuntime?.world) item.userData.update?.(t)
     if (item.userData.fall) { item.position.y -= item.userData.fall; item.rotation.z += .02; if (item.position.y < -.8) item.position.y = 5 }
     if (item.userData.steam) { item.position.y += item.userData.steam; item.material.opacity = .18 + Math.sin(t * 2 + item.position.x) * .08; if (item.position.y > 2.4) item.position.y = .1 }
     if (item.userData.bolt) item.visible = Math.sin(t * 9 + item.userData.bolt) > .7
   })
+  activeEnvironmentRuntime?.update(t)
 
   // 雷电闪烁
 
   renderer.render(scene, camera)
+  if (import.meta.env.DEV && canvasRef.value && ++debugFrame % 20 === 0) {
+    canvasRef.value.dataset.characterPosition = catModel?.group.position.toArray().map(value => value.toFixed(3)).join(',')
+    canvasRef.value.dataset.winterWorld = activeEnvironmentRuntime ? 'active' : 'inactive'
+  }
 }
 
 function startAnimation() {

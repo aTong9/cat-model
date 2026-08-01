@@ -22,7 +22,7 @@ export function createScene(canvas) {
   scene.fog = new THREE.Fog('#11111c', 6, 18)
 
   // --- Camera ---
-  const camera = new THREE.PerspectiveCamera(38, 2, 0.5, 30)
+  const camera = new THREE.PerspectiveCamera(38, 2, 0.25, 140)
   camera.position.set(0, 1.15, 4.6)
   camera.lookAt(0, 0.72, 0)
 
@@ -32,7 +32,7 @@ export function createScene(canvas) {
   controls.enableDamping = true
   controls.dampingFactor = 0.08
   controls.minDistance = 2.5
-  controls.maxDistance = 10
+  controls.maxDistance = 14
   controls.maxPolarAngle = Math.PI * 0.75
   controls.update()
 
@@ -44,9 +44,9 @@ export function createScene(canvas) {
   sun.castShadow = true
   sun.shadow.mapSize.set(1024, 1024)
   sun.shadow.camera.near = 0.5
-  sun.shadow.camera.far = 30
-  sun.shadow.camera.left = -5; sun.shadow.camera.right = 5
-  sun.shadow.camera.top = 5; sun.shadow.camera.bottom = -2
+  sun.shadow.camera.far = 45
+  sun.shadow.camera.left = -12; sun.shadow.camera.right = 12
+  sun.shadow.camera.top = 12; sun.shadow.camera.bottom = -5
   sun.shadow.bias = -0.0003
   scene.add(sun)
 

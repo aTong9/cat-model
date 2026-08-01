@@ -26,13 +26,29 @@ export async function loadReferenceSpecialScene(type) {
 }
 
 export async function loadDetailedSpecialScene(type) {
+  if (type === 'Galactic Voyage') {
+    const { createCosmicWorld3000Scene } = await import('./scenes/CosmicWorld3000Scene.js')
+    return createCosmicWorld3000Scene
+  }
   if (type === 'Realm of Mt.Fuji') {
     const { createFujiRealmScene } = await import('./scenes/FujiScene.js')
     return createFujiRealmScene
   }
+  if (type === 'Onsen journey') {
+    const { createSakuraOnsenScene } = await import('./scenes/SakuraOnsenScene.js')
+    return createSakuraOnsenScene
+  }
+  if (type === 'Fitness Guru') {
+    const { createGymWorld9066Scene } = await import('./scenes/GymWorld9066Scene.js')
+    return createGymWorld9066Scene
+  }
+  if (type === 'Thunderous Might') {
+    const { createStormWorld11Scene } = await import('./scenes/StormWorld11Scene.js')
+    return createStormWorld11Scene
+  }
   if (type === 'Time Traveler') {
-    const { createTimeTravelerScene } = await import('./scenes/TimeTravelerScene.js')
-    return createTimeTravelerScene
+    const { createSynthwaveWorld9038Scene } = await import('./scenes/SynthwaveWorld9038Scene.js')
+    return createSynthwaveWorld9038Scene
   }
   return null
 }

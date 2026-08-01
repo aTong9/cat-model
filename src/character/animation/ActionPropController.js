@@ -331,7 +331,7 @@ export class ActionPropController {
       const growth = THREE.MathUtils.smoothstep(phase, .05, .82)
       const roll = phase * Math.PI * 2
       prop.position.set(.30 + growth * .14, .60 - growth * .03, .30)
-      prop.children[0].scale.setScalar(.55 + growth * .55)
+      prop.children[0].scale.setScalar(.60 + growth * .60)
       prop.children[0].rotation.set(roll * .65, 0, -roll)
     }
     if (id === 'emoji-bench-press') {

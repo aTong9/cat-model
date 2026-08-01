@@ -109,114 +109,102 @@ function createDecal(tex, width, height, opts = {}) {
 // --- 棒球帽（像素体素风格，参考 Camera.html 的 Box 堆积建模方式） ---
 function createBaseballCap() {
   const g = new THREE.Group()
-
-  const domeColor = '#545b6b'
-  const brimColor = '#8c7258'
-  const bandColor = '#6b5542'
-  const seamColor = '#3e4452'
-  const buttonColor = '#454c5a'
-  const goldColor = '#c9a84c'
-
   const inner = new THREE.Group()
+  inner.name = 'BaseballCapWearableRoot'
+  const crown = new THREE.Group()
+  crown.name = 'BaseballCapCrown'
+  const brim = new THREE.Group()
+  brim.name = 'BaseballCapBrim'
+  const seams = new THREE.Group()
+  seams.name = 'BaseballCapSeams'
+  const badge = new THREE.Group()
+  badge.name = 'BaseballCapBitcoinBadge'
 
-  // ===== 帽顶：多层 Box 堆出半球（完全不用 SphereGeometry） =====
+  const domeMat = new THREE.MeshStandardMaterial({ color: '#59606f', roughness: .82, metalness: 0 })
+  const sideMat = new THREE.MeshStandardMaterial({ color: '#6a7180', roughness: .80, metalness: 0 })
+  const brimMat = new THREE.MeshStandardMaterial({ color: '#92765c', roughness: .88, metalness: 0 })
+  const brimUnderMat = new THREE.MeshStandardMaterial({ color: '#5b4738', roughness: .92, metalness: 0 })
+  const seamMat = new THREE.MeshStandardMaterial({ color: '#17191f', roughness: .96, metalness: 0 })
+  const badgeMat = new THREE.MeshStandardMaterial({ color: '#a98564', roughness: .72, metalness: .02 })
+
+  // Pixel-stepped crown follows the supplied side silhouette: broad vertical
+  // back, shallow crown peak, then a descending front panel above the brim.
   const domeLayers = [
-    { y: 0.000, w: 0.66, h: 0.04, d: 0.58 },
-    { y: 0.040, w: 0.62, h: 0.04, d: 0.54 },
-    { y: 0.080, w: 0.56, h: 0.04, d: 0.49 },
-    { y: 0.120, w: 0.48, h: 0.04, d: 0.42 },
-    { y: 0.160, w: 0.36, h: 0.04, d: 0.32 },
-    { y: 0.200, w: 0.20, h: 0.04, d: 0.18 },
+    { y: 0.000, w: .66, h: .045, d: .52, z: -.02 },
+    { y: 0.045, w: .64, h: .045, d: .49, z: -.03 },
+    { y: 0.090, w: .59, h: .045, d: .45, z: -.045 },
+    { y: 0.135, w: .52, h: .045, d: .39, z: -.065 },
+    { y: 0.180, w: .42, h: .045, d: .31, z: -.085 },
+    { y: 0.225, w: .26, h: .038, d: .20, z: -.10 },
   ]
-  const domeMat = new THREE.MeshStandardMaterial({ color: domeColor, roughness: 0.55, metalness: 0.02 })
-  domeLayers.forEach(l => {
-    const block = new THREE.Mesh(new THREE.BoxGeometry(l.w, l.h, l.d), domeMat)
-    block.position.y = l.y
-    block.castShadow = true
-    inner.add(block)
+  domeLayers.forEach((layer, index) => {
+    const block = new THREE.Mesh(new THREE.BoxGeometry(layer.w, layer.h, layer.d), index < 2 ? sideMat : domeMat)
+    block.name = `BaseballCapCrownLayer${index + 1}`
+    block.position.set(0, layer.y, layer.z)
+    crown.add(block)
   })
 
-  // ===== 6 条 panel seam（垂直方柱，从帽顶辐射到下缘） =====
-  const seamMatLocal = new THREE.MeshStandardMaterial({ color: seamColor, roughness: 0.6 })
-  for (let i = 0; i < 6; i++) {
-    const a = (i / 6) * Math.PI - Math.PI / 2
-    const seam = new THREE.Mesh(new THREE.BoxGeometry(0.012, 0.22, 0.02), seamMatLocal)
-    seam.position.set(Math.sin(a) * 0.28, 0.1, Math.cos(a) * 0.24)
-    seam.rotation.y = -a
-    inner.add(seam)
+  // Strong dark panel seams are deliberately blocky to match the NFT outline.
+  for (const [index, x] of [-.23, 0, .23].entries()) {
+    const seam = new THREE.Mesh(new THREE.BoxGeometry(.014, .205, .018), seamMat)
+    seam.name = `BaseballCapPanelSeam${index + 1}`
+    seam.position.set(x, .095, .225 - Math.abs(x) * .16)
+    seam.rotation.x = -.10
+    seams.add(seam)
   }
 
-  // ===== 帽檐：扁平方块 =====
-  const brim = new THREE.Mesh(
-    new THREE.BoxGeometry(0.74, 0.02, 0.32),
-    new THREE.MeshStandardMaterial({ color: brimColor, roughness: 0.45, metalness: 0.02 })
-  )
-  brim.position.set(0, -0.03, 0.28)
-  brim.rotation.x = -0.05
-  brim.castShadow = true
-  inner.add(brim)
+  // Three steps form a curved, forward-projecting visor without smoothing
+  // away the pixel-art character of the source.
+  for (const [index, step] of [
+    { w: .74, h: .030, d: .20, y: -.035, z: .31 },
+    { w: .66, h: .026, d: .16, y: -.047, z: .44 },
+    { w: .52, h: .022, d: .11, y: -.058, z: .545 },
+  ].entries()) {
+    const upper = new THREE.Mesh(new THREE.BoxGeometry(step.w, step.h, step.d), brimMat)
+    upper.name = `BaseballCapBrimStep${index + 1}`
+    upper.position.set(0, step.y, step.z)
+    upper.rotation.x = -.06 - index * .025
+    brim.add(upper)
+    const underside = new THREE.Mesh(new THREE.BoxGeometry(step.w * .98, .009, step.d * .96), brimUnderMat)
+    underside.name = `BaseballCapBrimUnder${index + 1}`
+    underside.position.set(0, step.y - .019, step.z)
+    underside.rotation.copy(upper.rotation)
+    brim.add(underside)
+  }
+  const band = new THREE.Mesh(new THREE.BoxGeometry(.68, .034, .055), seamMat)
+  band.name = 'BaseballCapDarkBand'
+  band.position.set(0, -.012, .225)
+  brim.add(band)
 
-  // ===== 帽檐上方深色条带 =====
-  const brimBand = new THREE.Mesh(
-    new THREE.BoxGeometry(0.76, 0.024, 0.06),
-    new THREE.MeshStandardMaterial({ color: bandColor, roughness: 0.45 })
-  )
-  brimBand.position.set(0, -0.025, 0.14)
-  inner.add(brimBand)
-
-  // ===== 帽檐下侧阴影 =====
-  const brimUnder = new THREE.Mesh(
-    new THREE.BoxGeometry(0.72, 0.01, 0.30),
-    new THREE.MeshStandardMaterial({ color: '#6e5842', roughness: 0.5 })
-  )
-  brimUnder.position.set(0, -0.04, 0.28)
-  brimUnder.rotation.x = -0.05
-  inner.add(brimUnder)
-
-  // ===== 3D 像素化 Bitcoin B 标志（小方块浮在帽子正面） =====
-  const pixelBGroup = new THREE.Group()
-  const bMat = new THREE.MeshStandardMaterial({ color: goldColor, roughness: 0.3, metalness: 0.3 })
-  const pixelSize = 0.02
+  const pixelSize = .018
   const bPattern = [
-    ' ███  ',
-    '██ ██ ',
-    '██ ██ ',
-    '████  ',
-    '██ ██ ',
-    '████  ',
-    '██ ██ ',
-    '██ ██ ',
-    ' ███  ',
+    ' ██ ', ' █  ', ' ███', ' █ █', ' ███', ' █ █', ' ███',
   ]
-  const gapScale = 0.02
   bPattern.forEach((row, y) => {
     for (let x = 0; x < row.length; x++) {
       if (row[x] === '█') {
-        const p = new THREE.Mesh(
-          new THREE.BoxGeometry(pixelSize, pixelSize, pixelSize * 0.6),
-          bMat
-        )
+        const p = new THREE.Mesh(new THREE.BoxGeometry(pixelSize, pixelSize, .010), badgeMat)
+        p.name = `BaseballCapBitcoinPixel${x}-${y}`
         p.position.set(
-          (x - (row.length - 1) / 2) * (pixelSize + gapScale),
-          (bPattern.length / 2 - y - 0.5) * (pixelSize + gapScale),
+          (x - 1.5) * .022,
+          (bPattern.length / 2 - y - .5) * .022,
           0
         )
-        pixelBGroup.add(p)
+        badge.add(p)
       }
     }
   })
-  pixelBGroup.position.set(0, 0.08, 0.285)
-  pixelBGroup.rotation.x = -0.10
-  inner.add(pixelBGroup)
+  badge.position.set(.12, .105, .245)
+  badge.rotation.x = -.10
 
-  // ===== 顶部小纽扣 =====
   const btn = new THREE.Mesh(
-    new THREE.CylinderGeometry(0.035, 0.035, 0.03, 12),
-    new THREE.MeshStandardMaterial({ color: buttonColor, roughness: 0.4 })
+    new THREE.CylinderGeometry(.032, .032, .028, 8),
+    seamMat,
   )
-  btn.position.y = 0.22
-  inner.add(btn)
+  btn.name = 'BaseballCapTopButton'
+  btn.position.set(0, .252, -.10)
 
+  inner.add(crown, brim, seams, badge, btn)
   g.add(inner)
   g.position.set(0, 1.32, -0.02)
   g.rotation.x = -0.25

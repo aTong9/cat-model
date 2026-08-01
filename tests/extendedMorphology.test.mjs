@@ -38,6 +38,22 @@ test('both ear roots overlap the head shell without crossing the face centerline
   } finally { assembly.dispose() }
 })
 
+test('neutral ears stay centered on the skull and the body keeps a rounded profile', () => {
+  const assembly = createCatAssembly()
+  try {
+    const leftEar = assembly.parts['ear-left']
+    const rightEar = assembly.parts['ear-right']
+    assert.ok(Math.abs(leftEar.position.x) <= .255)
+    assert.ok(Math.abs(rightEar.position.x) <= .255)
+    assert.ok(Math.abs(leftEar.position.z) <= .025)
+    assert.ok(Math.abs(rightEar.position.z) <= .025)
+
+    const bounds = new THREE.Box3().setFromObject(assembly.parts.body)
+    const size = bounds.getSize(new THREE.Vector3())
+    assert.ok(size.z / size.x >= .94, 'neutral body profile must remain round instead of side-compressed')
+  } finally { assembly.dispose() }
+})
+
 test('body width, height and depth share one stable morphology root', () => {
   const assembly = createCatAssembly({ morphology: {
     bodyWidth: 1.2, bodyHeight: .82, bodyDepth: 1.15,

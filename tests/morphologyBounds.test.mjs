@@ -102,8 +102,8 @@ test('body-scale extremes keep arm and tail roots embedded with the body', () =>
 
     for (const bodyScale of [MORPHOLOGY_DEFINITIONS.bodyScale.min, 1, MORPHOLOGY_DEFINITIONS.bodyScale.max]) {
       assembly.apply({ morphology: { ...assembly.traits.morphology, bodyScale } })
-      assert.equal(leftArm.position.x, -0.40 * bodyScale)
-      assert.equal(rightArm.position.x, 0.40 * bodyScale)
+      assert.equal(leftArm.position.x, -0.47 * bodyScale)
+      assert.equal(rightArm.position.x, 0.47 * bodyScale)
       assert.equal(tail.position.x, 0.04 * bodyScale)
       assert.equal(tail.position.z, -0.31 * bodyScale)
     }

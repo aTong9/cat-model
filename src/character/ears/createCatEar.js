@@ -34,7 +34,7 @@ export function createCatEar(headRadius, side, gradientMap) {
   // The base overlaps the skull instead of hovering above it. 1.16 keeps the
   // lower blend buried in the rounded head after the global Pack 5 Y scale,
   // while the separately raised shell still clears the crown.
-  root.position.set(side * headRadius * 0.78, headRadius * 0.58, headRadius * 0.10)
+  root.position.set(side * headRadius * 0.68, headRadius * 0.58, -headRadius * 0.04)
   const outerMaterial = new THREE.MeshToonMaterial({ color: '#f4c430', gradientMap })
 
   const rootBlend = new THREE.Mesh(new THREE.SphereGeometry(headRadius * 0.26, 24, 16), outerMaterial)
@@ -82,7 +82,7 @@ export function createCatEar(headRadius, side, gradientMap) {
   // in the head; moving the whole assembly down would otherwise blunt the ear.
   // Keep the ear shell behind the eye/muzzle plane. The former forward offset
   // made the ears visibly cross the eyes in three-quarter and side views.
-  outer.position.set(0, headRadius * 0.40, headRadius * 0.42)
+  outer.position.set(0, headRadius * 0.40, headRadius * 0.26)
   outer.scale.y = 1.80
   outer.rotation.z = -side * 0.08
   outer.rotation.y = side * 0.16

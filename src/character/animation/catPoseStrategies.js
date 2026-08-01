@@ -194,8 +194,8 @@ function updateEmojiPose(rig, id, time) {
     rig.root.updateWorldMatrix(true, true)
     const pullBar = rig.actionProps?.props?.['emoji-pull-up']?.getObjectByName('PullUpBar')
     const barCenter = pullBar?.getWorldPosition(new THREE.Vector3()) ?? new THREE.Vector3(0, .98, .42)
-    solveArmContact2D(rig, 'arm-left', [barCenter.x - .28, barCenter.y, barCenter.z + .10], 28)
-    solveArmContact2D(rig, 'arm-right', [barCenter.x + .28, barCenter.y, barCenter.z + .10], 28)
+    solveArmContact2D(rig, 'arm-left', [barCenter.x - .36, barCenter.y, barCenter.z + .10], 36)
+    solveArmContact2D(rig, 'arm-right', [barCenter.x + .36, barCenter.y, barCenter.z + .10], 36)
   } else if (id === 'emoji-bench-press') {
     face({ blinkLeft: .55, blinkRight: .55, gazeY: .45, jawOpen: .36 })
     handGesture('grip')
@@ -419,7 +419,8 @@ function updateEmojiPose(rig, id, time) {
       [[-.30,0,-.78],[.42,0,-.26],[0,0,-.12]],
       [[-.30,0,.78],[.42,0,.26],[0,0,.12]],
     )
-    rig.parts.armLeft.position.x += .13
+    rig.parts.armLeft.position.x += .16
+    rig.parts.armRight.position.x -= .16
     rig.parts.armLeft.position.y -= .15
     const leftStep = Math.max(0, step)
     const rightStep = Math.max(0, -step)
@@ -428,7 +429,7 @@ function updateEmojiPose(rig, id, time) {
       [[-.10-rightStep*.20,0,.08],[.24+rightStep*.34,0,0],[-.12,0,0]],
     )
     const snowballProp = rig.actionProps?.props?.['emoji-snowball']
-    const snowballScale = .55 + growth * .55
+    const snowballScale = .60 + growth * .60
     if (snowballProp) {
       snowballProp.position.set(.30 + growth * .14, .60 - growth * .03, .30)
       snowballProp.children[0]?.scale.setScalar(snowballScale)

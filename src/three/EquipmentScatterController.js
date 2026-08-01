@@ -8,7 +8,7 @@ const DAMPING = 0.92
 const ANGULAR_DAMPING = 0.88
 const BOUNCE = 0.35
 const CAT_CLEARANCE = 0.9
-const SCATTER_SCALES = Object.freeze({ Camera: 0.58, 'Hiking Backpack': 1.08, 'Baseball Cap': 1.12 })
+const SCATTER_SCALES = Object.freeze({ Camera: 0.40, 'Hiking Backpack': 1.08, 'Baseball Cap': 1.12 })
 
 function hashSeed(seed) {
   let hash = 2166136261

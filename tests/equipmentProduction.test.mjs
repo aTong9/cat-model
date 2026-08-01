@@ -6,6 +6,7 @@ import { GEAR_TRAITS } from '../src/config/traits.js'
 import { createCatAssembly } from '../src/core/createCatAssembly.js'
 import { EQUIPMENT_RECIPES } from '../src/character/equipment/equipmentRecipes.js'
 import { auditCharacterRoot } from '../src/export/exportCharacterGlb.js'
+import { createGear } from '../src/three/EquipmentFactory.js'
 
 if (!globalThis.document) {
   const context = {
@@ -68,4 +69,17 @@ test('all gear survives morphology extremes with named finite parts and export m
   } finally {
     assembly.dispose()
   }
+})
+
+test('baseball cap exposes the reference crown, curved brim, dark seams and bitcoin badge', () => {
+  const cap = createGear('Baseball Cap')
+  try {
+    for (const name of ['BaseballCapCrown', 'BaseballCapBrim', 'BaseballCapSeams', 'BaseballCapBitcoinBadge']) {
+      assert.ok(cap.getObjectByName(name), name)
+    }
+    const crown = new THREE.Box3().setFromObject(cap.getObjectByName('BaseballCapCrown'))
+    const brim = new THREE.Box3().setFromObject(cap.getObjectByName('BaseballCapBrim'))
+    assert.ok(brim.max.z > crown.max.z + .12, 'reference brim must project clearly beyond the crown')
+    assert.equal(cap.userData.referenceImage, '/equipment/BaseballCap.png')
+  } finally { cap.traverse(object => { object.geometry?.dispose?.(); object.material?.dispose?.() }) }
 })

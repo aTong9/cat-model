@@ -1,5 +1,6 @@
 import test from 'node:test'
 import assert from 'node:assert/strict'
+import * as THREE from 'three'
 import { CatModel } from '../src/three/CatModel.js'
 
 test('arms and legs use continuous skinned surfaces with three-bone chains', () => {
@@ -29,6 +30,84 @@ test('default arms expose embedded shoulder blends and attachment contracts', ()
       assert.equal(arm.userData.attachment.contactType, 'embedded')
       assert.ok(arm.userData.attachment.embedDepth >= 0.1)
       assert.ok(arm.userData.attachment.gapTolerance <= 0.01)
+    }
+  } finally {
+    model.dispose()
+  }
+})
+
+test('neutral limbs stay visibly connected without pinching into the torso silhouette', () => {
+  const model = new CatModel()
+  try {
+    model.setAnimation('standing')
+    model.update(0)
+    model.group.updateMatrixWorld(true)
+
+    const body = model.group.getObjectByName('SdfCatBody')
+    const bodyBounds = new THREE.Box3().setFromObject(body)
+    for (const side of ['Left', 'Right']) {
+      const armBounds = new THREE.Box3().setFromObject(model.group.getObjectByName(`Arm${side}`))
+      const silhouetteWidth = side === 'Left'
+        ? bodyBounds.min.x - armBounds.min.x
+        : armBounds.max.x - bodyBounds.max.x
+      assert.ok(silhouetteWidth >= 0.15, `${side} arm must read outside the torso instead of being pinched against it`)
+    }
+
+    const sampleY = bodyBounds.min.y + 0.04
+    for (const [x, side] of [[-0.18, 'Left'], [0.18, 'Right']]) {
+      const surface = model.group.getObjectByName(`Leg${side}ContinuousSurface`)
+      const hits = new THREE.Raycaster(
+        new THREE.Vector3(x, sampleY, 5),
+        new THREE.Vector3(0, 0, -1),
+      ).intersectObject(surface, false)
+      assert.ok(hits.length > 0, `${side} leg surface must overlap the lower torso above its outline seam`)
+    }
+  } finally {
+    model.dispose()
+  }
+})
+
+test('neutral limb roots preserve a clean front silhouette and centered side stance', () => {
+  const model = new CatModel()
+  try {
+    const leftArm = model.group.getObjectByName('ArmLeft')
+    const rightArm = model.group.getObjectByName('ArmRight')
+    const leftLeg = model.group.getObjectByName('LegLeft')
+    const rightLeg = model.group.getObjectByName('LegRight')
+
+    assert.equal(leftArm.position.x, -0.47)
+    assert.equal(rightArm.position.x, 0.47)
+    assert.ok(leftArm.userData.attachment.baseRadius <= 0.16)
+    assert.ok(rightArm.userData.attachment.baseRadius <= 0.16)
+    assert.ok(leftLeg.position.z <= 0.14)
+    assert.ok(rightLeg.position.z <= 0.14)
+  } finally {
+    model.dispose()
+  }
+})
+
+test('run cycle keeps one-piece arms and continuous hip coverage', () => {
+  const model = new CatModel()
+  try {
+    for (const side of ['Left', 'Right']) {
+      const shoulderBlend = model.group.getObjectByName(`Arm${side}ShoulderBlend`)
+      assert.equal(shoulderBlend.visible, false, `${side} arm must not render a separate shoulder segment`)
+    }
+
+    model.setAnimation('run')
+    for (const time of [0, .08, .16, .24, .32, .40, .48, .56, .64]) {
+      model.update(time)
+      model.group.updateMatrixWorld(true)
+      const bodyBounds = new THREE.Box3().setFromObject(model.group.getObjectByName('SdfCatBody'))
+      const sampleY = bodyBounds.min.y + 0.04
+      for (const [x, side] of [[-0.18, 'Left'], [0.18, 'Right']]) {
+        const leg = model.group.getObjectByName(`Leg${side}ContinuousSurface`)
+        const hits = new THREE.Raycaster(
+          new THREE.Vector3(x, sampleY, 5),
+          new THREE.Vector3(0, 0, -1),
+        ).intersectObject(leg, false)
+        assert.ok(hits.length > 0, `${side} hip must cover the torso seam during run at ${time}`)
+      }
     }
   } finally {
     model.dispose()
@@ -137,8 +216,8 @@ test('idle and run embed shoulders while hands flare slightly outward', () => {
 
   model.setAnimation('idle')
   model.update(0.7)
-  assert.equal(Math.abs(left.position.x), 0.40)
-  assert.equal(Math.abs(right.position.x), 0.40)
+  assert.equal(Math.abs(left.position.x), 0.47)
+  assert.equal(Math.abs(right.position.x), 0.47)
   assert.equal(left.rotation.z, -0.035)
   assert.equal(right.rotation.z, 0.035)
 

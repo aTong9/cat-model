@@ -624,6 +624,7 @@ export class CatModel {
     // -- VR 头显根 --
     this._vrHeadset = new THREE.Group()
     this._vrHeadset.position.set(0, headRadius * 0.08, headRadius * 0.44)
+    this._vrHeadset.scale.set(.82, .88, .88)
     headGroup.add(this._vrHeadset)
 
     // -- 装备根 --
@@ -912,8 +913,13 @@ export class CatModel {
 
     const g = this._vrHeadset
     const profile = getEyeAppearanceProfile('VR')
+    g.userData.componentContract = [
+      'metal-shell', 'cyan-light-ring', 'curved-visor', 'head-strap', 'holographic-hud',
+    ]
 
-    // 深黑玻璃曲面
+    // Reference construction: silver rounded shell, luminous cyan inner seal,
+    // then a single broad smoked visor. The shallow stacked depths preserve
+    // the layered silhouette in front, three-quarter and GLB turnaround views.
     const visorMat = new THREE.MeshPhysicalMaterial({
       color: profile.primary,
       roughness: profile.roughness,
@@ -922,55 +928,105 @@ export class CatModel {
       clearcoatRoughness: 0.02,
       envMapIntensity: 1.5,
     })
+    const shellMat = new THREE.MeshStandardMaterial({
+      color: profile.accent, roughness: 0.22, metalness: 0.82,
+    })
+    const fabricMat = new THREE.MeshStandardMaterial({
+      color: '#242832', roughness: .96, metalness: 0,
+    })
+    const cyanMat = new THREE.MeshStandardMaterial({
+      color: '#16aeb9', emissive: '#00a8b5', emissiveIntensity: 1.0,
+      roughness: 0.18, metalness: 0.18,
+    })
+    const hudMat = new THREE.MeshBasicMaterial({
+      color: '#25d9e5', transparent: true, opacity: .78, toneMapped: false,
+    })
+
+    const fabricGasket = new THREE.Mesh(
+      new RoundedBoxGeometry(0.98, 0.435, 0.16, 7, 0.125),
+      fabricMat,
+    )
+    fabricGasket.name = 'VRFabricGasket'
+    fabricGasket.position.set(0, 0, 0.145)
+    fabricGasket.castShadow = true
+    g.add(fabricGasket)
 
     const frameShell = new THREE.Mesh(
-      new RoundedBoxGeometry(0.90, 0.38, 0.20, 5, 0.10),
-      metal(profile.accent)
+      new RoundedBoxGeometry(0.92, 0.39, 0.17, 7, 0.115),
+      shellMat
     )
-    frameShell.position.set(0, 0, 0.18)
+    frameShell.name = 'VRMetalShell'
+    frameShell.position.set(0, 0, 0.17)
     frameShell.castShadow = true
     g.add(frameShell)
 
-    const visor = new THREE.Mesh(new RoundedBoxGeometry(0.84, 0.32, 0.20, 5, 0.09), visorMat)
-    visor.position.set(0, 0, 0.205)
+    const cyanRing = new THREE.Mesh(
+      new RoundedBoxGeometry(0.865, 0.342, 0.185, 7, 0.105),
+      cyanMat,
+    )
+    cyanRing.name = 'VRCyanLightRing'
+    cyanRing.position.set(0, 0, 0.198)
+    g.add(cyanRing)
+
+    const visor = new THREE.Mesh(new RoundedBoxGeometry(0.815, 0.292, 0.19, 7, 0.09), visorMat)
+    visor.name = 'VRCurvedVisor'
+    visor.position.set(0, 0, 0.225)
     visor.castShadow = true
     g.add(visor)
 
-    // 银色铝框
-    const frameMat = metal(profile.accent)
-
-    // 头带
+    // Rear strap remains independent so headScale and exported animation can
+    // treat the complete headset as one wearable without flattening its depth.
     const strap = new THREE.Mesh(
-      new THREE.TorusGeometry(0.50, 0.022, 8, 48),
-      new THREE.MeshStandardMaterial({ color: '#c8cdd5', roughness: 0.35, metalness: 0.6 })
+      new THREE.TorusGeometry(0.50, 0.026, 10, 56),
+      fabricMat
     )
+    strap.name = 'VRHeadStrap'
     strap.rotation.x = Math.PI / 2
-    strap.position.set(0, 0, -0.08)
+    strap.position.set(0, 0, -0.10)
     strap.scale.set(1, 1.08, 1)
     g.add(strap)
 
-    // 玻璃反光条
-    const reflMat = new THREE.MeshBasicMaterial({ color: '#ffffff', transparent: true, opacity: 0.55 })
-    const refl1 = new THREE.Mesh(new THREE.PlaneGeometry(0.16, 0.018), reflMat)
-    refl1.position.set(-0.08, 0.045, 0.315)
-    refl1.rotation.y = -0.08
-    g.add(refl1)
-    const refl2 = new THREE.Mesh(new THREE.PlaneGeometry(0.08, 0.018), reflMat)
-    refl2.position.set(0.07, 0.045, 0.315)
-    refl2.rotation.y = 0.06
-    g.add(refl2)
+    const reflMat = new THREE.MeshBasicMaterial({ color: '#dffcff', transparent: true, opacity: 0.62 })
+    const reflection = new THREE.Mesh(new RoundedBoxGeometry(0.25, 0.018, 0.008, 2, 0.007), reflMat)
+    reflection.name = 'VRVisorReflection'
+    reflection.position.set(-0.13, 0.075, 0.327)
+    reflection.rotation.z = -0.03
+    g.add(reflection)
 
-    // 侧边扬声器
-    const sidePod = new THREE.Mesh(
-      new THREE.CapsuleGeometry(0.035, 0.10, 6, 10),
-      frameMat
-    )
-    sidePod.position.set(0.50, 0, 0.05)
-    sidePod.rotation.z = Math.PI / 2
-    g.add(sidePod)
-    const sidePodL = sidePod.clone()
-    sidePodL.position.set(-0.50, 0, 0.05)
-    g.add(sidePodL)
+    // Four cyan fasteners echo the product reference and help the curved face
+    // read at small NFT thumbnail sizes.
+    for (const [index, [x, y]] of [[-.355, .118], [.355, .118], [-.355, -.118], [.355, -.118]].entries()) {
+      const fastener = new THREE.Mesh(new THREE.SphereGeometry(.010, 12, 8), cyanMat)
+      fastener.name = `VRCyanFastener${index + 1}`
+      fastener.position.set(x, y, .326)
+      g.add(fastener)
+    }
+
+    // NFT reference HUD: three independently named rectangular panels. They
+    // are simple emissive bars, so they remain deterministic and GLB-safe.
+    const hud = new THREE.Group()
+    hud.name = 'VRHolographicHUD'
+    const addHudPanel = (name, x, y, z, width, height) => {
+      const panel = new THREE.Group()
+      panel.name = name
+      const thickness = .006
+      const horizontalGeometry = new RoundedBoxGeometry(width, thickness, .008, 2, .004)
+      const verticalGeometry = new RoundedBoxGeometry(thickness, height, .008, 2, .004)
+      for (const [px, py] of [[0, height / 2], [0, -height / 2]]) {
+        const bar = new THREE.Mesh(horizontalGeometry, hudMat)
+        bar.position.set(px, py, 0); panel.add(bar)
+      }
+      for (const [px, py] of [[width / 2, 0], [-width / 2, 0]]) {
+        const bar = new THREE.Mesh(verticalGeometry, hudMat)
+        bar.position.set(px, py, 0); panel.add(bar)
+      }
+      panel.position.set(x, y, z)
+      hud.add(panel)
+    }
+    addHudPanel('VRHudPanelLeft', -.28, .035, .345, .21, .16)
+    addHudPanel('VRHudPanelUpperRight', .24, .10, .355, .25, .18)
+    addHudPanel('VRHudPanelLowerRight', .37, -.08, .365, .17, .15)
+    g.add(hud)
   }
 
 }

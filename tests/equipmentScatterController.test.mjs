@@ -2,6 +2,7 @@ import test from 'node:test'
 import assert from 'node:assert/strict'
 import * as THREE from 'three'
 import { createEquipmentScatterController, createSeededRandom } from '../src/three/EquipmentScatterController.js'
+import { createGear } from '../src/three/EquipmentFactory.js'
 
 function createHarness(seed = 'stable-layout') {
   const scene = new THREE.Scene()
@@ -66,4 +67,21 @@ test('dragged equipment stays where the user leaves it and effects are transient
   for (let frame = 0; frame < 180; frame++) harness.controller.update(1 / 60)
   assert.equal(ramen.group.getObjectByName('EquipmentEffect:Ramen'), undefined)
   harness.controller.dispose()
+})
+
+test('ground camera uses a compact display scale independent from equipped size', () => {
+  const scene = new THREE.Scene()
+  const controller = createEquipmentScatterController({
+    scene,
+    camera: new THREE.PerspectiveCamera(),
+    canvas: { getBoundingClientRect: () => ({ left: 0, top: 0, width: 100, height: 100 }) },
+    gearIds: ['Camera'],
+    createGear,
+    seed: 'camera-display-scale',
+  })
+  try {
+    controller.createAll()
+    const camera = controller.entries[0].group
+    assert.ok(camera.scale.x <= .44, `camera scatter scale ${camera.scale.x} is too large`)
+  } finally { controller.dispose() }
 })

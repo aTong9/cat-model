@@ -93,11 +93,11 @@ export function applyMorphology(parts, morphology = {}) {
     foot.userData.restScale = [footScale, footScale, footScale]
   }
   if (parts.armLeft) {
-    parts.armLeft.position.x = -0.40 * bodyScale
+    parts.armLeft.position.x = -0.47 * bodyScale
     parts.armLeft.userData.restPosition = parts.armLeft.position.toArray()
   }
   if (parts.armRight) {
-    parts.armRight.position.x = 0.40 * bodyScale
+    parts.armRight.position.x = 0.47 * bodyScale
     parts.armRight.userData.restPosition = parts.armRight.position.toArray()
   }
   if (parts.tail) {

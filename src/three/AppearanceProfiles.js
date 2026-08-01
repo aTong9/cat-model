@@ -15,7 +15,7 @@ const eyeProfiles = {
   Alert: { family: 'cat-iris', primary: '#e5aa20', accent: '#17130b', roughness: 0.25, metalness: 0.08 },
   'Blue Ring': { family: 'luminous-ring', primary: '#111111', accent: '#42dcec', roughness: 0.18, metalness: 0.12, emissive: '#0b6170', emissiveIntensity: 0.45 },
   Sunglasses: { family: 'glasses', primary: '#09090d', accent: '#ffffff', roughness: 0.12, metalness: 0.42 },
-  VR: { family: 'visor', primary: '#0a0a12', accent: '#d0d5dd', roughness: 0.04, metalness: 0.35 },
+  VR: { family: 'visor', primary: '#080b10', accent: '#d8dce2', roughness: 0.035, metalness: 0.42, emissive: '#00ddea', emissiveIntensity: 1.6 },
   'Big Black': { family: 'oversized', primary: '#0a0a0a', accent: '#ffffff', roughness: 0.12, metalness: 0.05 },
 }
 

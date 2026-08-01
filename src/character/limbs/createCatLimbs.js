@@ -9,9 +9,12 @@ function createFurJointCover(radius, material, name, scale = [1, 1, 1]) {
   return cover
 }
 
-function createSkinnedLimb({ name, upperVector, lowerVector, radii, material, jointNames = ['Shoulder', 'Elbow', 'Wrist'], radialSegments = 16 }) {
-  const ringCount = 19
-  const centers = [new THREE.Vector3(), upperVector.clone(), upperVector.clone().add(lowerVector)]
+function createSkinnedLimb({ name, rootVector, upperVector, lowerVector, radii, material, jointNames = ['Shoulder', 'Elbow', 'Wrist'], radialSegments = 16 }) {
+  const hasEmbeddedRoot = rootVector?.lengthSq() > 0
+  const ringCount = hasEmbeddedRoot ? 25 : 19
+  const centers = hasEmbeddedRoot
+    ? [rootVector.clone(), new THREE.Vector3(), upperVector.clone(), upperVector.clone().add(lowerVector)]
+    : [new THREE.Vector3(), upperVector.clone(), upperVector.clone().add(lowerVector)]
   const centerCurve = new THREE.CatmullRomCurve3(centers, false, 'catmullrom', 0.5)
   const positions = []
   const normals = []
@@ -21,18 +24,21 @@ function createSkinnedLimb({ name, upperVector, lowerVector, radii, material, jo
 
   for (let ring = 0; ring < ringCount; ring++) {
     const u = ring / (ringCount - 1)
-    const segment = u < 0.5 ? 0 : 1
-    const localT = segment === 0 ? u * 2 : (u - 0.5) * 2
+    const segmentCount = radii.length - 1
+    const scaledU = Math.min(segmentCount - 1e-9, u * segmentCount)
+    const segment = Math.floor(scaledU)
+    const localT = scaledU - segment
     const center = centerCurve.getPoint(u)
     const tangent = centerCurve.getTangent(u)
     const axis = Math.abs(tangent.z) < 0.9 ? new THREE.Vector3(0, 0, 1) : new THREE.Vector3(1, 0, 0)
     const normalA = new THREE.Vector3().crossVectors(tangent, axis).normalize()
     const normalB = new THREE.Vector3().crossVectors(tangent, normalA).normalize()
     const radius = THREE.MathUtils.lerp(radii[segment], radii[segment + 1], localT)
-    const bonePosition = u * 2
+    const limbU = hasEmbeddedRoot ? Math.max(0, (u - 1 / 3) / (2 / 3)) : u
+    const bonePosition = limbU * 2
     const firstBone = Math.min(1, Math.floor(bonePosition))
     const secondBone = Math.min(2, firstBone + 1)
-    const secondWeight = bonePosition - firstBone
+    const secondWeight = THREE.MathUtils.clamp(bonePosition - firstBone, 0, 1)
 
     for (let side = 0; side < radialSegments; side++) {
       const angle = side / radialSegments * Math.PI * 2
@@ -86,7 +92,10 @@ function createSkinnedLimb({ name, upperVector, lowerVector, radii, material, jo
 export function createRaisedArm(side, { gradientMap, createHeart }) {
   const shoulder = new THREE.Group()
   shoulder.name = side < 0 ? 'ArmLeft' : 'ArmRight'
-  shoulder.position.set(side * 0.40, 0.62, 0.08)
+  // Keep the arm readable outside the torso silhouette while preserving a
+  // deep shoulder overlap for animation. At .40 the body swallowed most of
+  // the upper arm in the neutral stance and exposed its outline as a seam.
+  shoulder.position.set(side * 0.47, 0.62, 0.08)
   shoulder.userData.restPosition = shoulder.position.toArray()
   const fur = new THREE.MeshToonMaterial({
     color: '#f4c430',
@@ -104,6 +113,10 @@ export function createRaisedArm(side, { gradientMap, createHeart }) {
     [1.08, 1.16, 0.96],
   )
   shoulderBlend.position.set(-side * 0.028, -0.012, -0.018)
+  // The skinned arm already starts deeply inside the torso. Rendering this
+  // extra sphere creates a second lighting island that becomes an obvious
+  // two-piece break while the arm swings.
+  shoulderBlend.visible = false
   shoulder.add(shoulderBlend)
   // The reference arm is a single tapered silhouette. Its bind pose points
   // downward so idle never needs the old 180° elbow fold that pinched the mesh.
@@ -111,9 +124,10 @@ export function createRaisedArm(side, { gradientMap, createHeart }) {
   const foreVector = new THREE.Vector3(-side * 0.015, -0.175, 0.030)
   const limb = createSkinnedLimb({
     name: shoulder.name,
+    rootVector: new THREE.Vector3(-side * 0.125, 0.02, -0.02),
     upperVector,
     lowerVector: foreVector,
-    radii: [0.158, 0.137, 0.116],
+    radii: [0.148, 0.142, 0.130, 0.114],
     material: fur,
     radialSegments: 20,
   })
@@ -130,7 +144,7 @@ export function createRaisedArm(side, { gradientMap, createHeart }) {
     parentSocket: side < 0 ? 'shoulder-left' : 'shoulder-right',
     localStart: shoulder.position.toArray(),
     localEnd: shoulder.position.clone().add(upperVector).add(foreVector).toArray(),
-    baseRadius: 0.168,
+    baseRadius: 0.148,
     endRadius: 0.102,
     embedDepth: 0.105,
     contactType: 'embedded',
@@ -150,7 +164,10 @@ export function createFoot(side, { gradientMap, createHeart }) {
   // left only the paw visible below the belly, which read as a very short leg.
   // Raising the hip while extending both bones preserves the same ankle/floor
   // contact and exposes a proper upper/lower-leg silhouette.
-  hip.position.set(side * 0.18, 0.18, 0.16)
+  // Start the continuous leg above and slightly in front of the lower body
+  // outline. Bone lengths compensate for the raised root so the ankle and
+  // authored foot remain on the frozen floor plane.
+  hip.position.set(side * 0.18, 0.26, 0.13)
   hip.userData.restPosition = hip.position.toArray()
   const fur = new THREE.MeshToonMaterial({
     color: '#f4c430',
@@ -158,19 +175,17 @@ export function createFoot(side, { gradientMap, createHeart }) {
   })
   const pawFur = new THREE.MeshToonMaterial({ color: '#f5f1e6', gradientMap: gradientMap })
   const pad = new THREE.MeshStandardMaterial({ color: '#f06f78', roughness: 0.42 })
-  const thighVector = new THREE.Vector3(side * 0.008, -0.18, 0.028)
+  const thighVector = new THREE.Vector3(side * 0.008, -0.22, 0.028)
   const hipBlend = createFurJointCover(0.148, fur, `${hip.name}HipBlend`, [1.08, 1.14, 1.08])
-  // The torso already supplies the rounded haunch volume. Showing another
-  // sphere at the leg root creates the broken, scalloped joint seen in the old
-  // neutral model, so retain it as a rig helper but omit it from the surface.
   hipBlend.visible = false
   hip.add(hipBlend)
-  const shinVector = new THREE.Vector3(-side * 0.008, -0.14, 0.040)
+  const shinVector = new THREE.Vector3(-side * 0.008, -0.18, 0.040)
   const limb = createSkinnedLimb({
     name: hip.name,
+    rootVector: new THREE.Vector3(0, 0.17, -0.045),
     upperVector: thighVector,
     lowerVector: shinVector,
-    radii: [0.150, 0.134, 0.114],
+    radii: [0.172, 0.150, 0.134, 0.114],
     material: fur,
     jointNames: ['Hip', 'Knee', 'Ankle'],
     radialSegments: 14,

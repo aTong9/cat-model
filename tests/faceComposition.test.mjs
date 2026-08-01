@@ -61,3 +61,44 @@ test('Sunglasses and VR use explicit head-equipment conflict policies', () => {
   assert.equal(resolveFaceEquipmentPolicy('VR', 'Baseball Cap').strategy, 'offset-equipment')
   assert.equal(resolveFaceEquipmentPolicy('Original', 'Baseball Cap').strategy, 'compose')
 })
+
+test('VR eyes reproduce the layered visor and cyan holographic HUD contract', () => {
+  const assembly = createCatAssembly({ eyes: 'VR' })
+  try {
+    const headset = assembly.model._vrHeadset
+    assert.equal(headset.visible, true)
+    assert.deepEqual(headset.userData.componentContract, [
+      'metal-shell', 'cyan-light-ring', 'curved-visor', 'head-strap', 'holographic-hud',
+    ])
+    assert.ok(headset.getObjectByName('VRMetalShell'))
+    assert.ok(headset.getObjectByName('VRCyanLightRing'))
+    assert.ok(headset.getObjectByName('VRCurvedVisor'))
+    assert.ok(headset.getObjectByName('VRHeadStrap'))
+    const hud = headset.getObjectByName('VRHolographicHUD')
+    assert.equal(hud?.children.length, 3)
+    assert.ok(headset.getObjectByName('VRCyanLightRing').material.emissiveIntensity >= 1)
+  } finally { assembly.dispose() }
+})
+
+test('VR fabric gasket contains the visor across kitten and morphology extremes', () => {
+  const assembly = createCatAssembly({ eyes: 'VR' })
+  try {
+    for (const morphology of [
+      { bodyScale: .86, bodyWidth: .92, bodyHeight: .88, bodyDepth: .9, headScale: 1.2 },
+      { bodyScale: .75, headScale: .75 },
+      { bodyScale: 1.25, headScale: 1.25 },
+    ]) {
+      assembly.apply({ eyes: 'VR', morphology: { ...assembly.traits.morphology, ...morphology } })
+      const gasket = assembly.model._vrHeadset.getObjectByName('VRFabricGasket')
+      const visor = assembly.model._vrHeadset.getObjectByName('VRCurvedVisor')
+      const gasketBounds = new THREE.Box3().setFromObject(gasket)
+      const visorBounds = new THREE.Box3().setFromObject(visor)
+      assert.ok(gasketBounds.min.x < visorBounds.min.x)
+      assert.ok(gasketBounds.max.x > visorBounds.max.x)
+      assert.ok(gasketBounds.min.y < visorBounds.min.y)
+      assert.ok(gasketBounds.max.y > visorBounds.max.y)
+      assert.ok(gasket.material.roughness >= .9)
+      assert.equal(finiteBox(assembly.model._vrHeadset), true)
+    }
+  } finally { assembly.dispose() }
+})

@@ -20,6 +20,6 @@ test('special-scene modules expose reference and detailed factories on demand', 
   const createFuji = await loadDetailedSpecialScene('Realm of Mt.Fuji')
   const createTimeTraveler = await loadDetailedSpecialScene('Time Traveler')
   assert.equal(createFuji.name, 'createFujiRealmScene')
-  assert.equal(createTimeTraveler.name, 'createTimeTravelerScene')
+  assert.equal(createTimeTraveler.name, 'createSynthwaveWorld9038Scene')
   assert.equal(await loadDetailedSpecialScene('Golden General'), null)
 })

@@ -35,16 +35,16 @@ export const FACE_EXPRESSION_OPTIONS = Object.freeze([
 ])
 
 export const GEAR_TRAITS = [
-  { id: 'Baseball Cap', label: '棒球帽', labelKey: `traits.gear.${toTraitKey('Baseball Cap')}` },
-  { id: 'Camera', label: '相机', labelKey: `traits.gear.${toTraitKey('Camera')}` },
-  { id: 'Gold Round Glasses', label: '金框眼镜', labelKey: `traits.gear.${toTraitKey('Gold Round Glasses')}` },
-  { id: 'Good Luck Gold Bar', label: '大吉金条', labelKey: `traits.gear.${toTraitKey('Good Luck Gold Bar')}` },
-  { id: 'Hiking Backpack', label: '登山背包', labelKey: `traits.gear.${toTraitKey('Hiking Backpack')}` },
-  { id: 'Hot Coffee', label: '热咖啡', labelKey: `traits.gear.${toTraitKey('Hot Coffee')}` },
-  { id: 'Investment Book', label: '投资书', labelKey: `traits.gear.${toTraitKey('Investment Book')}` },
-  { id: 'Ramen', label: '拉面', labelKey: `traits.gear.${toTraitKey('Ramen')}` },
-  { id: 'Sake', label: '清酒', labelKey: `traits.gear.${toTraitKey('Sake')}` },
-  { id: 'Wealth Gold Bar', label: '招财金条', labelKey: `traits.gear.${toTraitKey('Wealth Gold Bar')}` },
+  { id: 'Baseball Cap', label: '棒球帽', labelKey: `traits.gear.${toTraitKey('Baseball Cap')}`, preview: '/equipment/BaseballCap.png' },
+  { id: 'Camera', label: '相机', labelKey: `traits.gear.${toTraitKey('Camera')}`, preview: '/equipment/Camera.png' },
+  { id: 'Gold Round Glasses', label: '金框眼镜', labelKey: `traits.gear.${toTraitKey('Gold Round Glasses')}`, preview: '/equipment/GoldRoundGlasses.png' },
+  { id: 'Good Luck Gold Bar', label: '大吉金条', labelKey: `traits.gear.${toTraitKey('Good Luck Gold Bar')}`, preview: '/equipment/GoodLuckGoldBar.png' },
+  { id: 'Hiking Backpack', label: '登山背包', labelKey: `traits.gear.${toTraitKey('Hiking Backpack')}`, preview: '/equipment/HikingBackpack.png' },
+  { id: 'Hot Coffee', label: '热咖啡', labelKey: `traits.gear.${toTraitKey('Hot Coffee')}`, preview: '/equipment/HotCoffee.png' },
+  { id: 'Investment Book', label: '投资书', labelKey: `traits.gear.${toTraitKey('Investment Book')}`, preview: '/equipment/InvestmentBook.png' },
+  { id: 'Ramen', label: '拉面', labelKey: `traits.gear.${toTraitKey('Ramen')}`, preview: '/equipment/Ramen.png' },
+  { id: 'Sake', label: '清酒', labelKey: `traits.gear.${toTraitKey('Sake')}`, preview: '/equipment/Sake.png' },
+  { id: 'Wealth Gold Bar', label: '招财金条', labelKey: `traits.gear.${toTraitKey('Wealth Gold Bar')}`, preview: '/equipment/WealthGoldBar.png' },
 ]
 
 export const BACKGROUND_TRAITS = [

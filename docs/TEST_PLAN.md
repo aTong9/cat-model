@@ -4,6 +4,8 @@
 > 测试对象：Vue 3 编辑器、Three.js 角色与场景、9,901 Token 图鉴、CatTraits 参数系统、2D/3D 对照、PNG/GLB/角色卡导出。  
 > 关联文档：[设计哲学](./DESIGN_PHILOSOPHY.md)、[开发路线图](./DEVELOPMENT_ROADMAP.md)、[视觉基线](./baselines/README.md)。
 
+面向后续 AI Agent 的逐项执行清单、特殊场景矩阵和修复报告模板，见 [AI 全项目测试与修复手册](./AI_TEST_PLAYBOOK.md)。
+
 ## 1. 测试目标
 
 测试不仅确认“按钮能否点击”，还要验证以下产品承诺：
@@ -85,7 +87,7 @@ npm.cmd run audit:full
 
 ### 4.2 当前自动化覆盖
 
-当前测试套件覆盖以下合同，具体数量以 `npm test` 输出为准；编写本文时为 123 项通过：
+当前测试套件覆盖以下合同，具体数量以 `npm test` 输出为准；2026-08-01 基线为 233 项通过：
 
 - CatTraits 规范化、版本迁移、Seed 稳定性和分享 URL 往返。
 - Pinia 编辑历史、体型锁定、工作模式与 UI 状态隔离。

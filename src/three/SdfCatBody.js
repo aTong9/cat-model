@@ -62,7 +62,7 @@ export function createSdfCatBody(furColor = '#f4c430', opts = {}) {
       r: hRad * 1.08,
       // The reference is broad and nearly vertical from the front, but notably
       // shallower in profile than the old loaf-shaped body.
-      s: [1.13 * hr, 0.92, 0.92],
+      s: [1.13 * hr, 0.92, 0.98],
       k: 0.22,
       tag: 'head',
     }),
@@ -99,7 +99,7 @@ export function createSdfCatBody(furColor = '#f4c430', opts = {}) {
     sphere({
       c: { x: 0, y: 0.68, z: 0 },
       r: 0.39,
-      s: [1.16 * wid, 1.15, 0.92],
+      s: [1.16 * wid, 1.15, 0.99],
       k: 0.22, tag: 'body',
     }),
 
@@ -107,7 +107,7 @@ export function createSdfCatBody(furColor = '#f4c430', opts = {}) {
     sphere({
       c: { x: 0, y: 0.32, z: 0.01 },
       r: 0.40,
-      s: [1.10 * wid, 1.18, 0.95],
+      s: [1.10 * wid, 1.18, 1.01],
       k: 0.22, tag: 'body',
     }),
 
@@ -115,7 +115,7 @@ export function createSdfCatBody(furColor = '#f4c430', opts = {}) {
     sphere({
       c: { x: 0, y: -0.12, z: 0.02 },
       r: 0.45,
-      s: [1.10 * wid, 1.05, 1.00],
+      s: [1.10 * wid, 1.05, 1.04],
       k: 0.22, tag: 'body',
     }),
 
