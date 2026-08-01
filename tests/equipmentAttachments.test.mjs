@@ -22,3 +22,11 @@ test('attachment application overrides factory transforms and records exportable
   assert.equal(object.userData.attachment.socket, 'head-top')
   assert.equal(applyEquipmentAttachment(object, 'Unknown'), false)
 })
+
+test('wearable proportions and top-mounted props are centered for the main character', () => {
+  assert.ok(getEquipmentAttachment('Hiking Backpack').scale >= 1.1)
+  assert.ok(getEquipmentAttachment('Camera').scale >= 0.15)
+  for (const type of ['Hot Coffee', 'Investment Book', 'Sake']) {
+    assert.equal(getEquipmentAttachment(type).position[0], 0, type)
+  }
+})
