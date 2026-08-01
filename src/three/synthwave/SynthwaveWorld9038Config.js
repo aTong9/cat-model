@@ -42,6 +42,6 @@ export function normalizeSynthwaveWorld9038Config(overrides = {}) {
   return value
 }
 
-export function shouldUseSynthwaveWorld9038(tokenId, special) {
-  return String(tokenId) === '9038' && special === 'Time Traveler'
+export function shouldUseSynthwaveWorld9038(_tokenId, special) {
+  return special === 'Time Traveler'
 }

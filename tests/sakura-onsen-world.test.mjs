@@ -4,10 +4,10 @@ import * as THREE from 'three'
 import { createSakuraOnsenWorld } from '../src/three/onsen/createSakuraOnsenWorld.js'
 import { shouldUseSakuraOnsen } from '../src/three/onsen/SakuraOnsenConfig.js'
 
-test('sakura onsen replacement is strictly scoped to token 3001', () => {
+test('sakura onsen replacement follows the Onsen journey trait for every token', () => {
   assert.equal(shouldUseSakuraOnsen(3001, 'Onsen journey'), true)
   assert.equal(shouldUseSakuraOnsen('3001', 'Onsen journey'), true)
-  assert.equal(shouldUseSakuraOnsen(3002, 'Onsen journey'), false)
+  assert.equal(shouldUseSakuraOnsen(3002, 'Onsen journey'), true)
   assert.equal(shouldUseSakuraOnsen(3001, 'Realm of Mt.Fuji'), false)
 })
 

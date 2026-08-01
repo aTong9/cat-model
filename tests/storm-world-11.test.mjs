@@ -4,10 +4,11 @@ import * as THREE from 'three'
 import { createStormWorld11 } from '../src/three/storm/createStormWorld11.js'
 import { shouldUseStormWorld11 } from '../src/three/storm/StormWorld11Config.js'
 
-test('storm replacement is strictly scoped to token 11', () => {
+test('storm replacement follows the Thunderous Might trait for every token', () => {
   assert.equal(shouldUseStormWorld11(11, 'Thunderous Might'), true)
   assert.equal(shouldUseStormWorld11('11', 'Thunderous Might'), true)
-  assert.equal(shouldUseStormWorld11(12, 'Thunderous Might'), false)
+  assert.equal(shouldUseStormWorld11(12, 'Thunderous Might'), true)
+  assert.equal(shouldUseStormWorld11(11, 'Galactic Voyage'), false)
 })
 test('storm world exposes terrain, four landmarks, layered rain and spatial lightning', () => {
   const runtime = createStormWorld11({ quality: 'low' })

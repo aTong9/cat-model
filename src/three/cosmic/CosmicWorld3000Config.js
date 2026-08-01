@@ -24,6 +24,6 @@ export function normalizeCosmicWorld3000Config(overrides = {}) {
   return value
 }
 
-export function shouldUseCosmicWorld3000(tokenId, special) {
-  return String(tokenId) === '3000' && special === 'Galactic Voyage'
+export function shouldUseCosmicWorld3000(_tokenId, special) {
+  return special === 'Galactic Voyage'
 }

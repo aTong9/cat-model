@@ -33,6 +33,6 @@ export function normalizeGymWorld9066Config(overrides = {}) {
   return value
 }
 
-export function shouldUseGymWorld9066(tokenId, special) {
-  return String(tokenId) === '9066' && special === 'Fitness Guru'
+export function shouldUseGymWorld9066(_tokenId, special) {
+  return special === 'Fitness Guru'
 }
