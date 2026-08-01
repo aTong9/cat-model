@@ -1,7 +1,7 @@
 *, *::before, *::after { margin: 0; padding: 0; box-sizing: border-box; }
 
 :root {
-  --rem-base: 12px;
+  --rem-base: 11px;
   --color-bg-stage: #0c0d17;
   --color-surface-1: rgba(18, 20, 33, 0.88);
   --color-surface-2: rgba(35, 38, 57, 0.94);
@@ -80,6 +80,15 @@ html, body {
   font-family: 'Segoe UI', 'PingFang SC', 'Microsoft YaHei', system-ui, sans-serif;
   color: var(--text);
   -webkit-font-smoothing: antialiased;
+}
+
+@media (max-width: 900px) {
+  :root { --rem-base: 12px; }
+}
+
+@media (max-width: 520px) {
+  :root { --rem-base: 12px; }
+  html, body { overscroll-behavior: none; }
 }
 
 #app {

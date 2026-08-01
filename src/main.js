@@ -21,10 +21,9 @@ const getViewportDimensions = () => {
 
 const updateRem = () => {
   const { width, height } = getViewportDimensions()
-  const shortest = Math.max(280, Math.min(width, height))
-  const ratio = (shortest - 280) / 1120
-  const targetRem = 10.5 + Math.max(0, Math.min(1, ratio)) * 6.8
-  const rem = Math.max(10.5, Math.min(18, targetRem))
+  // Keep desktop controls compact. Mobile gets a small readability bump without
+  // scaling every panel with large-screen viewport dimensions.
+  const rem = width <= 600 ? 12 : width <= 900 ? 11.5 : height <= 700 ? 10.5 : 11
   const remText = toPx(rem)
   document.documentElement.style.setProperty('--rem-base', remText)
   document.documentElement.style.fontSize = remText

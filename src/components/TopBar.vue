@@ -23,7 +23,7 @@ import { normalizeLocale } from '../i18n/index.js'
 const { t, locale } = useI18n()
 const store = useCatStore()
 const langs = [{ code: 'zh' }, { code: 'ja' }, { code: 'en' }]
-const themes = [{ code: 'midnight' }, { code: 'neon' }, { code: 'paper' }, { code: 'dark' }]
+const themes = [{ code: 'midnight' }, { code: 'dark' }]
 const setLocale = code => { store.setLanguage(code); locale.value = normalizeLocale(code) }
 const setTheme = code => store.setTheme(code)
 </script>
@@ -33,4 +33,6 @@ const setTheme = code => store.setTheme(code)
 .theme-group, .locale-group { display: flex; gap: 4px; }
 .sep { width: 1px; height: 18px; background: var(--border); opacity: .62; }
 .top-bar .btn { min-height: 30px; padding-inline: 10px; }
+@media(max-width:900px){.top-bar{top:10px;left:10px}.top-bar .btn{min-height:34px;padding-inline:9px}}
+@media(max-width:600px){.top-bar{right:10px;justify-content:space-between}.locale-group,.theme-group{flex:1}.top-bar .btn{flex:1;min-width:0;padding-inline:6px}.sep{height:22px}}
 </style>

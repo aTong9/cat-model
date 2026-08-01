@@ -109,7 +109,7 @@ export function createEquipmentScatterController({
         mixer: new THREE.AnimationMixer(group),
       })
       const entry = entries.at(-1)
-      entry.mixer.clipAction(THREE.AnimationClip.findByName(entry.animations, group.userData.animationRig.defaultClip)).play()
+      // Ground equipment stays still until the user explicitly previews an animation.
     })
   }
 

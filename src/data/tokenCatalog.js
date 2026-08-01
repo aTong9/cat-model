@@ -8,6 +8,7 @@ function decodeToken(row) {
   return {
     tokenId, eyes, face, fur, gear, background, special,
     remoteImage, localImage: `/liberty_cats_download/images/${tokenId}.${extension}`,
+    thumbnailImage: `/audit/thumbnails/${tokenId}.svg`,
     ...image,
   }
 }

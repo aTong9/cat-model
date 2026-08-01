@@ -213,8 +213,12 @@ export async function exportCharacterGlb(root, options = {}) {
   if (!standardValidation.valid) throw new Error(`glTF 标准验证失败：${standardValidation.messages.filter(message => message.severity === 0).map(message => message.code).join(', ')}`)
 
   progress('verify', 76)
-  const { GLTFLoader } = await import('three/addons/loaders/GLTFLoader.js')
-  const gltf = await new GLTFLoader().parseAsync(arrayBuffer, '')
+  const [{ GLTFLoader }, { MeshoptDecoder }] = await Promise.all([
+    import('three/addons/loaders/GLTFLoader.js'),
+    import('meshoptimizer'),
+  ])
+  await MeshoptDecoder.ready
+  const gltf = await new GLTFLoader().setMeshoptDecoder(MeshoptDecoder).parseAsync(arrayBuffer, '')
   const roundTrip = inspectRoundTrip(gltf, root.userData.catTraits, (options.animations ?? []).map(clip => clip.name))
   disposeGltf(gltf)
   if (!roundTrip.valid) throw new Error(`GLB 回读检查失败：${roundTrip.errors.join(', ')}`)
@@ -233,6 +237,9 @@ export function downloadGlb(arrayBuffer, filename) {
   const link = document.createElement('a')
   link.href = url
   link.download = filename
+  link.style.display = 'none'
+  document.body.appendChild(link)
   link.click()
-  setTimeout(() => URL.revokeObjectURL(url), 0)
+  link.remove()
+  setTimeout(() => URL.revokeObjectURL(url), 1000)
 }

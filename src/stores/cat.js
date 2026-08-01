@@ -116,7 +116,7 @@ export const useCatStore = defineStore('cat', () => {
   const fishAmount = ref(0)
   const musicOn = ref(false)
   const language = ref(readStorageString(STORAGE_KEYS.language, 'zh', SUPPORT_LOCALES))
-  const theme = ref(readStorageString(STORAGE_KEYS.theme, 'midnight', ['midnight', 'neon', 'paper', 'dark']))
+  const theme = ref(readStorageString(STORAGE_KEYS.theme, 'midnight', ['midnight', 'dark']))
   const loading = ref(true)
   const loadingProgress = ref(0)
   const panelExpanded = ref(true)
@@ -322,7 +322,7 @@ export const useCatStore = defineStore('cat', () => {
     writeStorageString(STORAGE_KEYS.language, normalized)
   }
   const setTheme = mode => {
-    const normalized = ['midnight', 'neon', 'paper', 'dark'].includes(mode) ? mode : 'midnight'
+    const normalized = mode === 'dark' ? 'dark' : 'midnight'
     theme.value = normalized
     writeStorageString(STORAGE_KEYS.theme, normalized)
   }

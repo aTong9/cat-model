@@ -50,6 +50,7 @@ const onLanguageSync = () => { locale.value = normalizeLocale(store.language) }
 watch(() => store.language, onLanguageSync, { immediate: true })
 
 onMounted(() => {
+  if (window.matchMedia('(max-width: 900px)').matches) store.panelExpanded = false
   // 模拟加载过程
   let progress = 0
   const interval = setInterval(() => {
@@ -83,11 +84,12 @@ watch(() => store.theme, theme => { document.documentElement.dataset.theme = the
   position: relative;
   overflow: hidden;
 }
-.brand-lockup { position: fixed; z-index: 90; left: 18px; top: 68px; display: flex; align-items: center; gap: 9px; color: #fff; pointer-events: none; }
+.brand-lockup { position: fixed; z-index: 90; left: 18px; top: 70px; display: flex; align-items: center; gap: 9px; color: #fff; pointer-events: none; }
 .brand-mark { display: grid; place-items: center; width: 31px; height: 31px; border-radius: 10px; background: #f5d33d; color: #181622; font: 900 18px/1 Georgia, serif; box-shadow: 0 6px 18px rgba(245, 211, 61, .28); }
 .brand-lockup strong { display: block; font-size: .74rem; letter-spacing: .16em; }.brand-lockup small { display: block; margin-top: 2px; color: #aeb2cb; font-size: .57rem; letter-spacing: .2em; }
 .mascot-note { position: fixed; z-index: 80; left: 18px; bottom: 20px; display: flex; align-items: center; gap: 9px; color: #d8daea; font-size: .67rem; line-height: 1.45; pointer-events: none; }
 .mascot-note img { width: 42px; height: 42px; border-radius: 13px; object-fit: cover; object-position: 50% 33%; border: 1px solid rgba(255,255,255,.18); }.mascot-note b { color: #f5d33d; font-size: .64rem; letter-spacing: .08em; }
 .stage-caption{position:fixed;z-index:80;left:50%;bottom:76px;display:grid;justify-items:center;gap:3px;transform:translateX(-50%);pointer-events:none;text-align:center;text-shadow:0 2px 12px rgba(0,0,0,.7)}.stage-caption span{color:var(--accent);font-size:.55rem;letter-spacing:.18em}.stage-caption strong{font-size:.82rem}.stage-caption small{color:var(--text-dim);font-size:.65rem}
-@media (max-width: 700px) { .mascot-note,.stage-caption { display: none; } .brand-lockup { top: 62px; } }
+@media (max-width: 900px) { .mascot-note,.stage-caption { display: none; } .brand-lockup { top: 66px;left:12px;transform:scale(.9);transform-origin:left top } }
+@media (max-width: 600px) { .brand-lockup { display:none } }
 </style>

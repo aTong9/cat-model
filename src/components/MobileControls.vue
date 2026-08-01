@@ -30,7 +30,7 @@ onUnmounted(() => { stop(); action('sprint', false); action('sneak', false) })
 
 <style scoped>
 .mobile-controls{display:none}
-@media(max-width:700px),(pointer:coarse){
+@media(max-width:900px),(pointer:coarse){
   .mobile-controls{position:fixed;z-index:104;right:12px;bottom:72px;left:12px;display:flex;align-items:flex-end;justify-content:space-between;pointer-events:none;touch-action:none;user-select:none}
   .mobile-controls button{pointer-events:auto;border:1px solid rgba(255,255,255,.14);color:#fff;font-weight:800;-webkit-tap-highlight-color:transparent}
   .mobile-controls button:active{border-color:var(--accent);background:rgba(245,211,61,.28);color:var(--accent);transform:scale(.94)}
@@ -38,4 +38,5 @@ onUnmounted(() => { stop(); action('sprint', false); action('sneak', false) })
   .dpad button{border-radius:11px;background:rgba(20,20,35,.76);font-size:.8rem}.dpad .up{grid-column:2;grid-row:1}.dpad .left{grid-column:1;grid-row:2}.dpad .right{grid-column:3;grid-row:2}.dpad .down{grid-column:2;grid-row:3}.dpad i{grid-column:2;grid-row:2;display:block;width:8px;height:8px;place-self:center;border-radius:50%;background:rgba(255,255,255,.18);pointer-events:none}
   .actions{display:flex;align-items:flex-end;gap:10px}.actions button{display:grid;place-items:center;border-radius:50%;background:rgba(20,20,35,.8);font-size:.76rem}.actions .jump{width:58px;height:58px;border-color:rgba(245,211,61,.35);color:var(--accent)}.actions .run{width:46px;height:46px}
 }
+@media(max-width:600px){.mobile-controls{right:10px;bottom:70px;left:10px}.dpad{grid-template-columns:repeat(3,36px);grid-template-rows:repeat(3,36px);padding:6px}.actions .jump{width:54px;height:54px}.actions .run{width:44px;height:44px}}
 </style>

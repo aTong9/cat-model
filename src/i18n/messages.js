@@ -246,6 +246,11 @@ export const messages = {
         "exportHint": "参数可复制并复用于批量任务",
         "target": "目标",
         "preset": "预设",
+        "exportPresets": {
+          "game": "游戏运行时",
+          "dcc": "DCC 编辑",
+          "static": "静态模型"
+        },
         "includeBuiltinAnimations": "默认动画",
         "includeCustomAnimation": "自定义动画",
         "filename": "文件名",
@@ -431,7 +436,7 @@ export const messages = {
       }
     },
     "themes": {
-      "midnight": "午夜",
+      "midnight": "正常",
       "neon": "霓虹",
       "paper": "纸本",
       "dark": "深色",
@@ -870,7 +875,7 @@ export const messages = {
       "redo": "Redo"
     },
     "themes": {
-      "midnight": "Midnight",
+      "midnight": "Normal",
       "neon": "Neon",
       "paper": "Paper",
       "dark": "Dark",
@@ -1349,7 +1354,7 @@ export const messages = {
       "redo": "やり直す"
     },
     "themes": {
-      "midnight": "ミッドナイト",
+      "midnight": "ノーマル",
       "neon": "ネオン",
       "paper": "ペーパー",
       "dark": "ダーク",

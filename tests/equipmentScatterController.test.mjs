@@ -53,6 +53,13 @@ test('equipment controller exposes reusable impulses, physics and cleanup', () =
   assert.equal(harness.scene.children.length, 0)
 })
 
+test('scattered equipment is stationary until an animation is explicitly requested', () => {
+  const harness = createHarness()
+  try {
+    assert.ok(harness.controller.entries.every(entry => entry.mixer._actions.every(action => !action.isRunning())))
+  } finally { harness.controller.dispose() }
+})
+
 test('dragged equipment stays where the user leaves it and effects are transient', () => {
   const harness = createHarness()
   const camera = harness.controller.entries[0].group.parent
