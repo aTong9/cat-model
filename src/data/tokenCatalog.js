@@ -1,5 +1,6 @@
 import { referenceImagePolicy } from './referenceImagePolicy.js'
 const CATALOG_URL = `${import.meta.env?.BASE_URL ?? '/'}data/token-catalog.json`
+const PUBLIC_BASE_URL = import.meta.env?.BASE_URL ?? '/'
 let catalogPromise
 
 function decodeToken(row) {
@@ -7,8 +8,7 @@ function decodeToken(row) {
   const image = referenceImagePolicy.resolve({ tokenId, extension, remoteImage })
   return {
     tokenId, eyes, face, fur, gear, background, special,
-    remoteImage, localImage: `/liberty_cats_download/images/${tokenId}.${extension}`,
-    thumbnailImage: `/audit/thumbnails/${tokenId}.svg`,
+    remoteImage, localImage: `${PUBLIC_BASE_URL}liberty_cats_download/images/${tokenId}.${extension}`,
     ...image,
   }
 }

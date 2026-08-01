@@ -12,12 +12,12 @@ test('remote production mode never assumes local files are bundled', () => {
 
 test('hybrid mode prefers remote and exposes a local fallback', () => {
   assert.deepEqual(createReferenceImagePolicy({ mode: 'hybrid', localBaseUrl: '/cats/' }).resolve(token), {
-    imageUrl: token.remoteImage, fallbackImageUrl: '/audit/thumbnails/42.svg', imageSource: 'remote',
+    imageUrl: token.remoteImage, fallbackImageUrl: '/cats/42.png', imageSource: 'remote',
   })
 })
 
-test('local mode uses the complete audited thumbnail set instead of placeholder source files', () => {
+test('local mode resolves the packaged Liberty Cats image directory', () => {
   assert.deepEqual(createReferenceImagePolicy({ mode: 'local', localBaseUrl: './reference-images' }).resolve(token), {
-    imageUrl: '/audit/thumbnails/42.svg', fallbackImageUrl: null, imageSource: 'preview',
+    imageUrl: './reference-images/42.png', fallbackImageUrl: null, imageSource: 'local',
   })
 })

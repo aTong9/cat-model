@@ -1,6 +1,6 @@
 # Liberty Cats 参考图分发策略
 
-生成器运行时只加载当前可见的 NFT 原图。9,901 张本地图片不进入默认 Web 生产包，也不进入角色 GLB。
+生成器运行时只加载当前可见的 NFT 原图。9,901 张本地图片位于 `public/liberty_cats_download/images/`，会进入 Web 生产包，但不进入角色 GLB。
 
 ## 配置模式
 
@@ -14,8 +14,8 @@
 
 ## 推荐部署
 
-- 公网 Web：使用 `remote`，避免把约 9,901 张原图复制进 `dist`。
-- 本地开发：使用 `hybrid`，工作区的 `/liberty_cats_download/images/` 作为失败兜底。
+- 公网 Web / GitHub Pages：使用 `local`，从构建结果的 `liberty_cats_download/images/` 读取。
+- 本地开发：默认使用 `local`，路径由 Vite `BASE_URL` 自动适配。
 - 离线 WebView：宿主应用单独打包图片目录，设置 `local` 和宿主可访问的资源根地址。
 
 图片授权、缓存期限和 CDN 再分发权限目前不确定，公开部署前必须单独确认。
