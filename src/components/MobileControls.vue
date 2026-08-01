@@ -1,5 +1,5 @@
 <template>
-  <div v-if="!store.panelExpanded" class="mobile-controls" :aria-label="t('mobile.label')">
+  <div class="mobile-controls" :aria-label="t('mobile.label')">
     <div class="dpad glass">
       <button class="up" :aria-label="t('controls.view')" @pointerdown.prevent="move(0, -1)" @pointerup="stop" @pointercancel="stop" @pointerleave="stop">▲</button>
       <button class="left" :aria-label="t('controls.controls.mobileMoveHint')" @pointerdown.prevent="move(-1, 0)" @pointerup="stop" @pointercancel="stop" @pointerleave="stop">◀</button>
@@ -16,10 +16,8 @@
 
 <script setup>
 import { onUnmounted } from 'vue'
-import { useCatStore } from '../stores/cat.js'
 import { useI18n } from 'vue-i18n'
 
-const store = useCatStore()
 const { t } = useI18n()
 const emitInput = detail => window.dispatchEvent(new CustomEvent('cat:virtual-input', { detail }))
 const move = (x, z) => emitInput({ direction: { x, z } })
