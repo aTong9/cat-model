@@ -16,6 +16,12 @@ export class EditorHistory {
     return true
   }
 
+  reset(state) {
+    this.past = []
+    this.present = structuredClone(state)
+    this.future = []
+  }
+
   undo() {
     if (!this.past.length) return null
     this.future.unshift(this.present)

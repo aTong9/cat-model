@@ -140,6 +140,7 @@ export const useCatStore = defineStore('cat', () => {
   const canUndo = computed(() => { historyVersion.value; return editorHistory.canUndo })
   const canRedo = computed(() => { historyVersion.value; return editorHistory.canRedo })
   function recordEditorState() { editorHistory.push(currentTraits.value); historyVersion.value++ }
+  function resetEditorHistory() { editorHistory.reset(currentTraits.value); historyVersion.value++ }
   function restoreEditorState(snapshot) {
     if (!snapshot) return false
     const fur = getFurTrait(snapshot.fur)
@@ -168,6 +169,7 @@ export const useCatStore = defineStore('cat', () => {
     tokenId.value = Number(traits.tokenId || 1); seed.value = traits.seed
     activePreset.value = null; referenceImage.value = null; referenceImageFallback.value = null
     if (record) recordEditorState()
+    else resetEditorHistory()
     return traits
   }
 
@@ -292,6 +294,7 @@ export const useCatStore = defineStore('cat', () => {
       referenceImageFallback.value = token.fallbackImageUrl
       referenceImageSource.value = token.imageSource
       resetMorphology()
+      resetEditorHistory()
       return true
     } catch (error) {
       console.warn(error)

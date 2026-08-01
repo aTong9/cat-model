@@ -25,3 +25,14 @@ test('store applies a complete shared trait document including identity and morp
   assert.equal(store.morphology.tailCurl, 0.6)
   assert.equal(store.identity.name, 'Mochi')
 })
+
+test('loading traits without recording establishes the undo baseline for that token', () => {
+  setActivePinia(createPinia())
+  const store = useCatStore()
+  store.applyTraits({ tokenId: '11', fur: 'Tuxedo', eyes: 'Sunglasses', face: 'Excited', special: 'Thunderous Might' }, { record: false })
+  store.setFurStyle('Black')
+  assert.equal(store.undo(), true)
+  assert.equal(store.tokenId, 11)
+  assert.equal(store.furStyle, 'Tuxedo')
+  assert.equal(store.canUndo, false)
+})

@@ -598,11 +598,11 @@ export const messages = {
         "exportBudgetExceeded": "导出超出 {preset} 预算：{reasons}"
       },
       "poseHint": "Click the cat and switch four poses in order",
-      "quickToolsAria": "环境快捷设置",
+      "quickToolsAria": "Environment quick settings",
       "tokenPlaceholder": "0–9901",
-      "tokenNav": "切换 Token",
-      "categoryNav": "配置分类",
-      "editHistory": "编辑历史",
+      "tokenNav": "Token navigation",
+      "categoryNav": "Configuration categories",
+      "editHistory": "Edit history",
       "lightToggle": "切换灯光",
       "loadError": "请输入有效的 token ID",
       "tokenLoadFailed": "Token 数据加载失败",
@@ -616,12 +616,12 @@ export const messages = {
       "catalogError": "目录读取失败，请重试",
       "noTokenWithFilters": "当前属性组合没有对应 Token。",
       "clearFilters": "清除筛选",
-      "toggleCollection": "全部猫咪",
+      "toggleCollection": "All cats",
       "token": "Token",
-      "previous": "上一只",
+      "previous": "Previous",
       "noneEquipment": "无装备",
       "noImage": "图片不可用",
-      "localImage": "本地图片",
+      "localImage": "Local image",
       "remoteImage": "网络图片",
       "imageLoading": "载入中",
       "imageUnavailable": "图片不可用",
@@ -640,15 +640,15 @@ export const messages = {
       "morphologyLock": "锁定",
       "conflictSpecial": "完整 Special 场景会自动移除冲突装备。",
       "export": {
-        "exportButton": "按配置导出",
+        "exportButton": "Export by configuration",
         "exportApi": "EXPORT API",
         "exportHint": "参数可复制并复用于批量任务",
         "target": "目标",
         "preset": "预设",
         "exportPresets": {
-          "game": "游戏运行时",
-          "dcc": "DCC 编辑",
-          "static": "静态模型"
+          "game": "Game runtime",
+          "dcc": "DCC editing",
+          "static": "Static model"
         },
         "includeBuiltinAnimations": "默认动画",
         "includeCustomAnimation": "自定义动画",
@@ -676,7 +676,7 @@ export const messages = {
             "exportReport": "{id} · {bones} 骨骼 · {animations} 动画 · {size} KB"
           }
         },
-        "png": "保存 PNG",
+        "png": "Save PNG",
         "targetCharacter": "完整角色",
         "targetEquipment": "选中装备",
         "exportBudgetExceeded": "导出超出 {preset} 预算：{reasons}"
@@ -723,7 +723,7 @@ export const messages = {
       "specialTitle": "特殊场景",
       "themeHint": "主题",
       "weather": {
-        "label": "天气"
+        "label": "Weather"
       },
       "identity": {
         "name": "名称",
@@ -800,7 +800,7 @@ export const messages = {
             "label": "天气"
           }
         },
-        "label": "天气"
+        "label": "Weather"
       },
       "crossyHud": {
         "distance": "Distance {score}",
@@ -866,15 +866,15 @@ export const messages = {
         "undo": "撤销",
         "redo": "重做"
       },
-      "undo": "撤销",
-      "redo": "重做"
+      "undo": "Undo",
+      "redo": "Redo"
     },
     "themes": {
       "midnight": "Midnight",
       "neon": "Neon",
       "paper": "Paper",
-      "dark": "深色",
-      "label": "主题"
+      "dark": "Dark",
+      "label": "Theme"
     },
     "languages": {
       "zh": "中文",
@@ -1078,11 +1078,11 @@ export const messages = {
         "equipmentExportFail": "装备 GLB 导出失败",
         "exportBudgetExceeded": "导出超出 {preset} 预算：{reasons}"
       },
-      "quickToolsAria": "环境快捷设置",
+      "quickToolsAria": "環境クイック設定",
       "tokenPlaceholder": "0–9901",
-      "tokenNav": "切换 Token",
-      "categoryNav": "配置分类",
-      "editHistory": "编辑历史",
+      "tokenNav": "Token切替",
+      "categoryNav": "設定カテゴリ",
+      "editHistory": "編集履歴",
       "lightToggle": "切换灯光",
       "loadError": "请输入有效的 token ID",
       "tokenLoadFailed": "Token 数据加载失败",
@@ -1096,12 +1096,12 @@ export const messages = {
       "catalogError": "目录读取失败，请重试",
       "noTokenWithFilters": "当前属性组合没有对应 Token。",
       "clearFilters": "清除筛选",
-      "toggleCollection": "全部猫咪",
+      "toggleCollection": "すべての猫",
       "token": "Token",
-      "previous": "上一只",
+      "previous": "前へ",
       "noneEquipment": "无装备",
       "noImage": "图片不可用",
-      "localImage": "本地图片",
+      "localImage": "ローカル画像",
       "remoteImage": "网络图片",
       "imageLoading": "载入中",
       "imageUnavailable": "图片不可用",
@@ -1119,15 +1119,15 @@ export const messages = {
       "morphologyLock": "锁定",
       "conflictSpecial": "完整 Special 场景会自动移除冲突装备。",
       "export": {
-        "exportButton": "按配置导出",
+        "exportButton": "設定からエクスポート",
         "exportApi": "EXPORT API",
         "exportHint": "参数可复制并复用于批量任务",
         "target": "目标",
         "preset": "Preset",
         "exportPresets": {
-          "game": "Runtime",
-          "dcc": "DCC",
-          "static": "Static"
+          "game": "ゲームランタイム",
+          "dcc": "DCC編集",
+          "static": "静的モデル"
         },
         "includeBuiltinAnimations": "默认动画",
         "includeCustomAnimation": "自定义动画",
@@ -1155,7 +1155,7 @@ export const messages = {
             "exportReport": "{id} · {bones} 骨骼 · {animations} 动画 · {size} KB"
           }
         },
-        "png": "保存 PNG",
+        "png": "PNGを保存",
         "targetCharacter": "完整角色",
         "targetEquipment": "选中装备",
         "exportBudgetExceeded": "导出超出 {preset} 预算：{reasons}"
@@ -1202,7 +1202,7 @@ export const messages = {
       "specialTitle": "特殊场景",
       "themeHint": "主题",
       "weather": {
-        "label": "天气"
+        "label": "天気"
       },
       "identity": {
         "name": "名称",
@@ -1277,7 +1277,7 @@ export const messages = {
             "label": "天气"
           }
         },
-        "label": "天气"
+        "label": "天気"
       },
       "undo": "撤销",
       "redo": "重做",
@@ -1345,15 +1345,15 @@ export const messages = {
         "undo": "撤销",
         "redo": "重做"
       },
-      "undo": "撤销",
-      "redo": "重做"
+      "undo": "元に戻す",
+      "redo": "やり直す"
     },
     "themes": {
       "midnight": "ミッドナイト",
       "neon": "ネオン",
       "paper": "ペーパー",
-      "dark": "深色",
-      "label": "主题"
+      "dark": "ダーク",
+      "label": "テーマ"
     },
     "languages": {
       "zh": "中文",
