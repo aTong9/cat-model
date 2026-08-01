@@ -1,15 +1,25 @@
 <template>
-  <div class="app-root">
+  <div class="app-root" :data-theme="store.theme">
     <LoadingScreen />
     <CatCanvas />
     <CollectionDrawer />
+    <ViewControls />
+    <MobileControls />
     <div class="brand-lockup">
-      <span class="brand-mark">M</span>
-      <div><strong>MEOWVERSE</strong><small>VR CAT LAB</small></div>
+      <span class="brand-mark">L</span>
+      <div>
+        <strong>{{ t('brand.catStudio') }}</strong>
+        <small>{{ t('brand.generatorTitle') }}</small>
+      </div>
     </div>
     <div class="mascot-note">
-      <img :src="catImage" alt="黄色 VR 猫角色参考" />
-      <span>黄色 VR 招财猫<br><b>#{{ store.tokenId.toString().padStart(4, '0') }}</b></span>
+      <img :src="catImage" :alt="t('app.referenceAlt')" />
+      <span>{{ t('app.currentCharacter') }}<br><b>#{{ store.tokenId.toString().padStart(4, '0') }}</b></span>
+    </div>
+    <div class="stage-caption" aria-live="polite">
+      <span>{{ t('app.currentCharacter') }}</span>
+      <strong>{{ store.identity.name || t('app.characterDefaultName', { tokenId: store.tokenId }) }}</strong>
+      <small>{{ t('app.currentInstruction') }}</small>
     </div>
     <TopBar />
     <ParamPanel />
@@ -18,20 +28,29 @@
 </template>
 
 <script setup>
-import { onMounted } from 'vue'
+import { onMounted, watch } from 'vue'
 import { useCatStore } from './stores/cat.js'
+import { useI18n } from 'vue-i18n'
+import { normalizeLocale } from './i18n/index.js'
 import CatCanvas from './components/CatCanvas.vue'
 import TopBar from './components/TopBar.vue'
 import ParamPanel from './components/ParamPanel.vue'
 import BottomBar from './components/BottomBar.vue'
 import LoadingScreen from './components/LoadingScreen.vue'
 import CollectionDrawer from './components/CollectionDrawer.vue'
+import ViewControls from './components/ViewControls.vue'
+import MobileControls from './components/MobileControls.vue'
+import { parseShareQuery } from './core/shareCatConfig.js'
 
 const catImage = new URL('../pixel_cat_3d/cat.png', import.meta.url).href
 
 const store = useCatStore()
+const { t, locale } = useI18n()
+const onLanguageSync = () => { locale.value = normalizeLocale(store.language) }
+watch(() => store.language, onLanguageSync, { immediate: true })
 
 onMounted(() => {
+  if (window.matchMedia('(max-width: 900px)').matches) store.panelExpanded = false
   // 模拟加载过程
   let progress = 0
   const interval = setInterval(() => {
@@ -49,11 +68,14 @@ onMounted(() => {
   if (params.has('seed')) {
     store.setFromSeed(parseInt(params.get('seed')))
   }
-  if (params.has('fur')) store.furColor = params.get('fur')
-  if (params.has('eyes')) store.eyeStyle = params.get('eyes')
-  if (params.has('gear')) store.gearType = params.get('gear') || null
-  if (params.has('tokenId')) store.tokenId = parseInt(params.get('tokenId'))
+  const explicitKeys = ['fur', 'color', 'eyes', 'face', 'gear', 'bg', 'special', 'body', 'head', 'ears', 'legs', 'tail', 'curl', 'identity']
+  if (explicitKeys.some(key => params.has(key))) {
+    const traits = parseShareQuery(params)
+    store.applyTraits(traits, { record: false })
+  } else if (params.has('tokenId')) store.loadToken(params.get('tokenId'))
 })
+
+watch(() => store.theme, theme => { document.documentElement.dataset.theme = theme })
 </script>
 
 <style scoped>
@@ -62,10 +84,12 @@ onMounted(() => {
   position: relative;
   overflow: hidden;
 }
-.brand-lockup { position: fixed; z-index: 90; left: 18px; top: 68px; display: flex; align-items: center; gap: 9px; color: #fff; pointer-events: none; }
+.brand-lockup { position: fixed; z-index: 90; left: 18px; top: 70px; display: flex; align-items: center; gap: 9px; color: #fff; pointer-events: none; }
 .brand-mark { display: grid; place-items: center; width: 31px; height: 31px; border-radius: 10px; background: #f5d33d; color: #181622; font: 900 18px/1 Georgia, serif; box-shadow: 0 6px 18px rgba(245, 211, 61, .28); }
 .brand-lockup strong { display: block; font-size: .74rem; letter-spacing: .16em; }.brand-lockup small { display: block; margin-top: 2px; color: #aeb2cb; font-size: .57rem; letter-spacing: .2em; }
 .mascot-note { position: fixed; z-index: 80; left: 18px; bottom: 20px; display: flex; align-items: center; gap: 9px; color: #d8daea; font-size: .67rem; line-height: 1.45; pointer-events: none; }
 .mascot-note img { width: 42px; height: 42px; border-radius: 13px; object-fit: cover; object-position: 50% 33%; border: 1px solid rgba(255,255,255,.18); }.mascot-note b { color: #f5d33d; font-size: .64rem; letter-spacing: .08em; }
-@media (max-width: 700px) { .mascot-note { display: none; } .brand-lockup { top: 62px; } }
+.stage-caption{position:fixed;z-index:80;left:50%;bottom:76px;display:grid;justify-items:center;gap:3px;transform:translateX(-50%);pointer-events:none;text-align:center;text-shadow:0 2px 12px rgba(0,0,0,.7)}.stage-caption span{color:var(--accent);font-size:.55rem;letter-spacing:.18em}.stage-caption strong{font-size:.82rem}.stage-caption small{color:var(--text-dim);font-size:.65rem}
+@media (max-width: 900px) { .mascot-note,.stage-caption { display: none; } .brand-lockup { top: 66px;left:12px;transform:scale(.9);transform-origin:left top } }
+@media (max-width: 600px) { .brand-lockup { display:none } }
 </style>

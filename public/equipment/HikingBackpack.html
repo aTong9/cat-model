@@ -1,0 +1,544 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Hiking Backpack — Three.js Reconstruction</title>
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+      background: #1a1a2e;
+      color: #eee;
+      overflow: hidden;
+      height: 100vh;
+      display: flex;
+    }
+    #canvas-container {
+      flex: 1;
+      position: relative;
+    }
+    canvas { display: block; }
+    #ref-panel {
+      width: 320px;
+      background: #16213e;
+      border-left: 1px solid #0f3460;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      padding: 20px;
+      gap: 16px;
+    }
+    #ref-panel h2 {
+      font-size: 16px;
+      font-weight: 600;
+      color: #e94560;
+      text-align: center;
+    }
+    #ref-panel img {
+      width: 100%;
+      max-width: 280px;
+      border-radius: 8px;
+      border: 2px solid #0f3460;
+      image-rendering: pixelated;
+    }
+    .info {
+      font-size: 12px;
+      color: #aaa;
+      text-align: center;
+      line-height: 1.5;
+    }
+    .controls {
+      display: flex;
+      gap: 8px;
+      flex-wrap: wrap;
+      justify-content: center;
+    }
+    .controls button {
+      background: #0f3460;
+      color: #fff;
+      border: none;
+      padding: 6px 14px;
+      border-radius: 4px;
+      cursor: pointer;
+      font-size: 12px;
+      transition: background 0.2s;
+    }
+    .controls button:hover { background: #e94560; }
+    .controls button.active { background: #e94560; }
+    #loading {
+      position: absolute;
+      top: 50%; left: 50%;
+      transform: translate(-50%, -50%);
+      font-size: 18px;
+      color: #e94560;
+      pointer-events: none;
+    }
+    .legend {
+      font-size: 11px;
+      color: #888;
+      margin-top: auto;
+      text-align: center;
+    }
+    .legend span { display: inline-block; margin: 2px 6px; }
+    .dot { width: 8px; height: 8px; border-radius: 50%; display: inline-block; margin-right: 4px; }
+  </style>
+</head>
+<body>
+  <div id="canvas-container">
+    <div id="loading">Loading Three.js...</div>
+  </div>
+  <div id="ref-panel">
+    <h2>Reference Image</h2>
+    <img src="backpack.png" alt="Hiking Backpack Reference" id="ref-img">
+    <div class="info">
+      Pixel-art hiking backpack<br>
+      Orange fabric · Brown leather · Brass hardware
+    </div>
+    <div class="controls">
+      <button id="btn-front" class="active">Front</button>
+      <button id="btn-34">3/4 View</button>
+      <button id="btn-side">Side</button>
+      <button id="btn-top">Top</button>
+      <button id="btn-spin">Auto Spin</button>
+    </div>
+    <div class="legend">
+      <span><span class="dot" style="background:#E86C1A"></span>Orange Fabric</span>
+      <span><span class="dot" style="background:#8B5A2B"></span>Leather</span>
+      <span><span class="dot" style="background:#C4A35A"></span>Brass</span>
+    </div>
+    <div class="info" style="margin-top:8px;">
+      Drag to orbit · Scroll to zoom<br>
+      Right-click to pan
+    </div>
+  </div>
+
+  <script type="importmap">
+  {
+    "imports": {
+      "three": "https://unpkg.com/three@0.160.0/build/three.module.js",
+      "three/addons/": "https://unpkg.com/three@0.160.0/examples/jsm/"
+    }
+  }
+  </script>
+
+  <script type="module">
+    import * as THREE from 'three';
+    import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
+
+    const container = document.getElementById('canvas-container');
+    document.getElementById('loading').style.display = 'none';
+
+    // Scene setup
+    const scene = new THREE.Scene();
+    scene.background = new THREE.Color('#2a2a4a');
+    scene.fog = new THREE.Fog('#2a2a4a', 8, 20);
+
+    const camera = new THREE.PerspectiveCamera(45, container.clientWidth / container.clientHeight, 0.1, 100);
+    camera.position.set(0, 0, 5);
+
+    const renderer = new THREE.WebGLRenderer({ antialias: true });
+    renderer.setSize(container.clientWidth, container.clientHeight);
+    renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+    renderer.shadowMap.enabled = true;
+    renderer.shadowMap.type = THREE.PCFSoftShadowMap;
+    container.appendChild(renderer.domElement);
+
+    const controls = new OrbitControls(camera, renderer.domElement);
+    controls.enableDamping = true;
+    controls.dampingFactor = 0.05;
+    controls.target.set(0, 0, 0);
+    controls.minDistance = 2;
+    controls.maxDistance = 12;
+
+    // Lighting
+    const ambientLight = new THREE.AmbientLight('#404040', 0.6);
+    scene.add(ambientLight);
+
+    const keyLight = new THREE.DirectionalLight('#FFF8E7', 1.4);
+    keyLight.position.set(3, 5, 4);
+    keyLight.castShadow = true;
+    keyLight.shadow.mapSize.width = 1024;
+    keyLight.shadow.mapSize.height = 1024;
+    keyLight.shadow.camera.near = 0.1;
+    keyLight.shadow.camera.far = 20;
+    keyLight.shadow.bias = -0.001;
+    scene.add(keyLight);
+
+    const fillLight = new THREE.DirectionalLight('#D0E0FF', 0.4);
+    fillLight.position.set(-3, 2, -2);
+    scene.add(fillLight);
+
+    const rimLight = new THREE.DirectionalLight('#FFE0B0', 0.6);
+    rimLight.position.set(-2, 3, -4);
+    scene.add(rimLight);
+
+    const bottomFill = new THREE.DirectionalLight('#604020', 0.2);
+    bottomFill.position.set(0, -3, 1);
+    scene.add(bottomFill);
+
+    // Ground plane (invisible shadow catcher)
+    const groundGeo = new THREE.PlaneGeometry(20, 20);
+    const groundMat = new THREE.ShadowMaterial({ opacity: 0.2 });
+    const ground = new THREE.Mesh(groundGeo, groundMat);
+    ground.rotation.x = -Math.PI / 2;
+    ground.position.y = -1.2;
+    ground.receiveShadow = true;
+    scene.add(ground);
+
+    // Grid helper (subtle)
+    const grid = new THREE.GridHelper(10, 20, '#3a3a5a', '#2a2a4a');
+    grid.position.y = -1.2;
+    scene.add(grid);
+
+    // Materials
+    const orangeFabricMat = new THREE.MeshStandardMaterial({
+      color: new THREE.Color('#E86C1A'),
+      roughness: 0.85,
+      metalness: 0.0,
+    });
+
+    const darkOrangeMat = new THREE.MeshStandardMaterial({
+      color: new THREE.Color('#C44A10'),
+      roughness: 0.9,
+      metalness: 0.0,
+    });
+
+    const brownLeatherMat = new THREE.MeshStandardMaterial({
+      color: new THREE.Color('#8B5A2B'),
+      roughness: 0.6,
+      metalness: 0.0,
+    });
+
+    const darkBrownMat = new THREE.MeshStandardMaterial({
+      color: new THREE.Color('#5C3A1A'),
+      roughness: 0.7,
+      metalness: 0.0,
+    });
+
+    const brassMetalMat = new THREE.MeshStandardMaterial({
+      color: new THREE.Color('#C4A35A'),
+      roughness: 0.25,
+      metalness: 0.92,
+    });
+
+    // Helper to create rounded box look with standard box + edge bevel simulation
+    function createRoundedBox(w, h, d, colorMat, name) {
+      const group = new THREE.Group();
+      group.name = name;
+
+      // Main body
+      const geo = new THREE.BoxGeometry(w, h, d);
+      const mesh = new THREE.Mesh(geo, colorMat);
+      mesh.castShadow = true;
+      mesh.receiveShadow = true;
+      group.add(mesh);
+
+      // Slightly smaller inner box for subtle edge highlight
+      const edgeGeo = new THREE.BoxGeometry(w * 0.98, h * 0.98, d * 0.98);
+      const edgeMat = new THREE.MeshStandardMaterial({
+        color: colorMat.color,
+        roughness: colorMat.roughness * 1.1,
+        metalness: colorMat.metalness,
+        transparent: true,
+        opacity: 0.3,
+      });
+      const edgeMesh = new THREE.Mesh(edgeGeo, edgeMat);
+      edgeMesh.scale.set(1.001, 1.001, 1.001);
+      group.add(edgeMesh);
+
+      return group;
+    }
+
+    // ===== BACKPACK CONSTRUCTION =====
+    const backpack = new THREE.Group();
+    backpack.name = 'hikingBackpack';
+
+    // 1. Main body
+    const bodyWidth = 1.1;
+    const bodyHeight = 1.45;
+    const bodyDepth = 0.52;
+    const bodyY = -0.1;
+
+    const bodyGroup = createRoundedBox(bodyWidth, bodyHeight, bodyDepth, orangeFabricMat, 'backpackBody');
+    bodyGroup.position.set(0, bodyY, 0);
+    backpack.add(bodyGroup);
+
+    // Body shading panels (front face darker edges for pixel-art depth feel)
+    const frontPanelGeo = new THREE.BoxGeometry(bodyWidth * 0.92, bodyHeight * 0.88, 0.01);
+    const frontPanelMat = new THREE.MeshStandardMaterial({
+      color: new THREE.Color('#F08020'),
+      roughness: 0.8,
+      metalness: 0,
+    });
+    const frontPanel = new THREE.Mesh(frontPanelGeo, frontPanelMat);
+    frontPanel.position.set(0, bodyY, bodyDepth / 2 + 0.006);
+    backpack.add(frontPanel);
+
+    // Shadow strips on body sides (pixel-art shading)
+    const sideShadowGeo = new THREE.BoxGeometry(0.02, bodyHeight * 0.9, bodyDepth * 0.9);
+    const sideShadowMat = new THREE.MeshStandardMaterial({
+      color: new THREE.Color('#A04000'),
+      roughness: 0.9,
+      metalness: 0,
+    });
+    const rightShadow = new THREE.Mesh(sideShadowGeo, sideShadowMat);
+    rightShadow.position.set(bodyWidth / 2 + 0.01, bodyY, 0);
+    backpack.add(rightShadow);
+
+    // 2. Top roll (cylinder)
+    const rollRadius = 0.28;
+    const rollLength = 1.25;
+    const rollGeo = new THREE.CylinderGeometry(rollRadius, rollRadius, rollLength, 24);
+    const roll = new THREE.Mesh(rollGeo, orangeFabricMat);
+    roll.rotation.z = Math.PI / 2;
+    roll.position.set(0, 0.88, 0);
+    roll.castShadow = true;
+    roll.receiveShadow = true;
+    roll.name = 'topRoll';
+    backpack.add(roll);
+
+    // Roll end cap (right side visible disc)
+    const capGeo = new THREE.CylinderGeometry(rollRadius, rollRadius, 0.04, 24);
+    const capMat = new THREE.MeshStandardMaterial({
+      color: new THREE.Color('#D06010'),
+      roughness: 0.85,
+      metalness: 0,
+    });
+    const rightCap = new THREE.Mesh(capGeo, capMat);
+    rightCap.rotation.z = Math.PI / 2;
+    rightCap.position.set(rollLength / 2 + 0.02, 0.88, 0);
+    backpack.add(rightCap);
+
+    // Roll shading (top highlight, bottom shadow)
+    const rollHighlightGeo = new THREE.CylinderGeometry(rollRadius * 0.7, rollRadius * 0.7, rollLength * 0.9, 24);
+    const rollHighlightMat = new THREE.MeshStandardMaterial({
+      color: new THREE.Color('#FF9A30'),
+      roughness: 0.8,
+      metalness: 0,
+      transparent: true,
+      opacity: 0.25,
+    });
+    const rollHighlight = new THREE.Mesh(rollHighlightGeo, rollHighlightMat);
+    rollHighlight.rotation.z = Math.PI / 2;
+    rollHighlight.position.set(0, 0.88 + 0.04, rollRadius * 0.3);
+    backpack.add(rollHighlight);
+
+    // 3. Front pocket
+    const pocketWidth = 0.92;
+    const pocketHeight = 0.5;
+    const pocketDepth = 0.16;
+    const pocketY = -0.22;
+    const pocketZ = bodyDepth / 2 + pocketDepth / 2;
+
+    const pocketGroup = createRoundedBox(pocketWidth, pocketHeight, pocketDepth, orangeFabricMat, 'frontPocket');
+    pocketGroup.position.set(0, pocketY, pocketZ);
+    backpack.add(pocketGroup);
+
+    // Pocket flap (slight overhang on top)
+    const flapGeo = new THREE.BoxGeometry(pocketWidth + 0.04, 0.06, pocketDepth + 0.02);
+    const flap = new THREE.Mesh(flapGeo, darkOrangeMat);
+    flap.position.set(0, pocketY + pocketHeight / 2 + 0.03, pocketZ);
+    flap.castShadow = true;
+    backpack.add(flap);
+
+    // Pocket front panel highlight
+    const pocketFrontGeo = new THREE.BoxGeometry(pocketWidth * 0.9, pocketHeight * 0.85, 0.01);
+    const pocketFront = new THREE.Mesh(pocketFrontGeo, frontPanelMat);
+    pocketFront.position.set(0, pocketY, pocketZ + pocketDepth / 2 + 0.006);
+    backpack.add(pocketFront);
+
+    // 4. Front pocket vertical strap
+    const strapWidth = 0.1;
+    const strapHeight = 0.7;
+    const strapDepth = 0.035;
+    const strapY = -0.18;
+    const strapZ = pocketZ + pocketDepth / 2 + strapDepth / 2 + 0.005;
+
+    const frontStrapGeo = new THREE.BoxGeometry(strapWidth, strapHeight, strapDepth);
+    const frontStrap = new THREE.Mesh(frontStrapGeo, brownLeatherMat);
+    frontStrap.position.set(0, strapY, strapZ);
+    frontStrap.castShadow = true;
+    frontStrap.name = 'frontPocketStrap';
+    backpack.add(frontStrap);
+
+    // Strap stitch lines (subtle)
+    const stitchGeo = new THREE.BoxGeometry(strapWidth + 0.01, 0.01, strapDepth + 0.005);
+    const stitchMat = new THREE.MeshStandardMaterial({ color: '#6B3A15', roughness: 0.7 });
+    for (let i = 0; i < 3; i++) {
+      const stitch = new THREE.Mesh(stitchGeo, stitchMat);
+      stitch.position.set(0, strapY - 0.15 + i * 0.15, strapZ);
+      backpack.add(stitch);
+    }
+
+    // 5. Front pocket buckle
+    const buckleW = 0.16;
+    const buckleH = 0.1;
+    const buckleD = 0.04;
+    const buckleY = strapY - strapHeight / 2 + 0.08;
+
+    const buckleGeo = new THREE.BoxGeometry(buckleW, buckleH, buckleD);
+    const buckle = new THREE.Mesh(buckleGeo, brassMetalMat);
+    buckle.position.set(0, buckleY, strapZ + 0.01);
+    buckle.castShadow = true;
+    buckle.name = 'frontPocketBuckle';
+    backpack.add(buckle);
+
+    // Buckle inner cut (darker rectangle)
+    const buckleInnerGeo = new THREE.BoxGeometry(buckleW * 0.5, buckleH * 0.4, buckleD + 0.005);
+    const buckleInnerMat = new THREE.MeshStandardMaterial({ color: '#5C3A1A', roughness: 0.8 });
+    const buckleInner = new THREE.Mesh(buckleInnerGeo, buckleInnerMat);
+    buckleInner.position.set(0, buckleY, strapZ + 0.01);
+    backpack.add(buckleInner);
+
+    // 6. Top left strap
+    const topStrapW = 0.09;
+    const topStrapH = 0.38;
+    const topStrapD = 0.03;
+    const topStrapLX = -0.32;
+    const topStrapY = 0.58;
+    const topStrapZ = bodyDepth / 2 + 0.04;
+
+    const topLeftStrapGeo = new THREE.BoxGeometry(topStrapW, topStrapH, topStrapD);
+    const topLeftStrap = new THREE.Mesh(topLeftStrapGeo, brownLeatherMat);
+    topLeftStrap.position.set(topStrapLX, topStrapY, topStrapZ);
+    topLeftStrap.castShadow = true;
+    backpack.add(topLeftStrap);
+
+    // Top left buckle
+    const topBuckleGeo = new THREE.BoxGeometry(0.13, 0.1, 0.035);
+    const topLeftBuckle = new THREE.Mesh(topBuckleGeo, brassMetalMat);
+    topLeftBuckle.position.set(topStrapLX, topStrapY - topStrapH / 2 + 0.02, topStrapZ + 0.005);
+    backpack.add(topLeftBuckle);
+
+    // 7. Top right strap
+    const topStrapRX = 0.32;
+    const topRightStrapGeo = new THREE.BoxGeometry(topStrapW, topStrapH, topStrapD);
+    const topRightStrap = new THREE.Mesh(topRightStrapGeo, brownLeatherMat);
+    topRightStrap.position.set(topStrapRX, topStrapY, topStrapZ);
+    topRightStrap.castShadow = true;
+    backpack.add(topRightStrap);
+
+    // Top right buckle
+    const topRightBuckle = new THREE.Mesh(topBuckleGeo, brassMetalMat);
+    topRightBuckle.position.set(topStrapRX, topStrapY - topStrapH / 2 + 0.02, topStrapZ + 0.005);
+    backpack.add(topRightBuckle);
+
+    // 8. Side handle (right side)
+    const handleRadius = 0.07;
+    const handleTube = 0.018;
+    const handleGeo = new THREE.TorusGeometry(handleRadius, handleTube, 8, 20, Math.PI);
+    const handle = new THREE.Mesh(handleGeo, brownLeatherMat);
+    handle.position.set(bodyWidth / 2 + handleRadius - 0.02, -0.05, 0);
+    handle.rotation.y = Math.PI / 2;
+    handle.castShadow = true;
+    backpack.add(handle);
+
+    // Handle attachment points
+    const handleAttachGeo = new THREE.BoxGeometry(0.04, 0.04, 0.06);
+    const handleAttach1 = new THREE.Mesh(handleAttachGeo, darkBrownMat);
+    handleAttach1.position.set(bodyWidth / 2 + 0.01, -0.05 + handleRadius * 0.5, handleRadius * 0.7);
+    backpack.add(handleAttach1);
+    const handleAttach2 = new THREE.Mesh(handleAttachGeo, darkBrownMat);
+    handleAttach2.position.set(bodyWidth / 2 + 0.01, -0.05 + handleRadius * 0.5, -handleRadius * 0.7);
+    backpack.add(handleAttach2);
+
+    // 9. Body side panel (right side visible)
+    const sidePanelGeo = new THREE.BoxGeometry(0.04, bodyHeight * 0.85, bodyDepth * 0.85);
+    const sidePanel = new THREE.Mesh(sidePanelGeo, darkOrangeMat);
+    sidePanel.position.set(bodyWidth / 2 + 0.02, bodyY, 0);
+    backpack.add(sidePanel);
+
+    // Side seam detail line
+    const seamGeo = new THREE.BoxGeometry(0.01, bodyHeight * 0.9, 0.01);
+    const seamMat = new THREE.MeshStandardMaterial({ color: '#803000', roughness: 0.9 });
+    const seam = new THREE.Mesh(seamGeo, seamMat);
+    seam.position.set(bodyWidth / 2 + 0.041, bodyY, 0);
+    backpack.add(seam);
+
+    // 10. Roll-to-body connection shadow (darker band under roll)
+    const rollShadowGeo = new THREE.BoxGeometry(bodyWidth, 0.08, bodyDepth + 0.02);
+    const rollShadow = new THREE.Mesh(rollShadowGeo, darkOrangeMat);
+    rollShadow.position.set(0, 0.62, 0);
+    backpack.add(rollShadow);
+
+    // Add backpack to scene
+    scene.add(backpack);
+
+    // View presets
+    const views = {
+      front: { pos: [0, 0, 4.5], target: [0, 0, 0] },
+      '34': { pos: [2.8, 1.5, 2.8], target: [0, 0, 0] },
+      side: { pos: [4.5, 0, 0], target: [0, 0, 0] },
+      top: { pos: [0, 4.5, 0.5], target: [0, 0, 0] },
+    };
+
+    function animateCamera(pos, target) {
+      const startPos = camera.position.clone();
+      const endPos = new THREE.Vector3(...pos);
+      const startTarget = controls.target.clone();
+      const endTarget = new THREE.Vector3(...target);
+      let t = 0;
+      function step() {
+        t += 0.04;
+        if (t >= 1) {
+          camera.position.copy(endPos);
+          controls.target.copy(endTarget);
+          return;
+        }
+        const ease = t < 0.5 ? 2 * t * t : 1 - Math.pow(-2 * t + 2, 2) / 2;
+        camera.position.lerpVectors(startPos, endPos, ease);
+        controls.target.lerpVectors(startTarget, endTarget, ease);
+        requestAnimationFrame(step);
+      }
+      step();
+    }
+
+    document.getElementById('btn-front').onclick = () => {
+      animateCamera(views.front.pos, views.front.target);
+      setActive('btn-front');
+    };
+    document.getElementById('btn-34').onclick = () => {
+      animateCamera(views['34'].pos, views['34'].target);
+      setActive('btn-34');
+    };
+    document.getElementById('btn-side').onclick = () => {
+      animateCamera(views.side.pos, views.side.target);
+      setActive('btn-side');
+    };
+    document.getElementById('btn-top').onclick = () => {
+      animateCamera(views.top.pos, views.top.target);
+      setActive('btn-top');
+    };
+
+    let autoSpin = false;
+    document.getElementById('btn-spin').onclick = () => {
+      autoSpin = !autoSpin;
+      document.getElementById('btn-spin').classList.toggle('active');
+    };
+
+    function setActive(id) {
+      document.querySelectorAll('.controls button').forEach(b => b.classList.remove('active'));
+      document.getElementById(id).classList.add('active');
+    }
+
+    // Resize handler
+    window.addEventListener('resize', () => {
+      camera.aspect = container.clientWidth / container.clientHeight;
+      camera.updateProjectionMatrix();
+      renderer.setSize(container.clientWidth, container.clientHeight);
+    });
+
+    // Animation loop
+    function animate() {
+      requestAnimationFrame(animate);
+      if (autoSpin) {
+        backpack.rotation.y += 0.008;
+      }
+      controls.update();
+      renderer.render(scene, camera);
+    }
+    animate();
+  </script>
+</body>
+</html>

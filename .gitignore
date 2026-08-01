@@ -25,3 +25,5 @@ layers/
 *.njsproj
 *.sln
 *.sw?
+.env_CUNAI_API_KEY
+# liberty_cats_download

@@ -1,99 +1,259 @@
 import * as THREE from 'three'
+import { RoundedBoxGeometry } from 'three/addons/geometries/RoundedBoxGeometry.js'
+import { createSdfCatBody } from './SdfCatBody.js'
+import { getFurTrait } from '../config/traits.js'
+import { getEyeAppearanceProfile } from './AppearanceProfiles.js'
+import { getFaceAppearanceProfile } from './FaceProfiles.js'
+import { createCatTail, updateCatTail } from '../character/tail/createCatTail.js'
+import { applyMorphology, PACK5_BASE_SCALE } from '../character/morphology/applyMorphology.js'
+import { createCatEar } from '../character/ears/createCatEar.js'
+import { CharacterPartRegistry } from '../character/registry/CharacterPartRegistry.js'
+import { EquipmentAssembler } from '../character/equipment/EquipmentAssembler.js'
+import { disposeObject3DResources } from '../character/resources/disposeObject3DResources.js'
+import { assembleBodyShell } from '../character/body/assembleBodyShell.js'
+import { createLimbSet } from '../character/limbs/createLimbSet.js'
+import { createRaisedArm, createFoot } from '../character/limbs/createCatLimbs.js'
+import { CatAnimator } from '../character/animation/CatAnimator.js'
+import { createCatPoseStrategies } from '../character/animation/catPoseStrategies.js'
+import { createCatAnimationRig } from '../character/animation/createCatAnimationRig.js'
+import { applyFurRecipeToGeometry } from '../character/appearance/furRecipes.js'
+import { resolveFaceEquipmentPolicy } from '../character/appearance/faceCompositionContract.js'
+import { bakeProceduralAnimationClips } from '../character/animation/poseAuthoring.js'
+import { ActionPropController } from '../character/animation/ActionPropController.js'
+import { adaptActionParametersToMorphology } from '../character/animation/actionParameters.js'
+
+// ===== Toon 渐变贴图（参考 Meow-Generator MeshToonMaterial） =====
+let _sharedToonMap = null
+function getToonGradientMap() {
+  if (_sharedToonMap) return _sharedToonMap
+  const size = 128
+  const stops = [
+    [0, new THREE.Color('#261e14')],
+    [0.28, new THREE.Color('#4a3a24')],
+    [0.5, new THREE.Color('#9e7a48')],
+    [0.72, new THREE.Color('#dcc498')],
+    [1, new THREE.Color('#fef9f0')],
+  ]
+  const data = new Uint8Array(size * 4)
+  for (let index = 0; index < size; index++) {
+    const position = index / (size - 1)
+    let upper = 1
+    while (upper < stops.length - 1 && position > stops[upper][0]) upper++
+    const [fromPosition, fromColor] = stops[upper - 1]
+    const [toPosition, toColor] = stops[upper]
+    const color = fromColor.clone().lerp(toColor, (position - fromPosition) / (toPosition - fromPosition))
+    data[index * 4] = Math.round(color.r * 255)
+    data[index * 4 + 1] = Math.round(color.g * 255)
+    data[index * 4 + 2] = Math.round(color.b * 255)
+    data[index * 4 + 3] = 255
+  }
+  _sharedToonMap = new THREE.DataTexture(data, size, 1, THREE.RGBAFormat)
+  _sharedToonMap.needsUpdate = true
+  _sharedToonMap.minFilter = THREE.LinearFilter
+  _sharedToonMap.magFilter = THREE.NearestFilter
+  _sharedToonMap.generateMipmaps = false
+  return _sharedToonMap
+}
 
 // ===== 材质工厂 =====
 function furMat(hex) {
-  return new THREE.MeshStandardMaterial({
+  return new THREE.MeshToonMaterial({
     color: new THREE.Color(hex),
-    roughness: 0.62,
-    metalness: 0.03,
+    gradientMap: getToonGradientMap(),
+    vertexColors: true,
   })
 }
-function whiteFurMat() {
-  return new THREE.MeshStandardMaterial({
-    color: '#f8f8f8',
-    roughness: 0.65,
-    metalness: 0.02,
-  })
-}
-function innerEarMat() {
-  return new THREE.MeshStandardMaterial({
-    color: '#e85a50',
-    roughness: 0.45,
-    metalness: 0.02,
-  })
-}
+
 function eyeWhite() {
-  return new THREE.MeshStandardMaterial({ color: '#ffffff', roughness: 0.25 })
+  return new THREE.MeshStandardMaterial({ color: '#ffffff', roughness: 0.22 })
 }
 function pupil() {
-  return new THREE.MeshStandardMaterial({ color: '#111111', roughness: 0.1 })
+  return new THREE.MeshStandardMaterial({ color: '#111111', roughness: 0.08 })
+}
+
+function createFaceStar(name, size = .095) {
+  const shape = new THREE.Shape()
+  for (let index = 0; index < 10; index++) {
+    const angle = Math.PI / 2 + index * Math.PI / 5
+    const radius = index % 2 === 0 ? size : size * .42
+    const x = Math.cos(angle) * radius
+    const y = Math.sin(angle) * radius
+    if (index === 0) shape.moveTo(x, y)
+    else shape.lineTo(x, y)
+  }
+  shape.closePath()
+  const mesh = new THREE.Mesh(
+    new THREE.ShapeGeometry(shape),
+    new THREE.MeshStandardMaterial({
+      color: '#ffe43b', emissive: '#f4b800', emissiveIntensity: .72,
+      roughness: .28, metalness: .08, side: THREE.DoubleSide,
+    }),
+  )
+  const group = new THREE.Group()
+  group.name = name
+  mesh.name = `${name}Surface`
+  group.add(mesh)
+  group.scale.setScalar(.001)
+  group.userData.baseScale = 1
+  group.userData.restRotation = [0, 0, 0]
+  return group
 }
 function noseMat() {
-  return new THREE.MeshStandardMaterial({ color: '#e8917a', roughness: 0.4 })
+  return new THREE.MeshStandardMaterial({ color: '#e8917a', roughness: 0.38 })
+}
+
+function createHeartNose(size, material = noseMat()) {
+  const shape = new THREE.Shape()
+  shape.moveTo(0, -size * 0.72)
+  shape.bezierCurveTo(-size * 0.18, -size * 0.48, -size, size * 0.02, -size * 0.48, size * 0.52)
+  shape.bezierCurveTo(-size * 0.18, size * 0.78, 0, size * 0.52, 0, size * 0.30)
+  shape.bezierCurveTo(0, size * 0.52, size * 0.18, size * 0.78, size * 0.48, size * 0.52)
+  shape.bezierCurveTo(size, size * 0.02, size * 0.18, -size * 0.48, 0, -size * 0.72)
+  const geometry = new THREE.ExtrudeGeometry(shape, {
+    depth: size * 0.34,
+    bevelEnabled: true,
+    bevelSegments: 3,
+    bevelSize: size * 0.12,
+    bevelThickness: size * 0.10,
+  })
+  geometry.center()
+  return new THREE.Mesh(geometry, material)
 }
 function mouthCavityMat() {
-  return new THREE.MeshStandardMaterial({ color: '#4a1a1a', roughness: 0.55 })
+  return new THREE.MeshStandardMaterial({ color: '#381212', roughness: 0.50 })
 }
 function tongueMat() {
-  return new THREE.MeshStandardMaterial({ color: '#f07070', roughness: 0.35 })
+  return new THREE.MeshStandardMaterial({ color: '#f07070', roughness: 0.32 })
 }
 function metal(hex) {
   return new THREE.MeshStandardMaterial({ color: new THREE.Color(hex), roughness: 0.22, metalness: 0.88 })
 }
-function accent(hex) {
-  return new THREE.MeshStandardMaterial({ color: new THREE.Color(hex), roughness: 0.38, metalness: 0.05 })
+
+// ===== 描边效果（参考 Meow-Generator makeOutline） =====
+function createOutlineGeometry(sourceGeo, thickness = 0.020) {
+  const posSrc = sourceGeo.attributes.position.array
+  const nrmSrc = sourceGeo.attributes.normal.array
+  const idxSrc = sourceGeo.index ? sourceGeo.index.array : null
+
+  const posOut = new Float32Array(posSrc.length)
+  const nrmOut = new Float32Array(nrmSrc.length)
+
+  for (let i = 0; i < posSrc.length; i += 3) {
+    posOut[i]     = posSrc[i]     + nrmSrc[i]     * thickness
+    posOut[i + 1] = posSrc[i + 1] + nrmSrc[i + 1] * thickness
+    posOut[i + 2] = posSrc[i + 2] + nrmSrc[i + 2] * thickness
+    nrmOut[i]     = -nrmSrc[i]
+    nrmOut[i + 1] = -nrmSrc[i + 1]
+    nrmOut[i + 2] = -nrmSrc[i + 2]
+  }
+
+  const outlineGeo = new THREE.BufferGeometry()
+  outlineGeo.setAttribute('position', new THREE.Float32BufferAttribute(posOut, 3))
+  outlineGeo.setAttribute('normal', new THREE.Float32BufferAttribute(nrmOut, 3))
+  if (idxSrc) outlineGeo.setIndex(Array.from(idxSrc))
+  return outlineGeo
 }
 
-// ===== 心形掌垫几何体 =====
-function createHeartPadGeometry(scale = 1) {
-  const s = new THREE.Shape()
-  const x = 0, y = 0
-  s.moveTo(x, y + 0.06)
-  s.bezierCurveTo(x - 0.05, y + 0.10, x - 0.10, y + 0.05, x - 0.10, y)
-  s.bezierCurveTo(x - 0.10, y - 0.08, x, y - 0.14, x, y - 0.14)
-  s.bezierCurveTo(x, y - 0.14, x + 0.10, y - 0.08, x + 0.10, y)
-  s.bezierCurveTo(x + 0.10, y + 0.05, x + 0.05, y + 0.10, x, y + 0.06)
-  const geo = new THREE.ExtrudeGeometry(s, { depth: 0.015, bevelEnabled: true, bevelThickness: 0.004, bevelSize: 0.004, bevelSegments: 2 })
-  geo.scale(scale, scale, scale)
-  geo.center()
-  return geo
-}
 
 export class CatModel {
   constructor() {
     this.root = new THREE.Group()
+    this.registry = new CharacterPartRegistry(this.root)
     this._furMaterials = []
     this._furColor = '#f4c430'
-    this._eyeStyle = 'VR'
+    this._furStyle = 'Golden'
+    this._eyeStyle = 'Original'
     this._faceExpression = 'Excited'
     this._gearType = null
+    this._equippedGear = null
     this._eyelids = []
 
     // 子组引用
     this._headGroup = null
+    this._bodyGroup = null
     this._eyeGroupL = null
     this._eyeGroupR = null
+    this._eyelidLGroup = null
+    this._eyelidRGroup = null
     this._mouthGroup = null
     this._gearRoot = null
     this._vrHeadset = null
 
+    // 动画状态
+    this._earLGroup = null
+    this._earRGroup = null
+    this._armLGroup = null
+    this._armRGroup = null
+    this._footLGroup = null
+    this._footRGroup = null
+    this._tailGroup = null
+    this._motionGroup = null
+    this._morphologyGroup = null
+
     this._buildBody()
+    this._createMotionRoot()
+    this.actionProps = new ActionPropController(this._motionGroup, this.root)
+    this.equipmentAssembler = new EquipmentAssembler(this.registry)
+    const animatorOptions = {
+      root: this._motionGroup,
+      registry: this.registry,
+      parts: {
+        body: this._bodyGroup, head: this._headGroup,
+        earLeft: this._earLGroup, earRight: this._earRGroup,
+        armLeft: this._armLGroup, armRight: this._armRGroup,
+        legLeft: this._footLGroup, legRight: this._footRGroup,
+      },
+      updateTail: (...args) => this._updateTailSurface(...args),
+      actionProps: this.actionProps,
+    }
+    this.animator = new CatAnimator(animatorOptions)
+    this.animationRig = createCatAnimationRig({
+      root: this._motionGroup, registry: this.registry,
+      updateTail: animatorOptions.updateTail,
+      actionProps: this.actionProps,
+      getRunSpeed: () => this.animator.runSpeed,
+      getActionParameters: actionId => adaptActionParametersToMorphology(
+        this.animator.getActionParameters(actionId),
+        this.root.userData.morphology,
+      ),
+    })
+    for (const [mode, strategy] of Object.entries(createCatPoseStrategies(this.animationRig))) {
+      this.animator.registerStrategy(mode, strategy)
+    }
   }
 
   // ========== Public API ==========
 
   get group() { return this.root }
 
-  setFurColor(hex) {
+  setFurTrait(style, hex) {
+    this._furStyle = style || 'Custom'
     this._furColor = hex
-    this._furMaterials.forEach(m => m.color.set(hex))
+    if (this._bodyGeoRef) {
+      const recipe = applyFurRecipeToGeometry(this._bodyGeoRef, this._furStyle, this._furColor)
+      this.root.userData.appearance = { ...(this.root.userData.appearance ?? {}), fur: recipe }
+    }
+    this._furMaterials.forEach(m => m.color.set('#ffffff'))
     this._eyelids.forEach(lid => lid.material.color.set(hex))
+    const trait = style === 'Custom' ? { color: hex } : getFurTrait(style)
+    this.root.traverse(part => {
+      if (!part.isMesh || !part.material?.color) return
+      if (/Arm(Left|Right)(Upper|Fore|Socket|ShoulderBlend|ElbowBlend|WristCover|ContinuousSurface)|Leg(Left|Right)(Upper|Lower|HipBlend|KneeBlend|AnkleCover|ContinuousSurface)|Tail(Segment|RootBlend|Blend|Surface)|Ear(Left|Right)(Outer|RootBlend|RoundedRim)/.test(part.name)) part.material.color.set(trait.color)
+      if (/Paw$|Digit\d|Leg(Left|Right)Sole|Toe\d/.test(part.name)) part.material.color.set('#f5f1e6')
+    })
   }
+
+  setFurColor(hex) { this.setFurTrait('Custom', hex) }
 
   setEyeStyle(style) {
     this._eyeStyle = style
     this._rebuildEyes()
     this._rebuildVRHeadset()
+    if (this._gearType) this.setGear(this._gearType)
+  }
+
+  createExportAnimationClips(options = {}) {
+    return bakeProceduralAnimationClips(this, options)
   }
 
   setFaceExpression(expr) {
@@ -103,222 +263,385 @@ export class CatModel {
 
   setGear(type) {
     this._gearType = type
-    this._rebuildGear()
-  }
-
-  update(time) {
-    // 呼吸动画：整体轻微缩放 + 头部微微独立晃动
-    const breathe = 1 + Math.sin(time * 1.6) * 0.010
-    this.root.scale.setScalar(breathe)
-    if (this._headGroup) {
-      this._headGroup.rotation.z = Math.sin(time * 0.9) * 0.015
-      this._headGroup.rotation.x = Math.sin(time * 1.1) * 0.01
+    this._equippedGear = this.equipmentAssembler.set(type)
+    const policy = resolveFaceEquipmentPolicy(this._eyeStyle, type)
+    if (this._equippedGear) {
+      this._equippedGear.visible = policy.equipmentVisible
+      this._equippedGear.userData.faceEquipmentPolicy = policy
+      if (policy.offset) this._equippedGear.position.add(new THREE.Vector3(...policy.offset))
     }
   }
 
-  dispose() {
-    this.root.traverse(child => {
-      if (child.geometry) child.geometry.dispose()
-      if (child.material) {
-        if (Array.isArray(child.material)) {
-          child.material.forEach(m => m.dispose())
-        } else {
-          child.material.dispose()
-        }
-      }
+  setAnimation(mode = 'standing') {
+    this.animator.setAnimation(mode)
+  }
+
+  setRunSpeed(speed = 1) {
+    this.animator.setRunSpeed(speed)
+  }
+
+  setActionParameters(actionId, parameters) {
+    return this.animator.setActionParameters(actionId, parameters)
+  }
+
+  getActionParameters(actionId) {
+    return this.animator.getActionParameters(actionId)
+  }
+
+  _updateTailSurface(time, intensity = 0.06, speed = 1) {
+    updateCatTail(this._tailGroup, time, intensity, speed)
+  }
+
+
+
+
+  setMorphology({
+    bodyScale = 1, bodyWidth = 1, bodyHeight = 1, bodyDepth = 1,
+    headScale = 1, eyeScale = 1, eyeSpacing = 1, mouthScale = 1,
+    earScale = 1, earWidth = 1, earHeight = 1,
+    pawScale = 1, footScale = 1, legLength = 1, tailLength = 1, tailCurl = 0,
+  } = {}) {
+    this.root.userData.morphology = applyMorphology({
+      morphologyRoot: this._morphologyGroup,
+      body: this.registry.getPart('body'), head: this.registry.getPart('head'),
+      eyeLeft: this._eyeGroupL, eyeRight: this._eyeGroupR,
+      actionEyeLeft: this._actionEyeLGroup, actionEyeRight: this._actionEyeRGroup,
+      eyeStarLeft: this._eyeStarLGroup, eyeStarRight: this._eyeStarRGroup,
+      eyelidLeft: this._eyelidLGroup, eyelidRight: this._eyelidRGroup,
+      browLeft: this._browLGroup, browRight: this._browRGroup,
+      mouth: this._mouthGroup,
+      earLeft: this.registry.getPart('ear-left'), earRight: this.registry.getPart('ear-right'),
+      armLeft: this.registry.getPart('arm-left'), armRight: this.registry.getPart('arm-right'),
+      legLeft: this.registry.getPart('leg-left'), legRight: this.registry.getPart('leg-right'), tail: this.registry.getPart('tail'),
+    }, {
+      bodyScale, bodyWidth, bodyHeight, bodyDepth, headScale, eyeScale,
+      eyeSpacing, mouthScale, earScale, earWidth, earHeight, pawScale,
+      footScale, legLength, tailLength, tailCurl,
     })
+  }
+
+
+
+
+
+
+
+  update(time) {
+    this.animator.update(time)
+  }
+
+  dispose() {
+    this.actionProps.dispose()
+    this.equipmentAssembler.dispose()
+    this._equippedGear = null
+    disposeObject3DResources(this.root, { detach: false, excludeGeometries: [this._bodyGeoRef] })
   }
 
   // ========== Private: 构建身体 ==========
 
-  _buildBody() {
-    const f = () => {
-      const m = furMat(this._furColor)
-      this._furMaterials.push(m)
-      return m
+  _createMotionRoot() {
+    const pivotY = .72
+    const visualChildren = [...this.root.children]
+    const motion = new THREE.Group()
+    motion.name = 'CharacterMotion'
+    motion.position.y = pivotY
+    motion.userData.restPosition = [0, pivotY, 0]
+    motion.userData.restRotation = [0, 0, 0]
+    this.root.add(motion)
+    const morphology = new THREE.Group()
+    morphology.name = 'CharacterMorphology'
+    morphology.userData.baseScale = [...PACK5_BASE_SCALE]
+    morphology.scale.set(...PACK5_BASE_SCALE)
+    motion.add(morphology)
+    for (const child of visualChildren) {
+      morphology.add(child)
+      // Body geometry, face landmarks, ears and shoulders are authored in the
+      // same absolute character space and must keep those coordinates. The old
+      // blanket pivot subtraction moved every facial feature and both arms
+      // down by 0.72 units, so the face appeared on the belly. Legs are the
+      // exception: their bind roots are converted into the grounded
+      // morphology space so the authored feet remain on the floor.
+      if (child === this._footLGroup || child === this._footRGroup) {
+        child.position.y -= pivotY
+        child.userData.restPosition = child.position.toArray()
+      }
     }
-    const wf = whiteFurMat()
+    this._motionGroup = motion
+    this._morphologyGroup = morphology
+    this.registry.registerPart('motion-root', motion)
+  }
 
-    // -- 主躯干：圆润梨形 --
-    const bodyGeo = new THREE.SphereGeometry(0.62, 40, 32)
-    const body = new THREE.Mesh(bodyGeo, f())
-    body.scale.set(1.0, 1.18, 0.86)
-    body.position.set(0, 0.98, 0)
-    body.castShadow = true
-    body.receiveShadow = true
-    this.root.add(body)
+  _buildBody() {
+    // -- SDF 主体（loaf 面包猫） --
+    const { mesh: sdfBody, headCenter, headRadius } = createSdfCatBody(this._furColor, {
+      headSize: 1.0,
+      chubbiness: 1.0,
+    })
 
-    // -- 白色胸腹斑 --
-    const chestGeo = new THREE.SphereGeometry(0.45, 32, 24, 0, Math.PI * 2, 0, Math.PI * 0.55)
-    const chest = new THREE.Mesh(chestGeo, wf)
-    chest.scale.set(1.05, 1.35, 0.55)
-    chest.position.set(0, 0.92, 0.30)
-    chest.rotation.x = -0.12
-    chest.receiveShadow = true
-    this.root.add(chest)
+    // 替换 SDF 默认材质为 ToonMaterial
+    if (sdfBody.material) sdfBody.material.dispose()
+    sdfBody.material = furMat(this._furColor)
+    sdfBody.material.color.set('#ffffff')
+    this._furMaterials.push(sdfBody.material)
+    this._bodyGeoRef = sdfBody.geometry
+    const initialFurRecipe = applyFurRecipeToGeometry(sdfBody.geometry, this._furStyle, this._furColor)
+    this.root.userData.appearance = { ...(this.root.userData.appearance ?? {}), fur: initialFurRecipe }
 
-    // -- 头部 --
+    // 描边
+    const outlineGeo = createOutlineGeometry(sdfBody.geometry, 0.018)
+    const outlineMat = new THREE.MeshBasicMaterial({
+      color: '#1a1518',
+      side: THREE.BackSide,
+      depthTest: true,
+      depthWrite: false,
+    })
+    const outline = new THREE.Mesh(outlineGeo, outlineMat)
+    outline.renderOrder = 1
+    outline.name = 'SdfCatOutline'
+
+    // 身体组（身体 + 描边）
+    const bodyGroup = assembleBodyShell(sdfBody, outline)
+    this.root.add(bodyGroup)
+    this._bodyGroup = bodyGroup
+    this.registry.registerPart('body', bodyGroup)
+
+    // Arms are separate, thick 3D assemblies so they stay visible and animation-ready.
+    const limbOptions = { gradientMap: getToonGradientMap(), createHeart: createHeartNose }
+    const limbs = createLimbSet(
+      side => createRaisedArm(side, limbOptions),
+      side => createFoot(side, limbOptions),
+    )
+    this._armLGroup = limbs.armLeft
+    this._armRGroup = limbs.armRight
+    this.root.add(this._armLGroup, this._armRGroup)
+    this.registry.registerPart('arm-left', this._armLGroup)
+    this.registry.registerPart('arm-right', this._armRGroup)
+    this.registry.registerJoints('arm-left', this._armLGroup.userData.joints)
+    this.registry.registerJoints('arm-right', this._armRGroup.userData.joints)
+    delete this._armLGroup.userData.joints
+    delete this._armRGroup.userData.joints
+
+    // Match the reference stance: one planted foot and one lifted sole, both with five toes.
+    this._footLGroup = limbs.legLeft
+    this._footRGroup = limbs.legRight
+    this.root.add(this._footLGroup, this._footRGroup)
+    this.registry.registerPart('leg-left', this._footLGroup)
+    this.registry.registerPart('leg-right', this._footRGroup)
+    this.registry.registerJoints('leg-left', this._footLGroup.userData.joints)
+    this.registry.registerJoints('leg-right', this._footRGroup.userData.joints)
+    delete this._footLGroup.userData.joints
+    delete this._footRGroup.userData.joints
+
+    this._tailGroup = createCatTail(getToonGradientMap())
+    this.root.add(this._tailGroup)
+    this.registry.registerPart('tail', this._tailGroup)
+
+    // -- 头部组（面特征容器） --
     const headGroup = new THREE.Group()
-    headGroup.position.set(0, 1.74, 0.06)
+    headGroup.name = 'Head'
+    headGroup.position.copy(headCenter)
     this.root.add(headGroup)
     this._headGroup = headGroup
+    this.registry.registerPart('head', headGroup)
+    // Face is a stable semantic aggregate. It aliases the head transform so all
+    // eyes/mouth/nose children share one animation/export coordinate contract.
+    this.registry.registerPart('face', headGroup)
 
-    const headGeo = new THREE.SphereGeometry(0.48, 40, 32)
-    const head = new THREE.Mesh(headGeo, f())
-    head.scale.set(1.18, 1.06, 0.96)
-    head.castShadow = true
-    head.receiveShadow = true
-    headGroup.add(head)
+    // -- 内耳贴花（粉红耳内） --
+    this._earLGroup = createCatEar(headRadius, -1, getToonGradientMap())
+    this._earLGroup.position.add(headCenter)
+    this.root.add(this._earLGroup)
+    this.registry.registerPart('ear-left', this._earLGroup)
 
-    // -- 耳朵 (外黄内红) --
-    const addEar = (x, rotZ) => {
-      const eg = new THREE.Group()
-      eg.position.set(x, 0.30, -0.06)
-      eg.rotation.z = rotZ
-      eg.rotation.x = -0.12
-
-      const outerGeo = new THREE.ConeGeometry(0.15, 0.40, 16, 4)
-      const outer = new THREE.Mesh(outerGeo, f())
-      outer.position.y = 0.08
-      outer.castShadow = true
-      eg.add(outer)
-
-      const innerGeo = new THREE.ConeGeometry(0.09, 0.26, 16, 4)
-      const inner = new THREE.Mesh(innerGeo, innerEarMat())
-      inner.position.set(0, 0.06, 0.035)
-      inner.scale.z = 0.55
-      eg.add(inner)
-
-      headGroup.add(eg)
-    }
-    addEar(-0.29, 0.28)
-    addEar(0.29, -0.28)
-
-    // -- 吻部 --
-    const muzzGeo = new THREE.SphereGeometry(0.14, 24, 16)
-    const muzz = new THREE.Mesh(muzzGeo, f())
-    muzz.scale.set(1.25, 0.75, 0.65)
-    muzz.position.set(0, -0.16, 0.36)
-    muzz.castShadow = true
-    headGroup.add(muzz)
+    this._earRGroup = createCatEar(headRadius, 1, getToonGradientMap())
+    this._earRGroup.position.add(headCenter)
+    this.root.add(this._earRGroup)
+    this.registry.registerPart('ear-right', this._earRGroup)
 
     // -- 鼻子 --
-    const nGeo = new THREE.SphereGeometry(0.045, 16, 12)
-    const n = new THREE.Mesh(nGeo, noseMat())
-    n.scale.set(1.2, 0.8, 1)
-    n.position.set(0, -0.06, 0.43)
+    const n = createHeartNose(headRadius * 0.105)
+    // Keep the default heart nose proud of the rounded muzzle, like the pixel references.
+    n.position.set(0, -headRadius * 0.22, headRadius * 1.22)
+    n.castShadow = true
     headGroup.add(n)
 
     // -- 嘴巴组 --
     this._mouthGroup = new THREE.Group()
-    this._mouthGroup.position.set(0, -0.14, 0.40)
+    this._mouthGroup.name = 'FaceMouth'
+    // Keep the expression root on the muzzle surface. Small line/tube expressions were
+    // previously buried inside the deeper SDF head while only the large Excited mouth escaped.
+    this._mouthGroup.position.set(0, -headRadius * 0.50, headRadius * 1.38)
+    this._mouthGroup.scale.setScalar(1.05)
     headGroup.add(this._mouthGroup)
     this._rebuildMouth()
 
     // -- 胡须 --
     for (let s = -1; s <= 1; s += 2) {
       for (let i = 0; i < 3; i++) {
-        const wGeo = new THREE.CylinderGeometry(0.006, 0.010, 0.32, 6)
-        const w = new THREE.Mesh(wGeo, new THREE.MeshStandardMaterial({ color: '#d8d8d8', roughness: 0.5 }))
-        w.position.set(s * (0.10 + i * 0.03), -0.09 - i * 0.045, 0.36)
-        w.rotation.z = s * (0.12 + i * 0.06)
-        w.rotation.y = s * (0.45 + i * 0.08)
-        w.rotation.x = -0.05
+        const startY = -headRadius * (0.28 + i * 0.12)
+        const curve = new THREE.CatmullRomCurve3([
+          new THREE.Vector3(s * headRadius * 0.28, startY, headRadius * 0.82),
+          new THREE.Vector3(s * headRadius * 0.52, startY + (1 - i) * 0.015, headRadius * 0.85),
+          new THREE.Vector3(s * headRadius * (0.82 + i * 0.08), startY + (1 - i) * 0.035, headRadius * 0.78),
+        ])
+        const wGeo = new THREE.TubeGeometry(curve, 12, 0.006, 5, false)
+        const w = new THREE.Mesh(wGeo, new THREE.MeshStandardMaterial({ color: '#27232b', roughness: 0.62 }))
+        w.castShadow = true
         headGroup.add(w)
       }
     }
 
-    // -- 前肢 --
-    const addFrontArm = (x) => {
-      const ag = new THREE.Group()
-      ag.position.set(x, 1.18, 0.12)
-      // 上臂
-      const armGeo = new THREE.CapsuleGeometry(0.095, 0.30, 8, 14)
-      const arm = new THREE.Mesh(armGeo, f())
-      arm.position.y = -0.10
-      arm.rotation.z = x > 0 ? -0.12 : 0.12
-      arm.castShadow = true
-      ag.add(arm)
-      // 白色手掌
-      const pawGeo = new THREE.SphereGeometry(0.10, 16, 12)
-      const paw = new THREE.Mesh(pawGeo, wf)
-      paw.scale.set(1, 0.75, 1.1)
-      paw.position.set(x > 0 ? 0.02 : -0.02, -0.40, 0.02)
-      paw.castShadow = true
-      ag.add(paw)
-      this.root.add(ag)
-    }
-    addFrontArm(-0.48)
-    addFrontArm(0.48)
-
-    // -- 后肢 --
-    const addBackLeg = (x) => {
-      const lg = new THREE.Group()
-      lg.position.set(x, 0.42, -0.04)
-      // 腿
-      const legGeo = new THREE.CapsuleGeometry(0.11, 0.32, 8, 14)
-      const leg = new THREE.Mesh(legGeo, f())
-      leg.position.y = -0.08
-      leg.castShadow = true
-      lg.add(leg)
-      // 白色脚
-      const footGeo = new THREE.SphereGeometry(0.12, 18, 14)
-      const foot = new THREE.Mesh(footGeo, wf)
-      foot.scale.set(1, 0.65, 1.25)
-      foot.position.set(0, -0.32, 0.04)
-      foot.castShadow = true
-      lg.add(foot)
-      // 红色心形掌垫 (朝后 -Z)
-      const pad = new THREE.Mesh(createHeartPadGeometry(1.15), innerEarMat())
-      pad.position.set(0, -0.32, -0.105)
-      pad.rotation.x = -0.12
-      pad.scale.set(0.55, 0.55, 0.55)
-      lg.add(pad)
-      this.root.add(lg)
-    }
-    addBackLeg(-0.24)
-    addBackLeg(0.24)
-
-    // -- 尾巴 (带白尖) --
-    const tailPts = [
-      new THREE.Vector3(0, 0.65, -0.52),
-      new THREE.Vector3(0.04, 0.95, -0.72),
-      new THREE.Vector3(0.12, 1.28, -0.68),
-      new THREE.Vector3(0.18, 1.52, -0.50),
-      new THREE.Vector3(0.14, 1.68, -0.30),
-    ]
-    const tailCurve = new THREE.CatmullRomCurve3(tailPts)
-    const tailGeo = new THREE.TubeGeometry(tailCurve, 32, 0.07, 12, false)
-    const tail = new THREE.Mesh(tailGeo, f())
-    tail.castShadow = true
-    tail.receiveShadow = true
-    this.root.add(tail)
-
-    // 尾巴白尖
-    const tipGeo = new THREE.SphereGeometry(0.075, 16, 12)
-    const tip = new THREE.Mesh(tipGeo, wf)
-    tip.scale.set(1, 0.85, 1)
-    tip.position.copy(tailPts[tailPts.length - 1])
-    tip.position.y += 0.02
-    this.root.add(tip)
-
     // -- 眼睛占位 --
     this._eyeGroupL = new THREE.Group()
-    this._eyeGroupL.position.set(-0.145, 0.06, 0.36)
+    this._eyeGroupL.name = 'FaceEyeLeft'
+    this._eyeGroupL.position.set(-headRadius * 0.43, headRadius * 0.10, headRadius * 1.02)
+    this._eyeGroupL.userData.restPosition = this._eyeGroupL.position.toArray()
+    this._eyeGroupL.userData.baseScale = 1
     headGroup.add(this._eyeGroupL)
 
     this._eyeGroupR = new THREE.Group()
-    this._eyeGroupR.position.set(0.145, 0.06, 0.36)
+    this._eyeGroupR.name = 'FaceEyeRight'
+    this._eyeGroupR.position.set(headRadius * 0.43, headRadius * 0.10, headRadius * 1.02)
+    this._eyeGroupR.userData.restPosition = this._eyeGroupR.position.toArray()
+    this._eyeGroupR.userData.baseScale = 1
     headGroup.add(this._eyeGroupR)
 
-    // -- VR 头显根 ( eyeStyle === 'VR' 时启用) --
+    this._eyeStarLGroup = createFaceStar('FaceEyeStarLeft')
+    this._eyeStarLGroup.position.set(-headRadius * .43, headRadius * .10, headRadius * 1.42)
+    this._eyeStarLGroup.userData.restPosition = this._eyeStarLGroup.position.toArray()
+    headGroup.add(this._eyeStarLGroup)
+    this._eyeStarRGroup = createFaceStar('FaceEyeStarRight')
+    this._eyeStarRGroup.position.set(headRadius * .43, headRadius * .10, headRadius * 1.42)
+    this._eyeStarRGroup.userData.restPosition = this._eyeStarRGroup.position.toArray()
+    headGroup.add(this._eyeStarRGroup)
+
+    const createActionEye = (name, x) => {
+      const group = new THREE.Group()
+      group.name = name
+      group.position.set(x, headRadius * .10, headRadius * 1.18)
+      group.userData.restPosition = group.position.toArray()
+      group.userData.baseScale = 1
+      group.scale.setScalar(.001)
+      const eye = new THREE.Mesh(
+        new THREE.SphereGeometry(headRadius * .25, 24, 18),
+        new THREE.MeshStandardMaterial({ color: '#111116', roughness: .18 }),
+      )
+      eye.scale.set(.92, 1.12, .42)
+      eye.name = `${name}Surface`
+      group.add(eye)
+      const highlight = new THREE.Mesh(
+        new THREE.SphereGeometry(headRadius * .070, 12, 8),
+        new THREE.MeshBasicMaterial({ color: '#ffffff' }),
+      )
+      highlight.position.set(-headRadius * .075, headRadius * .085, headRadius * .105)
+      highlight.name = `${name}Highlight`
+      group.add(highlight)
+      headGroup.add(group)
+      return group
+    }
+    this._actionEyeLGroup = createActionEye('FaceActionEyeLeft', -headRadius * .43)
+    this._actionEyeRGroup = createActionEye('FaceActionEyeRight', headRadius * .43)
+
+    const createEyelid = (name, x) => {
+      const joint = new THREE.Group()
+      joint.name = name
+      joint.position.set(x, headRadius * 0.10, headRadius * 1.16)
+      joint.rotation.x = Math.PI / 2
+      joint.userData.restRotation = [Math.PI / 2, 0, 0]
+      joint.userData.restPosition = joint.position.toArray()
+      const cover = new THREE.Mesh(
+        new RoundedBoxGeometry(headRadius * .56, .012, .008, 3, .006),
+        new THREE.MeshBasicMaterial({ color: '#27232b' }),
+      )
+      cover.name = `${name}Cover`
+      cover.position.y = .018
+      cover.castShadow = true
+      joint.add(cover)
+      headGroup.add(joint)
+      return joint
+    }
+    this._eyelidLGroup = createEyelid('FaceEyelidLeft', -headRadius * .43)
+    this._eyelidRGroup = createEyelid('FaceEyelidRight', headRadius * .43)
+    const createBrow = (name, x, side) => {
+      const joint = new THREE.Group()
+      joint.name = name
+      joint.position.set(x, headRadius * .43, headRadius * 1.17)
+      joint.userData.restPosition = joint.position.toArray()
+      joint.userData.restRotation = [0, 0, 0]
+      joint.userData.baseScale = 1
+      joint.scale.set(1, .01, 1)
+      const brow = new THREE.Mesh(
+        new RoundedBoxGeometry(headRadius * .36, headRadius * .055, headRadius * .035, 4, headRadius * .025),
+        new THREE.MeshStandardMaterial({ color: '#27232b', roughness: .58 }),
+      )
+      brow.name = `${name}Surface`
+      brow.rotation.z = side * .04
+      brow.castShadow = true
+      joint.add(brow)
+      headGroup.add(joint)
+      return joint
+    }
+    this._browLGroup = createBrow('FaceBrowLeft', -headRadius * .43, -1)
+    this._browRGroup = createBrow('FaceBrowRight', headRadius * .43, 1)
+    const createCheek = (name, x) => {
+      const joint = new THREE.Group()
+      joint.name = name
+      joint.position.set(x, -headRadius * .22, headRadius * 1.20)
+      joint.userData.restPosition = joint.position.toArray()
+      joint.userData.baseScale = 1
+      joint.scale.set(.01, .01, .01)
+      const cheek = new THREE.Mesh(
+        new THREE.SphereGeometry(headRadius * .14, 20, 12),
+        new THREE.MeshStandardMaterial({
+          color: '#ff6f87', roughness: .54, transparent: true, opacity: .72,
+          depthWrite: false,
+        }),
+      )
+      cheek.name = `${name}Surface`
+      cheek.scale.set(1.34, .48, .16)
+      joint.add(cheek)
+      headGroup.add(joint)
+      return joint
+    }
+    this._cheekLGroup = createCheek('FaceCheekLeft', -headRadius * .62)
+    this._cheekRGroup = createCheek('FaceCheekRight', headRadius * .62)
+    this.registry.registerJoints('face', {
+      eyeLeft: this._eyeGroupL,
+      eyeRight: this._eyeGroupR,
+      actionEyeLeft: this._actionEyeLGroup,
+      actionEyeRight: this._actionEyeRGroup,
+      eyeStarLeft: this._eyeStarLGroup,
+      eyeStarRight: this._eyeStarRGroup,
+      eyelidLeft: this._eyelidLGroup,
+      eyelidRight: this._eyelidRGroup,
+      browLeft: this._browLGroup,
+      browRight: this._browRGroup,
+      cheekLeft: this._cheekLGroup,
+      cheekRight: this._cheekRGroup,
+      jaw: this._mouthGroup,
+    })
+
+    // -- VR 头显根 --
     this._vrHeadset = new THREE.Group()
-    this._vrHeadset.position.set(0, 0.06, 0.18)
+    this._vrHeadset.position.set(0, headRadius * 0.08, headRadius * 0.44)
+    this._vrHeadset.scale.set(.82, .88, .88)
     headGroup.add(this._vrHeadset)
 
     // -- 装备根 --
     this._gearRoot = new THREE.Group()
     this.root.add(this._gearRoot)
+    this.registry.registerPart('gear-root', this._gearRoot)
+    this.registry.createSocket('head-top', headGroup, [-headCenter.x, 1.30 - headCenter.y, -headCenter.z])
+    this.registry.createSocket('face-eyes', headGroup, [-headCenter.x, 0.955 - headCenter.y, 0.395 - headCenter.z])
+    this.registry.registerSocket('face-mouth', this._mouthGroup)
+    this.registry.createSocket('chest-front', bodyGroup, [0, 0.57, 0.405])
+    this.registry.createSocket('back', bodyGroup, [0, 0.47, -0.37])
+    this.registry.createSocket('paw-left', this._armLGroup, [-0.14, -0.46, 0.20])
+    this.registry.createSocket('shoulder-left', bodyGroup, [-0.32, 0.64, 0.12])
+    this.registry.createSocket('shoulder-right', bodyGroup, [0.32, 0.64, 0.12])
+    this.registry.createSocket('hip-left', bodyGroup, [-0.18, 0.08, 0.22])
+    this.registry.createSocket('hip-right', bodyGroup, [0.18, 0.08, 0.22])
+    this.registry.createSocket('tail-base', bodyGroup, [0.04, -0.08, -0.31])
 
     // 初始构建
     this._rebuildEyes()
@@ -333,82 +656,132 @@ export class CatModel {
 
     const expr = this._faceExpression
     const g = this._mouthGroup
+    const profile = getFaceAppearanceProfile(expr)
+    g.userData.profileScale = 1.05 * profile.scale
+    const morphologyScale = this.root.userData.morphology?.mouthScale ?? g.userData.morphologyScale ?? 1
+    g.userData.baseScale = g.userData.profileScale * 1.12 * morphologyScale
+    g.scale.setScalar(g.userData.baseScale)
+    g.userData.faceExpression = expr
+    g.userData.faceFamily = profile.family
+    g.userData.faceBounds = { width: profile.mouthWidth, height: profile.mouthHeight }
+    g.userData.hasTongue = profile.hasTongue
+    g.userData.hasFangs = profile.hasFangs
+    g.userData.componentContract = ['mouth-cavity', 'teeth', 'tongue', 'lip-line']
 
     if (expr === 'Excited') {
-      // 张开大笑：暗腔 + 舌头 + 獠牙
       const cavity = new THREE.Mesh(
-        new THREE.SphereGeometry(0.12, 20, 14, 0, Math.PI * 2, 0, Math.PI),
+        new THREE.SphereGeometry(0.105, 22, 16, 0, Math.PI * 2, 0, Math.PI),
         mouthCavityMat()
       )
-      cavity.scale.set(1.3, 0.8, 0.7)
+      cavity.scale.set(1.18, 1.02, 0.72)
       cavity.rotation.x = Math.PI
-      cavity.position.set(0, -0.02, 0.02)
+      cavity.position.set(0, -0.025, -0.060)
       g.add(cavity)
 
       const tongue = new THREE.Mesh(
-        new THREE.SphereGeometry(0.07, 16, 12, 0, Math.PI * 2, 0, Math.PI * 0.6),
+        new THREE.SphereGeometry(0.055, 16, 12, 0, Math.PI * 2, 0, Math.PI * 0.6),
         tongueMat()
       )
-      tongue.scale.set(1.1, 0.6, 0.8)
-      tongue.position.set(0, -0.055, 0.035)
+      tongue.scale.set(1.25, 0.82, 0.8)
+      tongue.position.set(0, -0.080, -0.015)
       g.add(tongue)
 
       for (const sx of [-1, 1]) {
         const fang = new THREE.Mesh(
-          new THREE.ConeGeometry(0.018, 0.06, 8),
+          new THREE.ConeGeometry(0.014, 0.05, 8),
           new THREE.MeshStandardMaterial({ color: '#ffffff', roughness: 0.2 })
         )
-        fang.position.set(sx * 0.08, 0.04, 0.04)
+        fang.position.set(sx * 0.065, 0.03, -0.040)
         fang.rotation.z = sx * 0.15
         g.add(fang)
       }
     } else if (expr === 'Smile') {
-      const smile = new THREE.Mesh(
-        new THREE.TorusGeometry(0.07, 0.012, 8, 20, Math.PI),
-        new THREE.MeshStandardMaterial({ color: '#4a1a1a', roughness: 0.5 })
-      )
-      smile.rotation.x = Math.PI
-      smile.position.set(0, -0.02, 0.01)
-      g.add(smile)
+      const smileMat = new THREE.MeshStandardMaterial({ color: '#381212', roughness: 0.5 })
+      // A short philtrum and two asymmetric cubic arcs read more naturally than a sharp V.
+      const philtrum = new THREE.CatmullRomCurve3([
+        new THREE.Vector3(0, 0.046, 0.025),
+        new THREE.Vector3(0, 0.025, 0.031),
+        new THREE.Vector3(0, 0.010, 0.031),
+      ])
+      g.add(new THREE.Mesh(new THREE.TubeGeometry(philtrum, 8, 0.0065, 6, false), smileMat))
+      for (const side of [-1, 1]) {
+        const curve = new THREE.CubicBezierCurve3(
+          new THREE.Vector3(0, 0.010, 0.030),
+          new THREE.Vector3(side * 0.018, -0.030, 0.036),
+          new THREE.Vector3(side * 0.060, -0.031, 0.031),
+          new THREE.Vector3(side * 0.084, 0.008, 0.022),
+        )
+        const cheek = new THREE.CatmullRomCurve3([
+          new THREE.Vector3(side * 0.084, 0.008, 0.022),
+          new THREE.Vector3(side * 0.090, 0.018, 0.018),
+        ])
+        g.add(new THREE.Mesh(new THREE.TubeGeometry(curve, 18, 0.007, 7, false), smileMat))
+        g.add(new THREE.Mesh(new THREE.TubeGeometry(cheek, 4, 0.006, 6, false), smileMat))
+      }
     } else if (expr === 'Whistling') {
       const o = new THREE.Mesh(
-        new THREE.CylinderGeometry(0.045, 0.045, 0.02, 20, 1, false),
+        new THREE.CylinderGeometry(0.030, 0.030, 0.018, 20, 1, false),
         mouthCavityMat()
       )
       o.rotation.x = Math.PI / 2
-      o.position.set(0, -0.02, 0.02)
+      o.position.set(0, -0.015, 0.02)
       g.add(o)
       const lip = new THREE.Mesh(
-        new THREE.TorusGeometry(0.045, 0.01, 8, 20),
+        new THREE.TorusGeometry(0.035, 0.008, 8, 20),
         new THREE.MeshStandardMaterial({ color: '#e8917a', roughness: 0.4 })
       )
-      lip.position.set(0, -0.02, 0.02)
+      lip.position.set(0, -0.015, 0.02)
       g.add(lip)
+      const noteMat = new THREE.MeshBasicMaterial({ color: '#17151b' })
+      const stem = new THREE.Mesh(new RoundedBoxGeometry(0.015, 0.105, 0.015, 2, 0.006), noteMat)
+      stem.position.set(0.115, -0.055, 0.035); stem.rotation.z = -0.10; g.add(stem)
+      const flag = new THREE.Mesh(new RoundedBoxGeometry(0.070, 0.018, 0.015, 2, 0.007), noteMat)
+      flag.position.set(0.085, -0.005, 0.035); flag.rotation.z = -0.25; g.add(flag)
+      const noteHead = new THREE.Mesh(new THREE.SphereGeometry(0.027, 12, 8), noteMat)
+      noteHead.scale.x = 1.35; noteHead.position.set(0.100, -0.105, 0.04); g.add(noteHead)
     } else if (expr === 'Wow') {
       const o = new THREE.Mesh(
-        new THREE.SphereGeometry(0.075, 20, 14),
+        new THREE.CapsuleGeometry(0.063, 0.055, 8, 20),
         mouthCavityMat()
       )
-      o.scale.set(1, 1.1, 0.7)
-      o.position.set(0, -0.025, 0.015)
+      o.scale.set(0.92, 1.05, 0.48)
+      o.position.set(0, -0.040, 0.028)
       g.add(o)
-    } else if (expr === 'Yum') {
-      const cavity = new THREE.Mesh(
-        new THREE.SphereGeometry(0.08, 18, 12, 0, Math.PI * 2, 0, Math.PI),
-        mouthCavityMat()
-      )
-      cavity.scale.set(1.2, 0.6, 0.7)
-      cavity.rotation.x = Math.PI
-      cavity.position.set(0, -0.01, 0.015)
-      g.add(cavity)
-      const tongue = new THREE.Mesh(
-        new THREE.SphereGeometry(0.055, 16, 12, 0, Math.PI * 2, 0, Math.PI * 0.5),
-        tongueMat()
-      )
-      tongue.scale.set(1, 0.4, 0.9)
-      tongue.position.set(0, -0.05, 0.08)
-      tongue.rotation.x = 0.4
+      const tongue = new THREE.Mesh(new THREE.SphereGeometry(0.048, 18, 12), tongueMat())
+      tongue.scale.set(1.04, 0.55, 0.42)
+      tongue.position.set(0, -0.091, 0.063)
       g.add(tongue)
+      const lowerLip = new THREE.CatmullRomCurve3([
+        new THREE.Vector3(-0.043, -0.112, 0.066),
+        new THREE.Vector3(0, -0.122, 0.072),
+        new THREE.Vector3(0.043, -0.112, 0.066),
+      ])
+      g.add(new THREE.Mesh(new THREE.TubeGeometry(lowerLip, 12, 0.006, 6, false), tongueMat()))
+    } else if (expr === 'Yum') {
+      const smileMat = new THREE.MeshStandardMaterial({ color: '#381212', roughness: 0.5 })
+      const curve = new THREE.CatmullRomCurve3([
+        new THREE.Vector3(-0.065, 0, 0.02), new THREE.Vector3(0, -0.022, 0.025), new THREE.Vector3(0.065, 0, 0.02),
+      ])
+      g.add(new THREE.Mesh(new THREE.TubeGeometry(curve, 14, 0.008, 6, false), smileMat))
+      // Side-licking tongue: broad at the mouth, rounded at the tip, and visibly creased.
+      const tongueShape = new THREE.Shape()
+      tongueShape.moveTo(-0.010, 0.020)
+      tongueShape.bezierCurveTo(0.020, 0.012, 0.055, 0.002, 0.077, -0.020)
+      tongueShape.bezierCurveTo(0.095, -0.040, 0.088, -0.068, 0.064, -0.073)
+      tongueShape.bezierCurveTo(0.032, -0.078, 0.006, -0.050, -0.010, -0.025)
+      tongueShape.closePath()
+      const tongueGeo = new THREE.ExtrudeGeometry(tongueShape, {
+        depth: 0.018, bevelEnabled: true, bevelSegments: 3, bevelSize: 0.006, bevelThickness: 0.005,
+      })
+      const tongue = new THREE.Mesh(tongueGeo, tongueMat())
+      tongue.position.set(0.025, -0.006, 0.060)
+      g.add(tongue)
+      const crease = new THREE.CatmullRomCurve3([
+        new THREE.Vector3(0.072, -0.030, 0.088),
+        new THREE.Vector3(0.078, -0.047, 0.090),
+        new THREE.Vector3(0.066, -0.060, 0.088),
+      ])
+      g.add(new THREE.Mesh(new THREE.TubeGeometry(crease, 8, 0.003, 5, false), smileMat))
     }
   }
 
@@ -420,75 +793,110 @@ export class CatModel {
     clear(this._eyeGroupR)
     this._eyelids = []
 
-    // VR 模式下眼睛被头显遮住，但仍可保留以便切换其它眼睛时可见
-    const build = (group) => {
+    // 头部半径参考（约 0.3）
+    const eyeR = 0.118
+    const irR = 0.084
+    const hlR = 0.026
+    const profile = getEyeAppearanceProfile(this._eyeStyle)
+    const eyeBounds = { radius: eyeR, irisRadius: irR, highlightRadius: hlR }
+    for (const group of [this._eyeGroupL, this._eyeGroupR]) {
+      group.userData.eyeStyle = this._eyeStyle
+      group.userData.eyeFamily = profile.family
+      group.userData.eyeBounds = eyeBounds
+      group.userData.componentContract = ['eyeball', 'rim', 'pupil', 'highlight', 'wearable']
+    }
+
+    const build = (group, side) => {
       switch (this._eyeStyle) {
         case 'Original': {
-          group.add(new THREE.Mesh(new THREE.SphereGeometry(0.095, 20, 16), eyeWhite()))
-          const p = new THREE.Mesh(new THREE.SphereGeometry(0.042, 14, 10), pupil())
-          p.position.z = 0.06; group.add(p)
-          const h = new THREE.Mesh(new THREE.SphereGeometry(0.016, 8, 6),
+          const rim = new THREE.Mesh(
+            new THREE.TorusGeometry(eyeR * 0.82, eyeR * 0.09, 10, 28),
+            new THREE.MeshStandardMaterial({ color: profile.accent, roughness: profile.roughness, metalness: profile.metalness })
+          )
+          rim.position.z = 0.078; group.add(rim)
+          const p = new THREE.Mesh(new THREE.SphereGeometry(irR, 18, 14), pupil())
+          p.scale.set(1, 1.08, 0.72); p.position.z = 0.082; group.add(p)
+          const h = new THREE.Mesh(new THREE.SphereGeometry(hlR, 8, 6),
             new THREE.MeshBasicMaterial({ color: '#ffffff' }))
-          h.position.set(0.018, 0.025, 0.078); group.add(h)
+          h.position.set(-0.025, 0.036, 0.145); group.add(h)
+          const h2 = new THREE.Mesh(new THREE.SphereGeometry(hlR * 0.42, 8, 6),
+            new THREE.MeshBasicMaterial({ color: '#ffffff' }))
+          h2.position.set(0.035, -0.025, 0.142); group.add(h2)
           break
         }
         case 'Relaxed': {
-          const w = new THREE.Mesh(new THREE.SphereGeometry(0.09, 20, 14), eyeWhite())
-          w.scale.y = 0.55; group.add(w)
-          const lidGeo = new THREE.CylinderGeometry(0.092, 0.092, 0.12, 20, 1, false, 0, Math.PI)
-          const lid = new THREE.Mesh(lidGeo, furMat(this._furColor))
-          lid.rotation.z = Math.PI / 2; lid.position.y = 0.028
-          group.add(lid)
-          this._eyelids.push(lid)
+          const w = new THREE.Mesh(new THREE.SphereGeometry(eyeR * 0.94, 20, 16), eyeWhite())
+          w.scale.z = 0.72; group.add(w)
+          for (let line = -1; line <= 1; line++) {
+            const bar = new THREE.Mesh(
+              new RoundedBoxGeometry(eyeR * 1.25, 0.010, 0.016, 2, 0.005),
+            new THREE.MeshBasicMaterial({ color: profile.primary })
+            )
+            bar.position.set(0, line * 0.025, 0.100)
+            group.add(bar)
+          }
           break
         }
         case 'Alert': {
-          group.add(new THREE.Mesh(new THREE.SphereGeometry(0.11, 20, 16), eyeWhite()))
-          const p = new THREE.Mesh(new THREE.SphereGeometry(0.025, 12, 8), pupil())
-          p.position.z = 0.07; group.add(p)
-          const h = new THREE.Mesh(new THREE.SphereGeometry(0.014, 8, 6),
+          const rim = new THREE.Mesh(new THREE.TorusGeometry(eyeR * 0.88, eyeR * 0.10, 10, 28),
+            new THREE.MeshStandardMaterial({ color: profile.accent, roughness: 0.32 }))
+          rim.position.z = 0.076; group.add(rim)
+          const iris = new THREE.Mesh(new THREE.SphereGeometry(eyeR * 0.82, 20, 16),
+            new THREE.MeshStandardMaterial({ color: profile.primary, roughness: profile.roughness, metalness: profile.metalness }))
+          iris.scale.set(0.88, 1.06, 0.68); iris.position.z = 0.080; group.add(iris)
+          const p = new THREE.Mesh(new THREE.CapsuleGeometry(irR * 0.16, irR * 1.18, 6, 10), pupil())
+          p.position.z = 0.142; group.add(p)
+          const h = new THREE.Mesh(new THREE.SphereGeometry(hlR * 1.1, 8, 6),
             new THREE.MeshBasicMaterial({ color: '#ffffff' }))
-          h.position.set(0.012, 0.020, 0.088); group.add(h)
+          h.position.set(0.035, 0.043, 0.157); group.add(h)
           break
         }
         case 'Blue Ring': {
-          group.add(new THREE.Mesh(new THREE.SphereGeometry(0.09, 20, 16), eyeWhite()))
-          const ring = new THREE.Mesh(new THREE.TorusGeometry(0.042, 0.018, 10, 22),
-            new THREE.MeshStandardMaterial({ color: '#4488ff', roughness: 0.2, metalness: 0.3,
-              emissive: '#112244', emissiveIntensity: 0.4 }))
-          ring.position.z = 0.05; group.add(ring)
-          const p = new THREE.Mesh(new THREE.SphereGeometry(0.028, 12, 8), pupil())
-          p.position.z = 0.058; group.add(p)
+          const ring = new THREE.Mesh(new THREE.TorusGeometry(eyeR * 0.76, eyeR * 0.13, 12, 28),
+            new THREE.MeshStandardMaterial({ color: profile.accent, roughness: profile.roughness, metalness: profile.metalness,
+              emissive: profile.emissive, emissiveIntensity: profile.emissiveIntensity }))
+          ring.position.z = 0.086; group.add(ring)
+          const p = new THREE.Mesh(new THREE.SphereGeometry(irR * 0.90, 18, 14), pupil())
+          p.scale.z = 0.68; p.position.z = 0.088; group.add(p)
+          const h = new THREE.Mesh(new THREE.SphereGeometry(hlR, 8, 6), new THREE.MeshBasicMaterial({ color: '#ffffff' }))
+          h.position.set(0.032, 0.040, 0.150); group.add(h)
           break
         }
         case 'Sunglasses': {
-          const lens = new THREE.Mesh(new THREE.CylinderGeometry(0.10, 0.10, 0.04, 24),
-            new THREE.MeshStandardMaterial({ color: '#1a1a2e', roughness: 0.15, metalness: 0.5 }))
-          lens.rotation.x = Math.PI / 2; lens.position.z = 0.025; group.add(lens)
-          const refl = new THREE.Mesh(new THREE.SphereGeometry(0.06, 12, 6),
-            new THREE.MeshBasicMaterial({ color: '#667799', transparent: true, opacity: 0.25 }))
-          refl.position.set(0.02, 0.03, 0.048); group.add(refl)
+          const lens = new THREE.Mesh(new RoundedBoxGeometry(eyeR * 2.05, eyeR * 1.18, 0.055, 4, 0.025),
+            new THREE.MeshStandardMaterial({ color: profile.primary, roughness: profile.roughness, metalness: profile.metalness }))
+          lens.position.z = 0.080; group.add(lens)
+          for (const [x, y, scale] of [[-0.035, 0.025, 1], [0.025, -0.018, 0.62]]) {
+            const refl = new THREE.Mesh(new RoundedBoxGeometry(0.036 * scale, 0.055 * scale, 0.008, 2, 0.004),
+              new THREE.MeshBasicMaterial({ color: '#ffffff' }))
+            refl.position.set(x, y, 0.112); refl.rotation.z = -0.55; group.add(refl)
+          }
+          if (side < 0) {
+            const bridge = new THREE.Mesh(new RoundedBoxGeometry(eyeR * 0.72, 0.032, 0.035, 2, 0.012),
+              new THREE.MeshStandardMaterial({ color: '#09090d', roughness: 0.15, metalness: 0.4 }))
+            bridge.position.set(eyeR * 1.35, 0.005, 0.091); group.add(bridge)
+          }
           break
         }
         case 'VR': {
-          // VR 模式下眼睛本身不可见，由 _rebuildVRHeadset 绘制头显
+          // VR 头显由 _rebuildVRHeadset 单独绘制
           break
         }
         case 'Big Black': {
-          const be = new THREE.Mesh(new THREE.SphereGeometry(0.11, 22, 18),
-            new THREE.MeshStandardMaterial({ color: '#0a0a0a', roughness: 0.12, metalness: 0.05 }))
+          const be = new THREE.Mesh(new THREE.SphereGeometry(eyeR * 1.22, 22, 18),
+            new THREE.MeshStandardMaterial({ color: profile.primary, roughness: profile.roughness, metalness: profile.metalness }))
           be.scale.set(1, 1.15, 0.7); group.add(be)
-          for (const [x, y] of [[0.025, 0.04], [-0.02, 0.055]]) {
-            const h = new THREE.Mesh(new THREE.SphereGeometry(x === 0.025 ? 0.025 : 0.012, 8, 6),
+          for (const [x, y, s] of [[0.022, 0.035, 0.022], [-0.018, 0.048, 0.010]]) {
+            const h = new THREE.Mesh(new THREE.SphereGeometry(s, 8, 6),
               new THREE.MeshBasicMaterial({ color: '#ffffff' }))
-            h.position.set(x, y, 0.065); group.add(h)
+            h.position.set(x, y, 0.058); group.add(h)
           }
           break
         }
       }
     }
-    build(this._eyeGroupL)
-    build(this._eyeGroupR)
+    build(this._eyeGroupL, -1)
+    build(this._eyeGroupR, 1)
   }
 
   // ========== Private: VR 头显 ==========
@@ -504,256 +912,121 @@ export class CatModel {
     this._vrHeadset.visible = true
 
     const g = this._vrHeadset
+    const profile = getEyeAppearanceProfile('VR')
+    g.userData.componentContract = [
+      'metal-shell', 'cyan-light-ring', 'curved-visor', 'head-strap', 'holographic-hud',
+    ]
 
-    // 深黑玻璃曲面
+    // Reference construction: silver rounded shell, luminous cyan inner seal,
+    // then a single broad smoked visor. The shallow stacked depths preserve
+    // the layered silhouette in front, three-quarter and GLB turnaround views.
     const visorMat = new THREE.MeshPhysicalMaterial({
-      color: '#0a0a12',
-      roughness: 0.04,
-      metalness: 0.35,
+      color: profile.primary,
+      roughness: profile.roughness,
+      metalness: profile.metalness,
       clearcoat: 1.0,
       clearcoatRoughness: 0.02,
       envMapIntensity: 1.5,
     })
+    const shellMat = new THREE.MeshStandardMaterial({
+      color: profile.accent, roughness: 0.22, metalness: 0.82,
+    })
+    const fabricMat = new THREE.MeshStandardMaterial({
+      color: '#242832', roughness: .96, metalness: 0,
+    })
+    const cyanMat = new THREE.MeshStandardMaterial({
+      color: '#16aeb9', emissive: '#00a8b5', emissiveIntensity: 1.0,
+      roughness: 0.18, metalness: 0.18,
+    })
+    const hudMat = new THREE.MeshBasicMaterial({
+      color: '#25d9e5', transparent: true, opacity: .78, toneMapped: false,
+    })
 
-    // 曲面镜体：用圆柱侧面截出横向弯曲的护目镜
-    const visorGeo = new THREE.CylinderGeometry(0.38, 0.38, 0.26, 48, 1, true, -Math.PI * 0.62, Math.PI * 1.24)
-    const visor = new THREE.Mesh(visorGeo, visorMat)
-    visor.rotation.z = Math.PI / 2
-    visor.scale.set(1.15, 1, 0.78)
-    visor.position.set(0, 0, 0.18)
+    const fabricGasket = new THREE.Mesh(
+      new RoundedBoxGeometry(0.98, 0.435, 0.16, 7, 0.125),
+      fabricMat,
+    )
+    fabricGasket.name = 'VRFabricGasket'
+    fabricGasket.position.set(0, 0, 0.145)
+    fabricGasket.castShadow = true
+    g.add(fabricGasket)
+
+    const frameShell = new THREE.Mesh(
+      new RoundedBoxGeometry(0.92, 0.39, 0.17, 7, 0.115),
+      shellMat
+    )
+    frameShell.name = 'VRMetalShell'
+    frameShell.position.set(0, 0, 0.17)
+    frameShell.castShadow = true
+    g.add(frameShell)
+
+    const cyanRing = new THREE.Mesh(
+      new RoundedBoxGeometry(0.865, 0.342, 0.185, 7, 0.105),
+      cyanMat,
+    )
+    cyanRing.name = 'VRCyanLightRing'
+    cyanRing.position.set(0, 0, 0.198)
+    g.add(cyanRing)
+
+    const visor = new THREE.Mesh(new RoundedBoxGeometry(0.815, 0.292, 0.19, 7, 0.09), visorMat)
+    visor.name = 'VRCurvedVisor'
+    visor.position.set(0, 0, 0.225)
     visor.castShadow = true
     g.add(visor)
 
-    // 银色铝框
-    const frameMat = metal('#d0d5dd')
-    const frameCurve = new THREE.CatmullRomCurve3([
-      new THREE.Vector3(-0.40, 0.12, 0.28),
-      new THREE.Vector3(-0.46, 0, 0.22),
-      new THREE.Vector3(-0.40, -0.12, 0.28),
-      new THREE.Vector3(0, -0.16, 0.32),
-      new THREE.Vector3(0.40, -0.12, 0.28),
-      new THREE.Vector3(0.46, 0, 0.22),
-      new THREE.Vector3(0.40, 0.12, 0.28),
-      new THREE.Vector3(0, 0.16, 0.32),
-      new THREE.Vector3(-0.40, 0.12, 0.28),
-    ], true)
-    const frame = new THREE.Mesh(new THREE.TubeGeometry(frameCurve, 64, 0.014, 8, true), frameMat)
-    g.add(frame)
-
-    // 头带 (绕过头部)
+    // Rear strap remains independent so headScale and exported animation can
+    // treat the complete headset as one wearable without flattening its depth.
     const strap = new THREE.Mesh(
-      new THREE.TorusGeometry(0.50, 0.022, 8, 48),
-      new THREE.MeshStandardMaterial({ color: '#c8cdd5', roughness: 0.35, metalness: 0.6 })
+      new THREE.TorusGeometry(0.50, 0.026, 10, 56),
+      fabricMat
     )
+    strap.name = 'VRHeadStrap'
     strap.rotation.x = Math.PI / 2
-    strap.position.set(0, 0, -0.08)
+    strap.position.set(0, 0, -0.10)
     strap.scale.set(1, 1.08, 1)
     g.add(strap)
 
-    // 玻璃反光条 (Vision Pro 标志性的两条高光)
-    const reflMat = new THREE.MeshBasicMaterial({ color: '#ffffff', transparent: true, opacity: 0.55 })
-    const refl1 = new THREE.Mesh(new THREE.PlaneGeometry(0.16, 0.018), reflMat)
-    refl1.position.set(-0.08, 0.045, 0.36)
-    refl1.rotation.y = -0.08
-    g.add(refl1)
-    const refl2 = new THREE.Mesh(new THREE.PlaneGeometry(0.08, 0.018), reflMat)
-    refl2.position.set(0.07, 0.045, 0.36)
-    refl2.rotation.y = 0.06
-    g.add(refl2)
+    const reflMat = new THREE.MeshBasicMaterial({ color: '#dffcff', transparent: true, opacity: 0.62 })
+    const reflection = new THREE.Mesh(new RoundedBoxGeometry(0.25, 0.018, 0.008, 2, 0.007), reflMat)
+    reflection.name = 'VRVisorReflection'
+    reflection.position.set(-0.13, 0.075, 0.327)
+    reflection.rotation.z = -0.03
+    g.add(reflection)
 
-    // 左侧旋钮 / 扬声器网格细节
-    const sidePod = new THREE.Mesh(
-      new THREE.CapsuleGeometry(0.035, 0.10, 6, 10),
-      frameMat
-    )
-    sidePod.position.set(0.50, 0, 0.05)
-    sidePod.rotation.z = Math.PI / 2
-    g.add(sidePod)
-    const sidePodL = sidePod.clone()
-    sidePodL.position.set(-0.50, 0, 0.05)
-    g.add(sidePodL)
-  }
-
-  // ========== Private: 装备 ==========
-
-  _rebuildGear() {
-    while (this._gearRoot.children.length) this._gearRoot.remove(this._gearRoot.children[0])
-    if (!this._gearType) return
-
-    const add = (g) => this._gearRoot.add(g)
-
-    switch (this._gearType) {
-      case 'Baseball Cap': {
-        const cg = new THREE.Group()
-        cg.position.set(0, 2.04, 0.04); cg.rotation.x = -0.25
-        const dome = new THREE.Mesh(
-          new THREE.SphereGeometry(0.34, 28, 18, 0, Math.PI * 2, 0, Math.PI / 2.1),
-          accent('#e74c3c'))
-        dome.scale.set(1, 0.7, 0.85); dome.castShadow = true; cg.add(dome)
-        const brim = new THREE.Mesh(new THREE.BoxGeometry(0.58, 0.04, 0.28), accent('#c0392b'))
-        brim.position.set(0, -0.05, 0.18); brim.rotation.x = -0.3; brim.castShadow = true; cg.add(brim)
-        const btn = new THREE.Mesh(new THREE.SphereGeometry(0.04, 8, 6), accent('#c0392b'))
-        btn.position.y = 0.16; cg.add(btn)
-        add(cg)
-        break
-      }
-      case 'Camera': {
-        const cg = new THREE.Group()
-        cg.position.set(0, 1.18, 0.62); cg.rotation.x = -0.15
-        cg.add(new THREE.Mesh(new THREE.BoxGeometry(0.20, 0.12, 0.14), accent('#2c3e50')))
-        const lens = new THREE.Mesh(new THREE.CylinderGeometry(0.06, 0.07, 0.10, 20), accent('#34495e'))
-        lens.rotation.x = Math.PI / 2; lens.position.set(0, 0.01, 0.12); lens.castShadow = true; cg.add(lens)
-        const lf = new THREE.Mesh(new THREE.CylinderGeometry(0.045, 0.045, 0.02, 20),
-          new THREE.MeshStandardMaterial({ color: '#111', roughness: 0.1, metalness: 0.6 }))
-        lf.rotation.x = Math.PI / 2; lf.position.set(0, 0.01, 0.18); cg.add(lf)
-        const strapPts = [
-          new THREE.Vector3(0.09, 0.03, -0.06), new THREE.Vector3(0.14, 0.2, -0.08),
-          new THREE.Vector3(0.05, 0.35, -0.12), new THREE.Vector3(-0.05, 0.35, -0.12),
-          new THREE.Vector3(-0.14, 0.2, -0.08), new THREE.Vector3(-0.09, 0.03, -0.06),
-        ]
-        cg.add(new THREE.Mesh(
-          new THREE.TubeGeometry(new THREE.CatmullRomCurve3(strapPts), 20, 0.012, 6, false),
-          accent('#e74c3c')))
-        add(cg)
-        break
-      }
-      case 'Gold Round Glasses': {
-        const gg = new THREE.Group()
-        gg.position.set(0, 1.78, 0.54)
-        for (const x of [-0.13, 0.13]) {
-          gg.add(new THREE.Mesh(new THREE.TorusGeometry(0.09, 0.02, 8, 24), metal('#ffd700'))).position.x = x
-          gg.add(new THREE.Mesh(new THREE.CircleGeometry(0.07, 20),
-            new THREE.MeshPhysicalMaterial({ color: '#ddeeff', roughness: 0.05, transparent: true, opacity: 0.3 }))).position.x = x
-        }
-        const bridge = new THREE.Mesh(new THREE.CylinderGeometry(0.012, 0.012, 0.12, 8), metal('#ffd700'))
-        bridge.rotation.z = Math.PI / 2; gg.add(bridge)
-        add(gg)
-        break
-      }
-      case 'Wealth Gold Bar': {
-        const bg = new THREE.Group()
-        bg.position.set(-0.42, 0.38, 0.48); bg.rotation.set(0.3, -0.4, 0.2)
-        const bar = new THREE.Mesh(new THREE.BoxGeometry(0.15, 0.08, 0.28), metal('#ffd700'))
-        bar.castShadow = true; bg.add(bar)
-        const stripe = new THREE.Mesh(new THREE.BoxGeometry(0.10, 0.02, 0.25), metal('#ffe566'))
-        stripe.position.y = 0.045; bg.add(stripe)
-        add(bg)
-        break
-      }
-      case 'Good Luck Gold Bar': {
-        const gg = new THREE.Group()
-        gg.position.set(-0.40, 0.42, 0.52); gg.rotation.set(0.15, -0.42, 0.08)
-        const outer = new THREE.Mesh(new THREE.CapsuleGeometry(0.105, 0.26, 8, 18), metal('#ffdb3e'))
-        outer.rotation.z = Math.PI / 2; outer.scale.set(.74, 1, .38); outer.castShadow = true; gg.add(outer)
-        const inset = new THREE.Mesh(new THREE.CapsuleGeometry(0.076, 0.20, 8, 18), metal('#e8ae15'))
-        inset.rotation.z = Math.PI / 2; inset.scale.set(.74, 1, .43); inset.position.z = .038; gg.add(inset)
-        for (const y of [-.065, .065]) {
-          const seal = new THREE.Mesh(new THREE.TorusGeometry(.027, .009, 6, 16), metal('#ffe77a'))
-          seal.position.set(0, y, .075); gg.add(seal)
-        }
-        add(gg)
-        break
-      }
-      case 'Hiking Backpack': {
-        const pack = new THREE.Group()
-        pack.position.set(0, 1.03, -0.48)
-        const bag = new THREE.Mesh(new THREE.CapsuleGeometry(.20, .34, 6, 12), accent('#3d6f62'))
-        bag.rotation.x = Math.PI / 2; bag.scale.set(1, 1, .55); bag.castShadow = true; pack.add(bag)
-        const flap = new THREE.Mesh(new THREE.BoxGeometry(.26, .11, .035), accent('#527f70'))
-        flap.position.set(0, .07, .13); pack.add(flap)
-        for (const side of [-1, 1]) {
-          const pocket = new THREE.Mesh(new THREE.SphereGeometry(.06, 12, 8), accent('#d88a3c'))
-          pocket.scale.set(.75, 1, .45); pocket.position.set(side * .20, -.06, 0); pack.add(pocket)
-          const strap = new THREE.Mesh(new THREE.TorusGeometry(.25, .013, 6, 18, Math.PI), accent('#2b473f'))
-          strap.rotation.set(Math.PI / 2, 0, side * .20); strap.position.set(side * .13, .02, .17); pack.add(strap)
-        }
-        add(pack)
-        break
-      }
-      case 'Investment Book': {
-        const bg = new THREE.Group()
-        bg.position.set(0.40, 0.38, 0.52); bg.rotation.set(0.2, -0.5, 0.1)
-        bg.add(new THREE.Mesh(new THREE.BoxGeometry(0.22, 0.04, 0.28), accent('#c0392b')))
-        bg.add(new THREE.Mesh(new THREE.BoxGeometry(0.20, 0.025, 0.26), accent('#f5f0e0'))).position.y = 0.03
-        const ribbon = new THREE.Mesh(new THREE.BoxGeometry(0.015, 0.02, 0.10), accent('#ffd700'))
-        ribbon.position.set(0, 0.02, 0.16); bg.add(ribbon)
-        add(bg)
-        break
-      }
-      case 'Hot Coffee': {
-        const cg = new THREE.Group()
-        cg.position.set(0.42, 0.24, 0.56)
-        cg.add(new THREE.Mesh(new THREE.CylinderGeometry(0.08, 0.07, 0.16, 20), accent('#f5f5f0')))
-        const h = new THREE.Mesh(new THREE.TorusGeometry(0.05, 0.015, 8, 12, Math.PI), accent('#f5f5f0'))
-        h.position.set(0.09, 0.02, 0); h.rotation.set(Math.PI / 2, Math.PI / 2, 0); cg.add(h)
-        cg.add(new THREE.Mesh(new THREE.CylinderGeometry(0.07, 0.07, 0.005, 20), accent('#4a2c0a'))).position.y = 0.08
-        for (let i = 0; i < 3; i++) {
-          cg.add(new THREE.Mesh(new THREE.SphereGeometry(0.015, 6, 4),
-            new THREE.MeshBasicMaterial({ color: '#fff', transparent: true, opacity: 0.3 }))).position.set((i - 1) * 0.03, 0.13 + i * 0.04, 0)
-        }
-        add(cg)
-        break
-      }
-      case 'Sake': {
-        const sg = new THREE.Group()
-        sg.position.set(-0.40, 0.30, 0.54)
-        sg.add(new THREE.Mesh(new THREE.CylinderGeometry(0.06, 0.07, 0.20, 16), accent('#e8e8e0')))
-        sg.add(new THREE.Mesh(new THREE.CylinderGeometry(0.03, 0.04, 0.07, 12), accent('#e8e8e0'))).position.y = 0.13
-        sg.add(new THREE.Mesh(new THREE.CylinderGeometry(0.032, 0.032, 0.02, 12), accent('#2c3e50'))).position.y = 0.17
-        sg.add(new THREE.Mesh(new THREE.CylinderGeometry(0.035, 0.03, 0.05, 12), accent('#f0f0e8'))).position.set(0.08, -0.04, 0.02)
-        add(sg)
-        break
-      }
-      case 'Ramen': {
-        const rg = new THREE.Group()
-        rg.position.set(0, 0.16, 0.62)
-        const bowl = new THREE.Mesh(new THREE.SphereGeometry(0.13, 20, 12), accent('#e67e22'))
-        bowl.scale.set(1, 0.55, 1); bowl.position.y = -0.02; bowl.castShadow = true; rg.add(bowl)
-        const rim = new THREE.Mesh(new THREE.TorusGeometry(0.12, 0.015, 6, 24), accent('#d35400'))
-        rim.rotation.x = Math.PI / 2; rim.position.y = 0.05; rg.add(rim)
-        for (let i = 0; i < 5; i++) {
-          const pts = [new THREE.Vector3((i - 2) * 0.04, 0.06, -0.02),
-            new THREE.Vector3((i - 2) * 0.05, 0.10, 0.0), new THREE.Vector3((i - 2) * 0.03, 0.08, 0.03)]
-          rg.add(new THREE.Mesh(new THREE.TubeGeometry(new THREE.CatmullRomCurve3(pts), 8, 0.01, 6, false), accent('#f5deb3')))
-        }
-        add(rg)
-        break
-      }
-      case 'Kettlebell': {
-        const kg = new THREE.Group()
-        kg.position.set(-0.40, 0.14, 0.46)
-        kg.add(new THREE.Mesh(new THREE.SphereGeometry(0.10, 20, 16), metal('#444455')))
-        const hPts = [new THREE.Vector3(-0.045, 0.10, 0), new THREE.Vector3(0, 0.16, 0), new THREE.Vector3(0.045, 0.10, 0)]
-        kg.add(new THREE.Mesh(new THREE.TubeGeometry(new THREE.CatmullRomCurve3(hPts), 10, 0.018, 8, false), metal('#555566')))
-        add(kg)
-        break
-      }
-      case 'Astronaut Helmet': {
-        const hg = new THREE.Group()
-        hg.position.set(0, 1.78, 0.08)
-        const shell = new THREE.Mesh(new THREE.SphereGeometry(0.46, 32, 28),
-          new THREE.MeshPhysicalMaterial({ color: '#ddeeff', roughness: 0.1, metalness: 0.05, transparent: true, opacity: 0.35 }))
-        shell.scale.set(1, 0.92, 0.88); hg.add(shell)
-        const collar = new THREE.Mesh(new THREE.TorusGeometry(0.30, 0.04, 10, 28), metal('#ccccdd'))
-        collar.rotation.x = Math.PI / 2; collar.position.y = -0.32; hg.add(collar)
-        add(hg)
-        break
-      }
-      case 'Crown': {
-        const cg = new THREE.Group()
-        cg.position.set(0, 2.04, 0.10)
-        const base = new THREE.Mesh(new THREE.TorusGeometry(0.15, 0.03, 8, 24), metal('#ffd700'))
-        base.rotation.x = Math.PI / 2; cg.add(base)
-        for (let i = 0; i < 5; i++) {
-          const a = (i / 5) * Math.PI * 2
-          const x = Math.cos(a) * 0.14; const z = Math.sin(a) * 0.14
-          cg.add(new THREE.Mesh(new THREE.ConeGeometry(0.025, 0.12, 6, 4), metal('#ffd700'))).position.set(x, 0.05, z)
-          cg.add(new THREE.Mesh(new THREE.SphereGeometry(0.018, 6, 4),
-            new THREE.MeshStandardMaterial({ color: '#e74c3c', roughness: 0.1, metalness: 0.3, emissive: '#400000', emissiveIntensity: 0.5 }))).position.set(x, 0.14, z)
-        }
-        add(cg)
-        break
-      }
+    // Four cyan fasteners echo the product reference and help the curved face
+    // read at small NFT thumbnail sizes.
+    for (const [index, [x, y]] of [[-.355, .118], [.355, .118], [-.355, -.118], [.355, -.118]].entries()) {
+      const fastener = new THREE.Mesh(new THREE.SphereGeometry(.010, 12, 8), cyanMat)
+      fastener.name = `VRCyanFastener${index + 1}`
+      fastener.position.set(x, y, .326)
+      g.add(fastener)
     }
+
+    // NFT reference HUD: three independently named rectangular panels. They
+    // are simple emissive bars, so they remain deterministic and GLB-safe.
+    const hud = new THREE.Group()
+    hud.name = 'VRHolographicHUD'
+    const addHudPanel = (name, x, y, z, width, height) => {
+      const panel = new THREE.Group()
+      panel.name = name
+      const thickness = .006
+      const horizontalGeometry = new RoundedBoxGeometry(width, thickness, .008, 2, .004)
+      const verticalGeometry = new RoundedBoxGeometry(thickness, height, .008, 2, .004)
+      for (const [px, py] of [[0, height / 2], [0, -height / 2]]) {
+        const bar = new THREE.Mesh(horizontalGeometry, hudMat)
+        bar.position.set(px, py, 0); panel.add(bar)
+      }
+      for (const [px, py] of [[width / 2, 0], [-width / 2, 0]]) {
+        const bar = new THREE.Mesh(verticalGeometry, hudMat)
+        bar.position.set(px, py, 0); panel.add(bar)
+      }
+      panel.position.set(x, y, z)
+      hud.add(panel)
+    }
+    addHudPanel('VRHudPanelLeft', -.28, .035, .345, .21, .16)
+    addHudPanel('VRHudPanelUpperRight', .24, .10, .355, .25, .18)
+    addHudPanel('VRHudPanelLowerRight', .37, -.08, .365, .17, .15)
+    g.add(hud)
   }
+
 }

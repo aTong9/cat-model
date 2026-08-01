@@ -1,0 +1,180 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <title>Three.js 像素眼镜 - 加粗黑边</title>
+    <style>
+        body { margin: 0; overflow: hidden; background-color: #ffffff; }
+        canvas { display: block; }
+        #info {
+            position: absolute;
+            top: 20px;
+            width: 100%;
+            text-align: center;
+            color: #333;
+            font-family: sans-serif;
+            font-weight: bold;
+            pointer-events: none;
+            user-select: none;
+        }
+    </style>
+    <!-- 引入 Three.js -->
+    <script type="importmap">
+        {
+            "imports": {
+                "three": "https://unpkg.com/three@0.160.0/build/three.module.js",
+                "three/addons/": "https://unpkg.com/three@0.160.0/examples/jsm/"
+            }
+        }
+    </script>
+</head>
+<body>
+    <div id="info">拖动旋转 | 滚轮缩放<br>已加粗黑色像素边框</div>
+    
+    <script type="module">
+        import * as THREE from 'three';
+        import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
+
+        // --- 1. 场景初始化 ---
+        const scene = new THREE.Scene();
+        scene.background = new THREE.Color(0xffffff); // 白色背景
+
+        const camera = new THREE.PerspectiveCamera(45, window.innerWidth / window.innerHeight, 0.1, 1000);
+        camera.position.set(0, 0, 40);
+
+        const renderer = new THREE.WebGLRenderer({ antialias: false }); // 关闭抗锯齿以保持像素感
+        renderer.setSize(window.innerWidth, window.innerHeight);
+        document.body.appendChild(renderer.domElement);
+
+        // 添加控制器
+        const controls = new OrbitControls(camera, renderer.domElement);
+        controls.enableDamping = true;
+
+        // 灯光设置 (让金色更有质感)
+        const ambientLight = new THREE.AmbientLight(0xffffff, 0.6);
+        scene.add(ambientLight);
+        const dirLight = new THREE.DirectionalLight(0xffffff, 1.5);
+        dirLight.position.set(10, 10, 20);
+        scene.add(dirLight);
+
+        // --- 2. 核心构建逻辑 ---
+
+        /**
+         * 创建带有粗黑边的像素圆环
+         * @param {number} radius - 半径
+         * @param {number} pixelSize - 单个像素方块的大小
+         */
+        function createThickPixelRing(radius, pixelSize) {
+            const group = new THREE.Group();
+            
+            // 计算圆周需要多少个方块
+            const circumference = 2 * Math.PI * radius;
+            const count = Math.floor(circumference / pixelSize);
+            
+            // 材质定义
+            const goldMaterial = new THREE.MeshStandardMaterial({ 
+                color: 0xffd700, // 金色
+                roughness: 0.3,
+                metalness: 0.2
+            });
+            
+            const blackMaterial = new THREE.MeshBasicMaterial({ 
+                color: 0x000000 // 纯黑
+            });
+
+            // 几何体定义
+            const geometry = new THREE.BoxGeometry(pixelSize, pixelSize, pixelSize * 0.5); // 稍微扁一点的方块像镜片框
+
+            for (let i = 0; i < count; i++) {
+                const angle = (i / count) * Math.PI * 2;
+                const x = Math.cos(angle) * radius;
+                const y = Math.sin(angle) * radius;
+
+                // A. 创建黑色边框层 (放在后面，尺寸放大)
+                const borderMesh = new THREE.Mesh(geometry, blackMaterial);
+                borderMesh.position.set(x, y, -0.1); // Z轴稍微靠后
+                // 【关键】这里控制边框厚度，1.4 表示比原图大 40%
+                borderMesh.scale.set(1.4, 1.4, 1.2); 
+                group.add(borderMesh);
+
+                // B. 创建金色主体层 (放在前面，原尺寸)
+                const mainMesh = new THREE.Mesh(geometry, goldMaterial);
+                mainMesh.position.set(x, y, 0);
+                group.add(mainMesh);
+            }
+
+            return group;
+        }
+
+        /**
+         * 创建连接两个镜片的鼻梁
+         */
+        function createBridge(pixelSize) {
+            const group = new THREE.Group();
+            
+            // 简单的矩形连接桥
+            const bridgeWidth = 4; 
+            const bridgeHeight = 2;
+            
+            // 黑色背景板 (加粗)
+            const borderGeo = new THREE.BoxGeometry(bridgeWidth * pixelSize * 1.4, bridgeHeight * pixelSize * 1.4, pixelSize * 0.6);
+            const borderMat = new THREE.MeshBasicMaterial({ color: 0x000000 });
+            const borderMesh = new THREE.Mesh(borderGeo, borderMat);
+            borderMesh.position.z = -0.1;
+            group.add(borderMesh);
+
+            // 金色主体
+            const mainGeo = new THREE.BoxGeometry(bridgeWidth * pixelSize, bridgeHeight * pixelSize, pixelSize * 0.5);
+            const mainMat = new THREE.MeshStandardMaterial({ color: 0xffd700 });
+            const mainMesh = new THREE.Mesh(mainGeo, mainMat);
+            group.add(mainMesh);
+
+            return group;
+        }
+
+        // --- 3. 组装眼镜 ---
+
+        const glassesGroup = new THREE.Group();
+        
+        // 参数配置
+        const RADIUS = 8;      // 镜框半径
+        const PIXEL_SIZE = 1.2; // 像素块大小
+
+        // 左镜框
+        const leftRing = createThickPixelRing(RADIUS, PIXEL_SIZE);
+        leftRing.position.x = -(RADIUS + 2.5); // 向左偏移
+        glassesGroup.add(leftRing);
+
+        // 右镜框
+        const rightRing = createThickPixelRing(RADIUS, PIXEL_SIZE);
+        rightRing.position.x = (RADIUS + 2.5); // 向右偏移
+        glassesGroup.add(rightRing);
+
+        // 鼻梁
+        const bridge = createBridge(PIXEL_SIZE);
+        glassesGroup.add(bridge);
+
+        scene.add(glassesGroup);
+
+        // --- 4. 动画循环 ---
+        function animate() {
+            requestAnimationFrame(animate);
+            
+            // 缓慢自转展示效果
+            glassesGroup.rotation.y += 0.005;
+            
+            controls.update();
+            renderer.render(scene, camera);
+        }
+
+        // 窗口大小自适应
+        window.addEventListener('resize', () => {
+            camera.aspect = window.innerWidth / window.innerHeight;
+            camera.updateProjectionMatrix();
+            renderer.setSize(window.innerWidth, window.innerHeight);
+        });
+
+        animate();
+    </script>
+</body>
+</html>

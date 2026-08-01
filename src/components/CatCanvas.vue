@@ -1,25 +1,90 @@
 <template>
-  <canvas ref="canvasRef" class="cat-canvas"></canvas>
+  <canvas ref="canvasRef" class="cat-canvas" @pointerdown="onPointerDown" @pointermove="onPointerMove" @pointerup="onPointerUp" @pointercancel="onPointerUp" @click="onClick"></canvas>
 </template>
 
 <script setup>
 import { ref, onMounted, onUnmounted, watch } from 'vue'
-import { useCatStore } from '../stores/cat.js'
-import { createScene } from '../three/SceneSetup.js'
-import { CatModel } from '../three/CatModel.js'
+import { useCatStore, GEAR_LIST } from '../stores/cat.js'
+import { createCatAssembly } from '../core/createCatAssembly.js'
+import { createScene, getResponsiveCameraDistance } from '../three/SceneSetup.js'
+import { createGear, preloadGearTextures } from '../three/EquipmentFactory.js'
+import { createLatestLoadGuard, loadDetailedSpecialScene, loadReferenceSpecialScene } from '../three/SpecialSceneLoader.js'
+import { createWeatherController } from '../three/WeatherController.js'
+import { createCharacterInputController } from '../three/CharacterInputController.js'
+import { createPreviewEnvironmentController } from '../three/PreviewEnvironmentController.js'
+import { createRenderLifecycleController } from '../three/RenderLifecycleController.js'
+import { createRenderQualityController } from '../three/RenderQualityController.js'
+import { createEquipmentScatterController } from '../three/EquipmentScatterController.js'
 import * as THREE from 'three'
+import { TransformControls } from 'three/addons/controls/TransformControls.js'
+import { applyPose, resolvePoseChannel } from '../character/animation/poseAuthoring.js'
+import { applyEquipmentTransform, captureEquipmentTransform } from '../character/equipment/equipmentAnimation.js'
+import { appQualityToWinterQuality } from '../three/winter/WinterWorldConfig.js'
+import { shouldUseSakuraOnsen } from '../three/onsen/SakuraOnsenConfig.js'
+import { shouldUseGymWorld9066 } from '../three/gym/GymWorld9066Config.js'
+import { shouldUseStormWorld11 } from '../three/storm/StormWorld11Config.js'
+import { shouldUseSynthwaveWorld9038 } from '../three/synthwave/SynthwaveWorld9038Config.js'
+import { shouldUseCosmicWorld3000 } from '../three/cosmic/CosmicWorld3000Config.js'
 
 const store = useCatStore()
 const canvasRef = ref(null)
 
-let renderer, scene, camera, controls, envGroup, updateSize
+let renderer, scene, camera, controls, envGroup, updateSize, setStage, weatherController, inputController, environmentController
+let lifecycleController
+let qualityController
+let equipmentScatterController
+let catAssembly
 let catModel
+let poseTransformControls
 let clock
 let animId
 let specialGroup
+let activeEnvironmentRuntime = null
+let characterGroundY = 0
+const specialSceneLoadGuard = createLatestLoadGuard()
+const moveDirection = new THREE.Vector3()
+const previousCatPosition = new THREE.Vector3()
+let activePortalId = null
+let verticalVelocity = 0
+let grounded = true
+let cameraTransition = null
+let componentDisposed = false
+let debugFrame = 0
 
-onMounted(() => {
+const CAMERA_VIEWS = Object.freeze({
+  front: new THREE.Vector3(0, 0.45, 4.6),
+  'three-quarter': new THREE.Vector3(3.25, 0.7, 3.25),
+  side: new THREE.Vector3(4.6, 0.45, 0),
+  back: new THREE.Vector3(0, 0.45, -4.6),
+})
+
+function onCameraView(event) {
+  if (!camera || !controls || !catModel) return
+  const offset = CAMERA_VIEWS[event.detail?.view]
+  if (!offset) return
+  const responsiveScale = getResponsiveCameraDistance(window.innerWidth) / CAMERA_VIEWS.front.z
+  const characterPosition = catModel.group.getWorldPosition(new THREE.Vector3())
+  const target = characterPosition.clone().add(new THREE.Vector3(0, 0.72, 0))
+  cameraTransition = {
+    position: target.clone().add(offset.clone().multiplyScalar(responsiveScale)),
+    target,
+  }
+}
+
+function onVirtualInput(event) {
+  const detail = event.detail || {}
+  if (detail.direction) inputController?.setVirtualDirection(detail.direction.x, detail.direction.z)
+  if (detail.action) inputController?.setVirtualAction(detail.action, detail.active)
+}
+
+onMounted(async () => {
+  componentDisposed = false
   const canvas = canvasRef.value
+  if (!canvas) return
+  // 预加载装备贴图
+  await preloadGearTextures()
+  if (componentDisposed) return
+
   const setup = createScene(canvas)
   renderer = setup.renderer
   scene = setup.scene
@@ -27,63 +92,285 @@ onMounted(() => {
   controls = setup.controls
   envGroup = setup.envGroup
   updateSize = setup.updateSize
+  setStage = setup.setStage
+  setStage({ style: store.stageStyle, scale: store.stageScale, height: store.stageHeight, textureUrl: store.stageTextureUrl })
+  weatherController = createWeatherController({ scene, root: envGroup })
+  weatherController.setWeather(store.weather)
+  inputController = createCharacterInputController(window)
+  inputController.attach()
+  environmentController = createPreviewEnvironmentController(scene)
+  environmentController.setLightIntensity(store.lightIntensity)
+  qualityController = createRenderQualityController({ renderer, capabilities: {
+    width: window.innerWidth,
+    deviceMemory: navigator.deviceMemory,
+    devicePixelRatio: window.devicePixelRatio,
+  } })
+  qualityController.setMode(store.qualityMode)
 
-  // 暴露 scene 给 GLB 导出
+  // 暴露 scene 给旧导出入口；角色级导出使用 __character。
   canvas.__scene = scene
 
-  // 创建猫
-  catModel = new CatModel()
-  catModel.setFaceExpression(store.faceExpression)
-  scene.add(catModel.group)
+  catAssembly = createCatAssembly({
+    tokenId: store.tokenId,
+    fur: store.furStyle,
+    furColor: store.furColor,
+    eyes: store.eyeStyle,
+    face: store.faceExpression,
+    gear: store.gearType,
+    background: store.background,
+    special: store.special,
+    morphology: store.morphology,
+  }, { animation: store.actionMode })
+  catModel = catAssembly.model
+  for (const [actionId, parameters] of Object.entries(store.actionParameters)) catModel.setActionParameters(actionId, parameters)
+  canvas.__character = catAssembly.root
+  canvas.__catAssembly = catAssembly
+  canvas.__beginCharacterCapture = beginCharacterCapture
+  scene.add(catAssembly.root)
+  poseTransformControls = new TransformControls(camera, canvas)
+  poseTransformControls.setMode('rotate')
+  poseTransformControls.setSize(.72)
+  poseTransformControls.visible = store.poseAuthoringEnabled
+  poseTransformControls.addEventListener('dragging-changed', event => { controls.enabled = !event.value })
+  poseTransformControls.addEventListener('objectChange', () => {
+    const object = poseTransformControls.object
+    if (!object) return
+    if (store.equipmentAuthoringEnabled) {
+      const entry = equipmentScatterController?.getSelectedEntry()
+      const transform = captureEquipmentTransform(entry?.group)
+      if (transform) store.setEquipmentTransform(transform)
+    } else store.setPoseChannelRotation(store.selectedPoseChannel, object.rotation.toArray().slice(0, 3))
+  })
+  scene.add(poseTransformControls)
+  if (store.poseAuthoringEnabled) poseTransformControls.attach(resolvePoseChannel(catModel.registry, store.selectedPoseChannel))
   specialGroup = new THREE.Group()
   scene.add(specialGroup)
   applyBackground(store.background)
-  buildSpecialScene(store.special)
+  requestSpecialScene(store.special)
+
+  equipmentScatterController = createEquipmentScatterController({
+    scene,
+    camera,
+    canvas,
+    gearIds: GEAR_LIST.map(gear => gear.id),
+    createGear,
+    setControlsEnabled: enabled => { if (controls) controls.enabled = enabled },
+    dropTarget: catModel.group,
+    onEquip: id => { store.gearType = id },
+    onSelect: entry => {
+      store.selectedEquipmentId = entry?.id ?? null
+      const transform = captureEquipmentTransform(entry?.group)
+      if (transform) store.setEquipmentTransform(transform)
+      syncTransformControls()
+    },
+  })
+  equipmentScatterController.createAll()
+  equipmentScatterController.setEquippedId(store.gearType)
+  canvas.__equipmentScatterController = equipmentScatterController
 
   clock = new THREE.Clock()
-  animate()
-
-  // resize observer
-  const ro = new ResizeObserver(() => updateSize())
-  ro.observe(canvas)
+  window.addEventListener('cat:set-camera-view', onCameraView)
+  window.addEventListener('cat:virtual-input', onVirtualInput)
+  lifecycleController = createRenderLifecycleController({
+    canvas,
+    documentTarget: document,
+    ResizeObserverClass: ResizeObserver,
+    onResize: () => {
+      qualityController?.updateCapabilities({ width: window.innerWidth, devicePixelRatio: window.devicePixelRatio })
+      updateSize()
+    },
+    onPause: stopAnimation,
+    onResume: startAnimation,
+    onContextRestored: () => { renderer.resetState?.(); clock.getDelta() },
+  })
+  lifecycleController.attach()
 })
 
 onUnmounted(() => {
-  if (animId) cancelAnimationFrame(animId)
-  catModel?.dispose()
+  componentDisposed = true
+  specialSceneLoadGuard.invalidate()
+  lifecycleController?.dispose()
+  stopAnimation()
+  window.removeEventListener('cat:set-camera-view', onCameraView)
+  window.removeEventListener('cat:virtual-input', onVirtualInput)
+  inputController?.dispose()
+  catAssembly?.dispose()
   renderer?.dispose()
   controls?.dispose()
+  poseTransformControls?.dispose?.()
+  poseTransformControls?.removeFromParent?.()
+  weatherController?.dispose()
+  equipmentScatterController?.dispose()
+  activeEnvironmentRuntime?.dispose()
+  activeEnvironmentRuntime = null
+  if (canvasRef.value) delete canvasRef.value.__equipmentScatterController
+  disposeObject3DResources(specialGroup)
+  specialGroup?.removeFromParent()
+  specialGroup = null
 })
 
-// === 监听 Store 变化 → 更新 3D 模型 ===
-watch(() => store.furColor, (v) => catModel?.setFurColor(v))
-watch(() => store.eyeStyle, (v) => catModel?.setEyeStyle(v))
-watch(() => store.gearType, (v) => catModel?.setGear(v))
-watch(() => store.faceExpression, (v) => catModel?.setFaceExpression(v))
-watch(() => store.background, applyBackground)
-watch(() => store.special, buildSpecialScene)
-watch(() => store.lightIntensity, (value) => {
-  scene?.traverse((object) => { if (object.isLight && object.type !== 'HemisphereLight') object.intensity *= value === 1 ? 2.5 : 0.4 })
-})
-
-function applyBackground(name) {
-  if (!scene) return
-  const colors = {
-    'Blue Gradient': '#253f88', 'Green Gradient': '#28624a', 'Green To Blue Gradient': '#277b88', 'Orange Gradient': '#9b4d2e',
-    'Pink To Orange Gradient': '#b4506e', 'Purple Gradient': '#5f3e9f', 'Red To Pink Gradient': '#9a3e59', 'Yellow To Green Gradient': '#878e31',
+function beginCharacterCapture({ transparent = false } = {}) {
+  if (!renderer || !scene || !camera) return () => {}
+  stopAnimation()
+  const previous = { background: scene.background, fog: scene.fog, clearAlpha: renderer.getClearAlpha() }
+  const hidden = [envGroup, specialGroup, scene.getObjectByName('PreviewGround'), scene.getObjectByName('PreviewPodium'), ...(equipmentScatterController?.entries?.map(entry => entry.group) ?? [])]
+    .filter(Boolean).map(object => [object, object.visible])
+  if (transparent) {
+    hidden.forEach(([object]) => { object.visible = false })
+    scene.background = null
+    scene.fog = null
+    renderer.setClearAlpha(0)
   }
-  const color = colors[name] || '#11111c'
-  scene.background = new THREE.Color(color)
-  scene.fog.color.set(color)
+  renderer.render(scene, camera)
+  return () => {
+    hidden.forEach(([object, visible]) => { object.visible = visible })
+    scene.background = previous.background
+    scene.fog = previous.fog
+    renderer.setClearAlpha(previous.clearAlpha)
+    startAnimation()
+  }
 }
 
-function buildSpecialScene(type) {
+function onClick(e) {
+  if (equipmentScatterController?.consumeSuppressedClick()) return
+  if (equipmentScatterController?.cast(e.clientX, e.clientY)) return
+}
+
+function onPointerDown(e) {
+  if (equipmentScatterController?.startDrag(e.clientX, e.clientY)) e.currentTarget.setPointerCapture?.(e.pointerId)
+}
+function onPointerMove(e) { equipmentScatterController?.moveDrag(e.clientX, e.clientY) }
+function onPointerUp(e) {
+  if (equipmentScatterController?.endDrag(e.clientX, e.clientY)) e.currentTarget.releasePointerCapture?.(e.pointerId)
+}
+
+// === 监听 Store 变化 → 更新 3D 模型 ===
+watch([() => store.furStyle, () => store.furColor], ([fur, furColor]) => catAssembly?.apply({ fur, furColor }))
+watch(() => store.eyeStyle, (eyes) => catAssembly?.apply({ eyes }))
+watch(() => store.gearType, (v) => {
+  catAssembly?.apply({ gear: v })
+  equipmentScatterController?.setEquippedId(v)
+})
+watch(() => store.faceExpression, (face) => catAssembly?.apply({ face }))
+watch(() => store.tokenId, (tokenId) => {
+  catAssembly?.apply({ tokenId })
+  requestSpecialScene(store.special)
+})
+watch(() => ({ ...store.morphology }), morphology => catAssembly?.apply({ morphology }), { deep: true })
+watch(() => store.actionMode, (v) => {
+  if (!inputController?.isMoving) catModel?.setAnimation(v)
+})
+watch(() => store.actionParameters, parameters => {
+  for (const [actionId, value] of Object.entries(parameters)) catModel?.setActionParameters(actionId, value)
+}, { deep: true })
+watch(() => store.background, (background) => {
+  catAssembly?.apply({ background })
+  applyBackground(background)
+})
+watch(() => store.special, (special) => {
+  catAssembly?.apply({ special })
+  requestSpecialScene(special)
+})
+watch(() => store.lightIntensity, (value) => {
+  environmentController?.setLightIntensity(value)
+})
+watch(() => store.qualityMode, (value) => {
+  qualityController?.setMode(value)
+  updateSize?.()
+  if (store.special === 'Realm of Mt.Fuji' || shouldUseSakuraOnsen(store.tokenId, store.special) || shouldUseGymWorld9066(store.tokenId, store.special) || shouldUseStormWorld11(store.tokenId, store.special) || shouldUseSynthwaveWorld9038(store.tokenId, store.special) || shouldUseCosmicWorld3000(store.tokenId, store.special)) requestSpecialScene(store.special)
+})
+watch(() => [store.stageStyle, store.stageScale, store.stageHeight, store.stageTextureUrl], ([style, scale, height, textureUrl]) => setStage?.({ style, scale, height, textureUrl }))
+watch(() => [store.poseAuthoringEnabled, store.selectedPoseChannel], ([enabled, channelId]) => {
+  if (enabled) store.equipmentAuthoringEnabled = false
+  syncTransformControls()
+})
+watch(() => store.equipmentAuthoringEnabled, enabled => {
+  if (enabled) store.poseAuthoringEnabled = false
+  syncTransformControls()
+})
+watch(() => store.equipmentAnimation, name => equipmentScatterController?.playAnimation(name))
+watch(() => store.equipmentTransform, transform => {
+  if (!store.equipmentAuthoringEnabled) return
+  applyEquipmentTransform(equipmentScatterController?.getSelectedEntry()?.group, transform)
+}, { deep: true })
+
+function syncTransformControls() {
+  if (!poseTransformControls || !catModel) return
+  if (store.equipmentAuthoringEnabled) {
+    const bone = equipmentScatterController?.getSelectedEntry()?.group?.equipmentAnimationRig?.motionBone
+    poseTransformControls.visible = Boolean(bone)
+    if (bone) poseTransformControls.attach(bone)
+    else poseTransformControls.detach()
+  } else if (store.poseAuthoringEnabled) {
+    poseTransformControls.visible = true
+    poseTransformControls.attach(resolvePoseChannel(catModel.registry, store.selectedPoseChannel))
+  } else {
+    poseTransformControls.visible = false
+    poseTransformControls.detach()
+  }
+}
+
+function applyBackground(name) {
+  environmentController?.setBackground(name)
+}
+
+function disposeObject3DResources(root) {
+  root?.traverse(object => {
+    object.geometry?.dispose?.()
+    if (Array.isArray(object.material)) object.material.forEach(material => material.dispose?.())
+    else object.material?.dispose?.()
+  })
+}
+
+function requestSpecialScene(type) {
+  void buildSpecialScene(type).catch((error) => {
+    if (specialGroup) console.error(`无法加载特殊场景：${type}`, error)
+  })
+}
+
+async function buildSpecialScene(type) {
+  const loadVersion = specialSceneLoadGuard.begin()
   if (!specialGroup) return
+  activeEnvironmentRuntime?.dispose()
+  activeEnvironmentRuntime = null
+  disposeObject3DResources(specialGroup)
   specialGroup.clear()
+  const previewGround = scene.getObjectByName('PreviewGround')
+  const previewPodium = scene.getObjectByName('PreviewPodium')
+  if (previewGround) previewGround.visible = true
+  if (previewPodium) previewPodium.visible = store.stageStyle !== 'hidden'
+  applyBackground(store.background)
   if (!type) return
+  const useDetailedOnsen = shouldUseSakuraOnsen(store.tokenId, type)
+  const useDetailedGym = shouldUseGymWorld9066(store.tokenId, type)
+  const useDetailedStorm = shouldUseStormWorld11(store.tokenId, type)
+  const useDetailedSynthwave = shouldUseSynthwaveWorld9038(store.tokenId, type)
+  const useDetailedCosmic = shouldUseCosmicWorld3000(store.tokenId, type)
+  const reference = useDetailedOnsen || useDetailedGym || useDetailedStorm || useDetailedSynthwave || useDetailedCosmic ? { group: null, background: null } : await loadReferenceSpecialScene(type)
+  if (!specialSceneLoadGuard.isCurrent(loadVersion) || !specialGroup) {
+    disposeObject3DResources(reference.group)
+    return
+  }
+  if (reference.group) {
+    scene.background = new THREE.Color(reference.background)
+    scene.fog.color.copy(scene.background)
+    specialGroup.add(reference.group)
+    return
+  }
   const add = (mesh) => { specialGroup.add(mesh); return mesh }
   const pointMat = (color, size = .04) => new THREE.PointsMaterial({ color, size, transparent: true, opacity: .8, depthWrite: false })
-  if (type === 'Galactic Voyage') {
+  if (type === 'Galactic Voyage' && useDetailedCosmic) {
+    const createSceneGroup = await loadDetailedSpecialScene(type)
+    if (!specialSceneLoadGuard.isCurrent(loadVersion) || !specialGroup) return
+    scene.background = new THREE.Color('#080d2e')
+    scene.fog = new THREE.Fog('#10163f', 58, 126)
+    const worldGroup = add(createSceneGroup({ quality: appQualityToWinterQuality(qualityController?.profile?.id) }))
+    activeEnvironmentRuntime = worldGroup.environmentRuntime
+    characterGroundY = activeEnvironmentRuntime?.sampleCharacterGroundY(catModel.group.position.x, catModel.group.position.z) ?? 0
+    if (grounded) catModel.group.position.y = characterGroundY
+    if (previewGround) previewGround.visible = false
+    if (previewPodium) previewPodium.visible = false
+  } else if (type === 'Galactic Voyage') {
     const stars = new Float32Array(420)
     for (let i = 0; i < stars.length; i += 3) { stars[i] = (Math.random() - .5) * 10; stars[i + 1] = Math.random() * 6 - .5; stars[i + 2] = -2 - Math.random() * 4 }
     const geo = new THREE.BufferGeometry(); geo.setAttribute('position', new THREE.BufferAttribute(stars, 3)); add(new THREE.Points(geo, pointMat('#dbeaff', .035)))
@@ -92,105 +379,228 @@ function buildSpecialScene(type) {
   } else if (type === 'Golden General') {
     for (let i = 0; i < 18; i++) { const coin = add(new THREE.Mesh(new THREE.CylinderGeometry(.12, .12, .035, 20), new THREE.MeshStandardMaterial({ color: '#f6cb38', metalness: .7, roughness: .25 }))); coin.rotation.x = Math.PI / 2; coin.position.set((Math.random() - .5) * 6, Math.random() * 5, -2 - Math.random()); coin.userData.fall = .005 + Math.random() * .01 }
   } else if (type === 'Realm of Mt.Fuji') {
-    const mountain = add(new THREE.Mesh(new THREE.ConeGeometry(2.3, 2.5, 4), new THREE.MeshStandardMaterial({ color: '#66839d', roughness: .9 }))); mountain.position.set(0, .25, -3.4); mountain.rotation.y = Math.PI / 4
-    const snow = add(new THREE.Mesh(new THREE.ConeGeometry(.83, .55, 4), new THREE.MeshStandardMaterial({ color: '#f6fbff', roughness: .8 }))); snow.position.set(0, 1.48, -3.4); snow.rotation.y = Math.PI / 4
+    const createSceneGroup = await loadDetailedSpecialScene(type)
+    if (!specialSceneLoadGuard.isCurrent(loadVersion) || !specialGroup) return
+    scene.background = new THREE.Color('#2861d8')
+    scene.fog = new THREE.Fog('#9dc6ee', 25, 100)
+    const worldGroup = add(createSceneGroup({
+      quality: appQualityToWinterQuality(qualityController?.profile?.id),
+      shadowEnabled: qualityController?.profile?.shadows ?? true,
+    }))
+    activeEnvironmentRuntime = worldGroup.environmentRuntime || worldGroup.winterWorld
+    characterGroundY = activeEnvironmentRuntime?.sampleCharacterGroundY(catModel.group.position.x, catModel.group.position.z) ?? 0
+    if (grounded) catModel.group.position.y = characterGroundY
+    if (previewGround) previewGround.visible = false
+    if (previewPodium) previewPodium.visible = false
+  } else if (type === 'Onsen journey' && useDetailedOnsen) {
+    const createSceneGroup = await loadDetailedSpecialScene(type)
+    if (!specialSceneLoadGuard.isCurrent(loadVersion) || !specialGroup) return
+    scene.background = new THREE.Color('#ffc957')
+    scene.fog = new THREE.Fog('#ffd99b', 30, 95)
+    const worldGroup = add(createSceneGroup({
+      quality: appQualityToWinterQuality(qualityController?.profile?.id),
+    }))
+    activeEnvironmentRuntime = worldGroup.environmentRuntime || worldGroup.winterWorld
+    characterGroundY = activeEnvironmentRuntime?.sampleCharacterGroundY(catModel.group.position.x, catModel.group.position.z) ?? 0
+    if (grounded) catModel.group.position.y = characterGroundY
+    if (previewGround) previewGround.visible = false
+    if (previewPodium) previewPodium.visible = false
   } else if (type === 'Onsen journey') {
     const water = add(new THREE.Mesh(new THREE.CircleGeometry(2.6, 48), new THREE.MeshStandardMaterial({ color: '#8edbe8', transparent: true, opacity: .65, roughness: .2 }))); water.rotation.x = -Math.PI / 2; water.position.set(0, -.5, -.4)
     for (let i = 0; i < 8; i++) { const steam = add(new THREE.Mesh(new THREE.SphereGeometry(.13, 10, 8), new THREE.MeshBasicMaterial({ color: '#fff', transparent: true, opacity: .25 }))); steam.position.set((Math.random() - .5) * 2, .2 + Math.random(), -1 - Math.random()); steam.userData.steam = .003 + Math.random() * .003 }
-  } else if (type === 'Time Traveler') {
-    const grid = add(new THREE.GridHelper(9, 16, '#26d6ee', '#23516d')); grid.position.y = -.52
-    const portal = add(new THREE.Mesh(new THREE.TorusGeometry(1.25, .06, 10, 48), new THREE.MeshBasicMaterial({ color: '#ff71c8' }))); portal.position.set(0, 1.8, -2.5)
+  } else if (type === 'Time Traveler' && useDetailedSynthwave) {
+    const createSceneGroup = await loadDetailedSpecialScene(type)
+    if (!specialSceneLoadGuard.isCurrent(loadVersion) || !specialGroup) return
+    scene.background = new THREE.Color('#10072f')
+    scene.fog = new THREE.Fog('#5b0b62', 32, 112)
+    const worldGroup = add(createSceneGroup({ quality: appQualityToWinterQuality(qualityController?.profile?.id) }))
+    activeEnvironmentRuntime = worldGroup.environmentRuntime
+    characterGroundY = activeEnvironmentRuntime?.sampleCharacterGroundY(catModel.group.position.x, catModel.group.position.z) ?? 0
+    if (grounded) catModel.group.position.y = characterGroundY
+    if (previewGround) previewGround.visible = false
+    if (previewPodium) previewPodium.visible = false
+  } else if (type === 'Fitness Guru' && useDetailedGym) {
+    const createSceneGroup = await loadDetailedSpecialScene(type)
+    if (!specialSceneLoadGuard.isCurrent(loadVersion) || !specialGroup) return
+    scene.background = new THREE.Color('#f57c00')
+    scene.fog = new THREE.Fog('#f6a23c', 28, 75)
+    const worldGroup = add(createSceneGroup({
+      quality: appQualityToWinterQuality(qualityController?.profile?.id),
+      shadowsEnabled: qualityController?.profile?.shadows ?? true,
+    }))
+    activeEnvironmentRuntime = worldGroup.environmentRuntime
+    characterGroundY = activeEnvironmentRuntime?.sampleCharacterGroundY(catModel.group.position.x, catModel.group.position.z) ?? 0
+    if (grounded) catModel.group.position.y = characterGroundY
+    if (previewGround) previewGround.visible = false
+    if (previewPodium) previewPodium.visible = false
   } else if (type === 'Fitness Guru') {
     const bell = add(new THREE.Mesh(new THREE.SphereGeometry(.28, 20, 16), new THREE.MeshStandardMaterial({ color: '#34323d', roughness: .45, metalness: .6 }))); bell.position.set(-1.2, -.1, -.6)
     const handle = add(new THREE.Mesh(new THREE.TorusGeometry(.18, .055, 8, 18, Math.PI), new THREE.MeshStandardMaterial({ color: '#34323d', metalness: .6 }))); handle.position.set(-1.2, .2, -.6)
+  } else if (type === 'Thunderous Might' && useDetailedStorm) {
+    const createSceneGroup = await loadDetailedSpecialScene(type)
+    if (!specialSceneLoadGuard.isCurrent(loadVersion) || !specialGroup) return
+    scene.background = new THREE.Color('#0b1c2b')
+    scene.fog = new THREE.Fog('#263746', 22, 90)
+    weatherController?.setWeather('sunny')
+    const worldGroup = add(createSceneGroup({ quality: appQualityToWinterQuality(qualityController?.profile?.id) }))
+    activeEnvironmentRuntime = worldGroup.environmentRuntime
+    characterGroundY = activeEnvironmentRuntime?.sampleCharacterGroundY(catModel.group.position.x, catModel.group.position.z) ?? 0
+    if (grounded) catModel.group.position.y = characterGroundY
+    if (previewGround) previewGround.visible = false
+    if (previewPodium) previewPodium.visible = false
   } else if (type === 'Thunderous Might') {
     for (let i = 0; i < 7; i++) { const bolt = add(new THREE.Mesh(new THREE.BoxGeometry(.06, 1.4, .03), new THREE.MeshBasicMaterial({ color: '#b7f6ff' }))); bolt.position.set((Math.random() - .5) * 6, 2.5 + Math.random() * 2, -2); bolt.rotation.z = .35; bolt.userData.bolt = Math.random() * 6 }
   }
 }
 
 // === 天气效果 ===
-let rainParticles = null
-let cloudMeshes = []
-
-function clearWeather() {
-  while (envGroup.children.length) envGroup.remove(envGroup.children[0])
-  rainParticles = null
-  cloudMeshes = []
-}
-
 watch(() => store.weather, (w) => {
-  clearWeather()
-  if (w === 'rain' || w === 'thunder') createRain()
-  if (w === 'cloudy' || w === 'thunder' || w === 'rain') createClouds()
+  weatherController?.setWeather(shouldUseStormWorld11(store.tokenId, store.special) ? 'sunny' : w)
 })
 
-function createRain() {
-  const count = 300
-  const geo = new THREE.BufferGeometry()
-  const positions = new Float32Array(count * 3)
-  for (let i = 0; i < count * 3; i += 3) {
-    positions[i] = (Math.random() - 0.5) * 8
-    positions[i + 1] = Math.random() * 6
-    positions[i + 2] = (Math.random() - 0.5) * 8
-  }
-  geo.setAttribute('position', new THREE.BufferAttribute(positions, 3))
-  const mat = new THREE.PointsMaterial({
-    color: '#aaccff', size: 0.04, transparent: true, opacity: 0.5,
-    depthWrite: false,
-  })
-  rainParticles = new THREE.Points(geo, mat)
-  envGroup.add(rainParticles)
+function emitPortalEntry(portal) {
+  const detail = { ...portal.userData.portal, character: catModel?.group }
+  canvasRef.value?.dispatchEvent(new CustomEvent('cat-enter-level', { detail }))
+  window.dispatchEvent(new CustomEvent('cat:enter-level', { detail }))
 }
 
-function createClouds() {
-  for (let i = 0; i < 6; i++) {
-    const cloudGeo = new THREE.SphereGeometry(0.5 + Math.random() * 0.6, 16, 12)
-    const cloud = new THREE.Mesh(cloudGeo,
-      new THREE.MeshStandardMaterial({ color: '#8899aa', roughness: 1, transparent: true, opacity: 0.4, depthWrite: false }))
-    cloud.position.set((Math.random() - 0.5) * 8, 4 + Math.random() * 2, (Math.random() - 0.5) * 6)
-    cloud.userData.speed = 0.1 + Math.random() * 0.4
-    cloud.userData.baseX = cloud.position.x
-    envGroup.add(cloud)
-    cloudMeshes.push(cloud)
+function checkPortalEntry() {
+  let entered = null
+  const catPosition = catModel.group.getWorldPosition(new THREE.Vector3())
+  specialGroup?.traverse((object) => {
+    if (entered || !object.userData.portal?.enabled) return
+    const portalPosition = object.getWorldPosition(new THREE.Vector3())
+    if (Math.hypot(catPosition.x - portalPosition.x, catPosition.z - portalPosition.z) < 0.62) entered = object
+  })
+  const nextId = entered?.userData.portal.levelId || null
+  if (entered && nextId !== activePortalId) emitPortalEntry(entered)
+  activePortalId = nextId
+}
+
+function updateCharacterMovement(dt) {
+  if (!catModel) return
+  const input = inputController?.consumeFrame() || { x: 0, z: 0, sprinting: false, sneaking: false, jump: false }
+  moveDirection.set(input.x, 0, input.z)
+  const moving = moveDirection.lengthSq() > 0
+  const sprinting = input.sprinting
+  const sneaking = input.sneaking
+  const movement = catModel.group.userData.movement
+
+  if (input.jump && grounded) {
+    verticalVelocity = movement.jumpVelocity
+    grounded = false
   }
+  if (!grounded) {
+    verticalVelocity -= 9.8 * dt
+    catModel.group.position.y += verticalVelocity * dt
+    if (catModel.group.position.y <= characterGroundY) {
+      catModel.group.position.y = characterGroundY
+      verticalVelocity = 0
+      grounded = true
+    }
+  }
+
+  if (!grounded) catModel.setAnimation('jump')
+  else if (sneaking) catModel.setAnimation('crouch')
+  else if (moving) {
+    catModel.setRunSpeed(sprinting ? 1.35 : 0.68)
+    catModel.setAnimation('run')
+  } else catModel.setAnimation(store.actionMode)
+  activeEnvironmentRuntime?.setCharacterState({
+    position: catModel.group.position,
+    yaw: catModel.group.rotation.y,
+    moving: moving && grounded,
+    sprinting,
+  })
+  if (!moving) {
+    if (grounded && activeEnvironmentRuntime) {
+      characterGroundY = activeEnvironmentRuntime.sampleCharacterGroundY(catModel.group.position.x, catModel.group.position.z)
+      catModel.group.position.y = characterGroundY
+    }
+    return
+  }
+
+  moveDirection.normalize()
+  previousCatPosition.copy(catModel.group.position)
+  const speed = sneaking ? movement.sneakSpeed : sprinting ? movement.runSpeed : movement.walkSpeed
+  const proposed = catModel.group.position.clone().addScaledVector(moveDirection, speed * dt)
+  if (activeEnvironmentRuntime) {
+    const resolved = activeEnvironmentRuntime.resolveMovement(previousCatPosition, proposed)
+    characterGroundY = resolved.position.y
+    catModel.group.position.x = resolved.position.x
+    catModel.group.position.z = resolved.position.z
+    if (grounded) catModel.group.position.y = characterGroundY
+  } else {
+    catModel.group.position.copy(proposed)
+    catModel.group.position.x = THREE.MathUtils.clamp(catModel.group.position.x, -4.6, 4.6)
+    catModel.group.position.z = THREE.MathUtils.clamp(catModel.group.position.z, -4.6, 4.6)
+    characterGroundY = 0
+  }
+  const targetYaw = Math.atan2(moveDirection.x, moveDirection.z)
+  catModel.group.rotation.y = THREE.MathUtils.lerp(catModel.group.rotation.y, targetYaw, 1 - Math.exp(-12 * dt))
+
+  const displacement = catModel.group.position.clone().sub(previousCatPosition)
+  camera.position.add(displacement)
+  controls.target.add(displacement)
+  checkPortalEntry()
 }
 
 function animate() {
   animId = requestAnimationFrame(animate)
+  if (qualityController && !qualityController.shouldRender(performance.now())) return
+  const dt = Math.min(clock.getDelta(), 0.05)
   const t = clock.getElapsedTime()
 
+  updateCharacterMovement(dt)
   catModel?.update(t)
+  if (store.poseAuthoringEnabled && catModel) applyPose(catModel.registry, store.customPose)
+  if (cameraTransition) {
+    const blend = 1 - Math.exp(-8 * dt)
+    camera.position.lerp(cameraTransition.position, blend)
+    controls.target.lerp(cameraTransition.target, blend)
+    if (camera.position.distanceTo(cameraTransition.position) < 0.012 && controls.target.distanceTo(cameraTransition.target) < 0.012) {
+      camera.position.copy(cameraTransition.position)
+      controls.target.copy(cameraTransition.target)
+      cameraTransition = null
+    }
+  }
   controls.update()
   updateSize()
 
+  // 装备物理
+  equipmentScatterController?.update(dt)
+  if (store.equipmentAuthoringEnabled) applyEquipmentTransform(equipmentScatterController?.getSelectedEntry()?.group, store.equipmentTransform)
+  weatherController?.update(dt)
+
   // 雨滴动画
-  if (rainParticles) {
-    const pos = rainParticles.geometry.attributes.position.array
-    for (let i = 0; i < pos.length; i += 3) {
-      pos[i + 1] -= 0.06
-      if (pos[i + 1] < -0.5) pos[i + 1] = 5.5
-    }
-    rainParticles.geometry.attributes.position.needsUpdate = true
-  }
 
   // 云动画
-  cloudMeshes.forEach(c => {
-    c.position.x += c.userData.speed * 0.01
-    if (c.position.x > c.userData.baseX + 5) c.position.x = c.userData.baseX - 5
-  })
   specialGroup?.children.forEach(item => {
+    if (item !== activeEnvironmentRuntime?.world) item.userData.update?.(t)
     if (item.userData.fall) { item.position.y -= item.userData.fall; item.rotation.z += .02; if (item.position.y < -.8) item.position.y = 5 }
     if (item.userData.steam) { item.position.y += item.userData.steam; item.material.opacity = .18 + Math.sin(t * 2 + item.position.x) * .08; if (item.position.y > 2.4) item.position.y = .1 }
     if (item.userData.bolt) item.visible = Math.sin(t * 9 + item.userData.bolt) > .7
   })
+  activeEnvironmentRuntime?.update(t)
 
   // 雷电闪烁
-  if (store.weather === 'thunder' && Math.random() < 0.003) {
-    scene.background = new THREE.Color('#ffffff')
-    setTimeout(() => { scene.background = new THREE.Color('#1a1a2e') }, 80)
-  }
 
   renderer.render(scene, camera)
+  if (import.meta.env.DEV && canvasRef.value && ++debugFrame % 20 === 0) {
+    canvasRef.value.dataset.characterPosition = catModel?.group.position.toArray().map(value => value.toFixed(3)).join(',')
+    canvasRef.value.dataset.winterWorld = activeEnvironmentRuntime ? 'active' : 'inactive'
+  }
+}
+
+function startAnimation() {
+  if (animId != null || !clock) return
+  clock.getDelta()
+  animate()
+}
+
+function stopAnimation() {
+  if (animId != null) cancelAnimationFrame(animId)
+  animId = null
 }
 </script>
 

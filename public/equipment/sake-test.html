@@ -1,0 +1,293 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Sake Set — Tokkuri & Ochoko</title>
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body { background: #222; overflow: hidden; font-family: 'Segoe UI', sans-serif; }
+    #canvas-container { width: 100vw; height: 100vh; }
+    .overlay { position: absolute; top: 14px; left: 14px; color: #fff; }
+    .overlay h1 { font-size: 18px; margin-bottom: 4px; }
+    .overlay p { font-size: 12px; opacity: .7; }
+    .view-btns {
+      position: absolute; bottom: 18px; left: 50%; transform: translateX(-50%);
+      display: flex; gap: 8px; flex-wrap: wrap; justify-content: center;
+    }
+    .view-btns button {
+      background: rgba(255,255,255,.12); border: 1px solid rgba(255,255,255,.25);
+      color: #fff; padding: 6px 14px; border-radius: 6px; cursor: pointer;
+      font-size: 12px; backdrop-filter: blur(4px); transition: background .2s;
+    }
+    .view-btns button:hover { background: rgba(255,255,255,.25); }
+    #ref-img {
+      position: absolute; top: 14px; right: 14px;
+      width: 120px; height: 120px; object-fit: contain;
+      border: 1px solid rgba(255,255,255,.2); border-radius: 6px;
+      background: rgba(0,0,0,.3);
+    }
+  </style>
+  <script type="importmap">
+  {
+    "imports": {
+      "three": "https://unpkg.com/three@0.160.0/build/three.module.js",
+      "three/addons/": "https://unpkg.com/three@0.160.0/examples/jsm/"
+    }
+  }
+  </script>
+</head>
+<body>
+  <div id="canvas-container"></div>
+  <div class="overlay">
+    <h1>Sake Set</h1>
+    <p>Tokkuri (bottle) & Ochoko (cup) — procedural Three.js</p>
+  </div>
+  <img id="ref-img" src="sake.png" alt="Reference">
+  <div class="view-btns">
+    <button data-view="front">Front</button>
+    <button data-view="three-quarter">3/4</button>
+    <button data-view="side">Side</button>
+    <button data-view="top">Top</button>
+    <button id="spin">Auto Spin</button>
+  </div>
+
+  <script type="module">
+    import * as THREE from 'three';
+    import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
+
+    const scene = new THREE.Scene();
+    scene.background = new THREE.Color(0x1a1a2e);
+
+    const camera = new THREE.PerspectiveCamera(45, innerWidth / innerHeight, 0.1, 100);
+    camera.position.set(5, 5, 8);
+
+    const renderer = new THREE.WebGLRenderer({ antialias: true });
+    renderer.setSize(innerWidth, innerHeight);
+    renderer.shadowMap.enabled = true;
+    renderer.shadowMap.type = THREE.PCFSoftShadowMap;
+    document.getElementById('canvas-container').appendChild(renderer.domElement);
+
+    const controls = new OrbitControls(camera, renderer.domElement);
+    controls.enableDamping = true;
+    controls.target.set(0.8, 1.2, 0);
+
+    /* ── Lighting ── */
+    const ambient = new THREE.AmbientLight(0xffffff, 0.5);
+    scene.add(ambient);
+
+    const keyLight = new THREE.DirectionalLight(0xfff5e6, 1.2);
+    keyLight.position.set(4, 8, 5);
+    keyLight.castShadow = true;
+    keyLight.shadow.mapSize.set(1024, 1024);
+    scene.add(keyLight);
+
+    const fillLight = new THREE.DirectionalLight(0xe6f0ff, 0.4);
+    fillLight.position.set(-4, 4, -3);
+    scene.add(fillLight);
+
+    const rimLight = new THREE.PointLight(0xffeebb, 0.6, 12);
+    rimLight.position.set(-3, 5, -4);
+    scene.add(rimLight);
+
+    /* ── Materials ── */
+    const ceramicMat = new THREE.MeshStandardMaterial({
+      color: 0xF8F6F0, roughness: 0.25, metalness: 0.0,
+    });
+    const goldMat = new THREE.MeshStandardMaterial({
+      color: 0xD4AF37, roughness: 0.3, metalness: 0.8,
+    });
+    const sakeLiquidMat = new THREE.MeshStandardMaterial({
+      color: 0xF5F0D6, roughness: 0.1, metalness: 0.0,
+      transparent: true, opacity: 0.85,
+    });
+
+    const group = new THREE.Group();
+
+    /* ═══════════════════════════════════════
+       TOKKURI (清酒瓶)
+       ═══════════════════════════════════════ */
+
+    // Tokkuri profile points (radius, y) — rotated around Y axis
+    // From bottom to top: base → body → shoulder → neck → lip
+    const tokkuriPoints = [
+      [0.00, 0.00],      // bottom center
+      [0.75, 0.00],      // base edge
+      [0.78, 0.08],      // base corner
+      [0.80, 0.15],      // body start
+      [0.82, 0.60],      // body mid
+      [0.80, 1.10],      // body upper
+      [0.72, 1.45],      // shoulder start
+      [0.55, 1.70],      // shoulder → neck
+      [0.38, 1.90],      // neck lower
+      [0.35, 2.20],      // neck mid
+      [0.36, 2.45],      // neck upper (slight flare start)
+      [0.45, 2.60],      // lip lower
+      [0.48, 2.70],      // lip edge
+      [0.46, 2.70],      // lip inner (thickness)
+      [0.42, 2.60],      // inside lip
+      [0.33, 2.40],      // inside neck
+      [0.30, 2.10],      // inside neck mid
+      [0.32, 1.80],      // inside neck lower
+      [0.48, 1.50],      // inside shoulder
+      [0.70, 1.20],      // inside body upper
+      [0.74, 0.70],      // inside body mid
+      [0.72, 0.30],      // inside body lower
+      [0.68, 0.12],      // inside base
+      [0.00, 0.12],      // inside bottom
+    ];
+
+    const tokkuriGeo = new THREE.LatheGeometry(
+      tokkuriPoints.map(p => new THREE.Vector2(p[0], p[1])),
+      48
+    );
+    const tokkuri = new THREE.Mesh(tokkuriGeo, ceramicMat);
+    tokkuri.castShadow = true;
+    tokkuri.receiveShadow = true;
+    group.add(tokkuri);
+
+    // Gold band near bottom of tokkuri
+    const tokkuriBandGeo = new THREE.CylinderGeometry(0.805, 0.805, 0.10, 48, 1, true);
+    const tokkuriBand = new THREE.Mesh(tokkuriBandGeo, goldMat);
+    tokkuriBand.position.y = 0.35;
+    tokkuriBand.castShadow = true;
+    group.add(tokkuriBand);
+
+    // Gold band #2 — slightly above, thin accent line
+    const tokkuriBand2Geo = new THREE.CylinderGeometry(0.802, 0.802, 0.04, 48, 1, true);
+    const tokkuriBand2 = new THREE.Mesh(tokkuriBand2Geo, goldMat);
+    tokkuriBand2.position.y = 0.52;
+    group.add(tokkuriBand2);
+
+    /* ═══════════════════════════════════════
+       OCHOKO (小酒杯)
+       ═══════════════════════════════════════ */
+
+    const ochokoX = 1.6; // position to the right of tokkuri
+    const ochokoZ = 0.3;
+
+    // Ochoko profile — short cylindrical cup with slight taper
+    const ochokoPoints = [
+      [0.00, 0.00],
+      [0.45, 0.00],      // base
+      [0.47, 0.06],
+      [0.50, 0.12],      // lower body
+      [0.52, 0.30],      // mid body
+      [0.53, 0.48],      // upper body
+      [0.54, 0.58],      // rim outer
+      [0.52, 0.58],      // rim inner start
+      [0.50, 0.50],      // inside upper
+      [0.48, 0.35],      // inside mid
+      [0.46, 0.18],      // inside lower
+      [0.43, 0.08],      // inside base
+      [0.00, 0.08],
+    ];
+
+    const ochokoGeo = new THREE.LatheGeometry(
+      ochokoPoints.map(p => new THREE.Vector2(p[0], p[1])),
+      48
+    );
+    const ochoko = new THREE.Mesh(ochokoGeo, ceramicMat);
+    ochoko.position.set(ochokoX, 0, ochokoZ);
+    ochoko.castShadow = true;
+    ochoko.receiveShadow = true;
+    group.add(ochoko);
+
+    // Gold band on ochoko — near top (reference shows band near rim)
+    const ochokoBandGeo = new THREE.CylinderGeometry(0.525, 0.525, 0.08, 48, 1, true);
+    const ochokoBand = new THREE.Mesh(ochokoBandGeo, goldMat);
+    ochokoBand.position.set(ochokoX, 0.45, ochokoZ);
+    ochokoBand.castShadow = true;
+    group.add(ochokoBand);
+
+    // Gold band #2 — thin accent below
+    const ochokoBand2Geo = new THREE.CylinderGeometry(0.522, 0.522, 0.03, 48, 1, true);
+    const ochokoBand2 = new THREE.Mesh(ochokoBand2Geo, goldMat);
+    ochokoBand2.position.set(ochokoX, 0.35, ochokoZ);
+    group.add(ochokoBand2);
+
+    // Sake liquid in ochoko (filled about 70%)
+    const liquidGeo = new THREE.CircleGeometry(0.44, 32);
+    const liquid = new THREE.Mesh(liquidGeo, sakeLiquidMat);
+    liquid.rotation.x = -Math.PI / 2;
+    liquid.position.set(ochokoX, 0.38, ochokoZ);
+    group.add(liquid);
+
+    // Liquid meniscus (slight curved surface)
+    const meniscusGeo = new THREE.SphereGeometry(0.44, 32, 16, 0, Math.PI * 2, 0, 0.3);
+    const meniscus = new THREE.Mesh(meniscusGeo, sakeLiquidMat);
+    meniscus.position.set(ochokoX, 0.38, ochokoZ);
+    group.add(meniscus);
+
+    /* ── Ground plane ── */
+    const groundGeo = new THREE.PlaneGeometry(20, 20);
+    const groundMat = new THREE.MeshStandardMaterial({
+      color: 0x222233, roughness: 0.9, metalness: 0.1,
+    });
+    const ground = new THREE.Mesh(groundGeo, groundMat);
+    ground.rotation.x = -Math.PI / 2;
+    ground.position.y = 0;
+    ground.receiveShadow = true;
+    scene.add(ground);
+
+    // Subtle grid
+    const grid = new THREE.GridHelper(20, 40, 0x333344, 0x2a2a3a);
+    grid.position.y = 0.001;
+    scene.add(grid);
+
+    scene.add(group);
+
+    /* ── View presets ── */
+    const views = {
+      front:       { pos: [0, 2.5, 7],   target: [0.8, 1.2, 0] },
+      'three-quarter': { pos: [5, 4, 5],    target: [0.8, 1.2, 0] },
+      side:        { pos: [7, 2.5, 0],   target: [0.8, 1.2, 0] },
+      top:         { pos: [0, 8, 0.1],   target: [0.8, 1.2, 0] },
+    };
+
+    function animateCamera(pos, target) {
+      const startPos = camera.position.clone();
+      const startTarget = controls.target.clone();
+      const endPos = new THREE.Vector3(...pos);
+      const endTarget = new THREE.Vector3(...target);
+      let t = 0;
+      function step() {
+        t += 0.03;
+        if (t >= 1) { t = 1; }
+        const ease = 1 - Math.pow(1 - t, 3);
+        camera.position.lerpVectors(startPos, endPos, ease);
+        controls.target.lerpVectors(startTarget, endTarget, ease);
+        controls.update();
+        if (t < 1) requestAnimationFrame(step);
+      }
+      step();
+    }
+
+    document.querySelectorAll('.view-btns button[data-view]').forEach(btn => {
+      btn.addEventListener('click', () => {
+        const v = views[btn.dataset.view];
+        if (v) animateCamera(v.pos, v.target);
+      });
+    });
+
+    let spinning = false;
+    document.getElementById('spin').addEventListener('click', () => {
+      spinning = !spinning;
+    });
+
+    /* ── Render loop ── */
+    function animate() {
+      requestAnimationFrame(animate);
+      if (spinning) group.rotation.y += 0.008;
+      controls.update();
+      renderer.render(scene, camera);
+    }
+    animate();
+
+    addEventListener('resize', () => {
+      camera.aspect = innerWidth / innerHeight;
+      camera.updateProjectionMatrix();
+      renderer.setSize(innerWidth, innerHeight);
+    });
+  </script>
+</body>
+</html>
